@@ -15,8 +15,10 @@
 #include <ctime>
 #include <assert.h>
 #include <math.h>
+#include <algorithm>
 
 //#define DEBUG_HIP 1
+#define DEBUG_PM
 const double deg2rad = M_PI / 180.0;
 const double arcsec2deg =  (1.0 / 3600.0);
 const double mas2arcsec = (1.0 / 1000.0);
@@ -28,14 +30,15 @@ const float hip_byear = 1991.25; // Hipparcos Besellian Epoch
 const unsigned int hip_columns = 10;
 const unsigned int hip_rows = 117955;
 const unsigned int hip_header_rows = 55;
-const double b_thresh = 6.0; // Minimum brightness of db
+const double default_b_thresh = 6.0; // Minimum brightness of db
+const double default_a_thresh = 0.3; // Minimum angle between 2 stars
 
 // Database user settings
 
 
 enum {
-    DA,
-    DEC,
+    RA_J2000,
+    DE_J2000,
     HID,
     RA_ICRS,
     DE_ICRS,
@@ -91,7 +94,7 @@ int read_hipparcos(std::string h_file, Eigen::MatrixXd &hippo_data, const double
         }
 
         // If magnitude is below threshold, zero out row and continue
-        if (hippo_data(rcnt, HPMAG) > b_thresh)
+        if (float(hippo_data(rcnt, HPMAG)) > float(b_thresh))
         {
             rcnt++;
         }
@@ -127,6 +130,32 @@ void convert_hipparcos(Eigen::MatrixXd &hippo_data)
     hippo_data.col(PLX) *= mas2rad;
 }
 
+void sort_star_magnitude(Eigen::MatrixXd &hippo_data)
+{
+    std::vector<Eigen::VectorXd> vec;
+    for (int64_t i = 0; i < hippo_data.rows(); ++i)
+        vec.push_back(hippo_data.row(i));
+
+    std::sort(vec.begin(), vec.end(), [](Eigen::VectorXd const& t1, Eigen::VectorXd const& t2){ return t1(HPMAG) > t2(HPMAG); } );
+
+    for (int64_t i = 0; i < hippo_data.rows(); ++i)
+        hippo_data.row(i) = vec[i];
+}
+
+void filter_star_separation(Eigen::MatrixXd &hippo_data, double min_separation)
+{
+    // TODO: Remove stars near one another
+    // TODO: Remove 
+    
+}
+
+const float get_besselian_year()
+{
+    // MAJOR TODO: Replace with chrono / ERFA equivilent byear calculation. (See astropy.time.Time())
+    const float cur_byear = 2022.6583374268196;// "Current" Besellian Epoch (08/2022)
+    return cur_byear;   
+}
+
 // Coorect for stars motion per year from catalog date
 void proper_motion_correction(const Eigen::MatrixXd hippo_data, const Eigen::MatrixXd rBCRF, Eigen::MatrixXd &pmc)
 {
@@ -138,8 +167,11 @@ void proper_motion_correction(const Eigen::MatrixXd hippo_data, const Eigen::Mat
     Eigen::MatrixXd q_hat(hippo_data.rows(), 3);
     
 
-    // TODO: Replace with chrono / ERFA equivilent
-    const float cur_byear = 2022.6583374268196;// "Current" Besellian Epoch
+#ifdef DEBUG_PM
+    const float cur_byear = 2000.0012775136654;
+#else
+    const float cur_byear = get_besselian_year();
+#endif
 
     los.col(0) = hippo_data.col(RA_ICRS).array().cos() * hippo_data.col(DE_ICRS).array().cos();
     los.col(1) = hippo_data.col(RA_ICRS).array().sin() * hippo_data.col(DE_ICRS).array().cos();
@@ -158,15 +190,31 @@ void proper_motion_correction(const Eigen::MatrixXd hippo_data, const Eigen::Mat
 
     pmc = los + proper_motion - plx;
     pmc.rowwise().normalize();
+
+    #ifdef DEBUG_PM
+
+    // Check against PM J2000 calculations provided by VizieR
+    Eigen::MatrixXd hpmc(hippo_data.rows(), 3);
+    hpmc.col(0) = hippo_data.col(RA_J2000).array().cos() * hippo_data.col(RA_J2000).array().cos();
+    hpmc.col(1) = hippo_data.col(RA_J2000).array().sin() * hippo_data.col(DE_J2000).array().cos();
+    hpmc.col(2) = hippo_data.col(DE_J2000).array().sin();
+    hpmc.rowwise().normalize();
+
+    hpmc = hpmc - pmc;
+    std::cout << "Difference between VizieR proper motion is " << hpmc.sum() << std::endl;
+
+    #endif
+
 }
 
 int main()
 {
-    std::string h_file = "starcat.tsv";
+    std::string h_file = "Hipparcos.tsv";
     std::string db_name = "hippo";
     Eigen::MatrixXd all_data(hip_rows, hip_columns);
     Eigen::MatrixXd pmc(hip_rows, 3);
     Eigen::MatrixXd star_pairs(factorial(hip_rows), 2);
+    long test = factorial(hip_rows);
     
     // Barycentric Celestial Reference System (observer position relative to sun)
     // TODO: Replace to include parallax, currently ignoring
@@ -179,7 +227,7 @@ int main()
 
     if(!(file_exists(db_name)))
     {
-        int num_stars = read_hipparcos(h_file, all_data, b_thresh); 
+        int num_stars = read_hipparcos(h_file, all_data, default_b_thresh); 
         if ( num_stars > 0)
         {
             Eigen::VectorXi idx(num_stars);
@@ -187,6 +235,7 @@ int main()
             Eigen::MatrixXd bright_data(num_stars, hip_columns);
             bright_data = all_data(idx, Eigen::placeholders::all);
             convert_hipparcos(bright_data);
+            sort_star_magnitude(bright_data);
             proper_motion_correction(bright_data, rBCRF_Mat(idx, Eigen::placeholders::all), pmc); 
         }
         else
