@@ -10,12 +10,15 @@
 #include <memory>
 #include <array>
 #include <math.h>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <chrono>
 #include <ctime>
 #include <assert.h>
 #include <math.h>
 #include <algorithm>
+#include <experimental/filesystem>
+
+namespace fs = std::experimental::filesystem;
 
 //#define DEBUG_HIP 1
 #define DEBUG_PM
@@ -26,6 +29,7 @@ const double mas2rad = mas2arcsec * arcsec2deg * deg2rad;
 const double au2km = 149597870.691;
 
 // Hipparcos Info
+const fs::path default_hip_path("/../data/hipparcos.tsv"); // Default relative path
 const float hip_byear = 1991.25; // Hipparcos Besellian Epoch
 const unsigned int hip_columns = 10;
 const unsigned int hip_rows = 117955;
@@ -62,15 +66,10 @@ inline long factorial(const int n)
     return f;
 }
 
-int read_hipparcos(std::string h_file, Eigen::MatrixXd &hippo_data, const double b_thresh)
+int read_hipparcos(fs::path h_file, Eigen::MatrixXd &hippo_data, const double b_thresh)
 {
     std::ifstream data(h_file.c_str());
     unsigned int rcnt = 0, ccnt = 0;
-    std::string::size_type sz;
-
-    if(!data.is_open())
-        return -1;
-
     std::string lstr;
 
     // Skip header info
@@ -209,12 +208,18 @@ void proper_motion_correction(const Eigen::MatrixXd hippo_data, const Eigen::Mat
 
 int main()
 {
-    std::string h_file = "Hipparcos.tsv";
+    fs::path h_file = fs::current_path();
+    h_file += default_hip_path;
+
+    if (!fs::exists(h_file))
+        std::cout << "Does not exist: " << h_file.string() << std::endl;
+    else
+        std:: cout << "Hippo Path: " << h_file.string() << std::endl;
+
     std::string db_name = "hippo";
     Eigen::MatrixXd all_data(hip_rows, hip_columns);
     Eigen::MatrixXd pmc(hip_rows, 3);
     Eigen::MatrixXd star_pairs(factorial(hip_rows), 2);
-    long test = factorial(hip_rows);
     
     // Barycentric Celestial Reference System (observer position relative to sun)
     // TODO: Replace to include parallax, currently ignoring

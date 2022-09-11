@@ -5,6 +5,17 @@ project( StarHash )
 set(CMAKE_CXX_STANDARD 17)  # enable C++17 standard
 #set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
 
+# Build Configures
+message("Build with " ${CMAKE_CXX_COMPILER_ID})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -lstdc++fs -Wall ")
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif()
+
+if( NOT CMAKE_BUILD_TYPE )
+   set( CMAKE_BUILD_TYPE Debug)
+endif()
+
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
@@ -30,6 +41,7 @@ if (EIGEN3_FOUND)
 endif()
 
 list( APPEND USER_INC ${PROJECT_SOURCE_DIR/include})
+list( APPEND LINK_LIBS stdc++fs)
 
 # Set Static Link Runtime Library
 if( OpenCV_STATIC )
