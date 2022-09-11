@@ -58,14 +58,6 @@ inline bool file_exists(const std::string& name) {
     return (stat (name.c_str(), &buffer) == 0);
 }
 
-inline long factorial(const int n)
-{
-    long f = 1;
-    for (int i=1; i<=n; ++i)
-        f *= i;
-    return f;
-}
-
 int read_hipparcos(fs::path h_file, Eigen::MatrixXd &hippo_data, const double b_thresh)
 {
     std::ifstream data(h_file.c_str());
@@ -206,7 +198,7 @@ void proper_motion_correction(const Eigen::MatrixXd hippo_data, const Eigen::Mat
 
 }
 
-int main()
+int main(int argc, char **argv)
 {
     fs::path h_file = fs::current_path();
     h_file += default_hip_path;
@@ -219,7 +211,6 @@ int main()
     std::string db_name = "hippo";
     Eigen::MatrixXd all_data(hip_rows, hip_columns);
     Eigen::MatrixXd pmc(hip_rows, 3);
-    Eigen::MatrixXd star_pairs(factorial(hip_rows), 2);
     
     // Barycentric Celestial Reference System (observer position relative to sun)
     // TODO: Replace to include parallax, currently ignoring
