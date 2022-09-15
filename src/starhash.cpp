@@ -20,8 +20,11 @@
 
 namespace fs = std::experimental::filesystem;
 
+/* Helpful debug flags */
 //#define DEBUG_HIP 1
 #define DEBUG_PM
+#define DEBUG_CSV_OUTPUTS
+
 const double deg2rad = M_PI / 180.0;
 const double arcsec2deg =  (1.0 / 3600.0);
 const double mas2arcsec = (1.0 / 1000.0);
@@ -34,11 +37,30 @@ const float hip_byear = 1991.25; // Hipparcos Besellian Epoch
 const unsigned int hip_columns = 10;
 const unsigned int hip_rows = 117955;
 const unsigned int hip_header_rows = 55;
+
+// Tetra thresholding
+//const double default_b_thresh = 6.5; // Minimum brightness of db
+//const double min_separation_angle = 0.5; // Minimum angle between 2 stars (ifov degrees)
+//const double min_separation = std::cos(min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
+//const unsigned int pattern_stars_per_fov = 10;
+//const unsigned int catalog_stars_per_fov = 20;
+//const float max_fov_angle = 20.0; 
+//const float max_half_fov = std::cos(max_fov_angle * deg2rad / 2.0);
+
+// Database thresholding
 const double default_b_thresh = 6.0; // Minimum brightness of db
-const double default_a_thresh = 0.3; // Minimum angle between 2 stars
+const double min_separation_angle = 0.3; // Minimum angle between 2 stars (ifov degrees)
+const double min_separation = std::cos(min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
+const unsigned int pattern_stars_per_fov = 30;
+const unsigned int catalog_stars_per_fov = 60;
+const double max_fov_angle = 65.8;
+const double max_half_fov = std::cos(max_fov_angle * deg2rad / 2.0);
+const double star_bins = 4.0;
+
 
 // Database user settings
 
+// Camera settings
 
 enum {
     RA_J2000,
@@ -50,12 +72,46 @@ enum {
     PMRA,
     PMDE,
     HPMAG,
-    COLOUR
+    COLOUR,
+    SIZE_ELEMS
 };
 
-inline bool file_exists(const std::string& name) {
+typedef Eigen::Array<bool,Eigen::Dynamic,1> ArrayXb;
+const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+
+template <typename Derived>
+void write_to_csv(std::string name, const Eigen::MatrixBase<Derived>& matrix)
+{
+    std::ofstream file(name.c_str());
+    file << matrix.format(CSVFormat);
+    file.close();
+}
+
+inline bool file_exists(const std::string& name) 
+{
     struct stat buffer;
     return (stat (name.c_str(), &buffer) == 0);
+}
+
+bool create_dir(fs::path dir_name)
+{
+    std::error_code err;
+    if(!fs::create_directory(dir_name, err))
+    {
+        if(fs::exists(dir_name))
+        {
+            return true;
+        }
+        else 
+        {
+            std::printf("Failed to create [%s], err:%s\n", dir_name.c_str(), err.message().c_str());
+            return false;
+        }
+    }
+    else 
+    {
+        return true;
+    }
 }
 
 int read_hipparcos(fs::path h_file, Eigen::MatrixXd &hippo_data, const double b_thresh)
@@ -80,12 +136,19 @@ int read_hipparcos(fs::path h_file, Eigen::MatrixXd &hippo_data, const double b_
 #ifdef DEBUG_HIP
             std::cout << std::stod(num) << " "; 
 #endif
-            hippo_data(rcnt, ccnt) = std::stod(num);
-            ccnt++;
+            if (ccnt < hip_columns)
+            {
+                hippo_data(rcnt, ccnt) = std::stod(num);
+                ccnt++;
+            }
+            else 
+            {
+                return -rcnt;
+            }
         }
 
         // If magnitude is below threshold, zero out row and continue
-        if (float(hippo_data(rcnt, HPMAG)) > float(b_thresh))
+        if ((ccnt > 0) && (float(hippo_data(rcnt, HPMAG)) < float(b_thresh))) 
         {
             rcnt++;
         }
@@ -133,11 +196,60 @@ void sort_star_magnitude(Eigen::MatrixXd &hippo_data)
         hippo_data.row(i) = vec[i];
 }
 
-void filter_star_separation(Eigen::MatrixXd &hippo_data, double min_separation)
+void filter_star_separation(Eigen::MatrixXd pmc, ArrayXb &ang_pattern_idx, ArrayXb &ang_verify_idx)
 {
     // TODO: Remove stars near one another
-    // TODO: Remove 
-    
+    Eigen::ArrayXd ang_pattern_stars = Eigen::ArrayXd(pmc.rows());
+    Eigen::ArrayXd temp_ang = Eigen::ArrayXd(pmc.rows());
+    ArrayXb temp_ang_pattern_idx = ArrayXb::Constant(pmc.rows(),false);
+    ang_pattern_idx(0) = true;
+    ang_verify_idx(0) = true;
+    double num_stars_in_fov = -1;
+
+    for (int ii = 1; ii < pmc.rows(); ii++)
+    {
+        ang_pattern_stars = pmc(ii, Eigen::all) * pmc.transpose();
+        temp_ang_pattern_idx = (ang_pattern_stars < min_separation); 
+        temp_ang_pattern_idx = temp_ang_pattern_idx || !ang_pattern_idx;
+        if (temp_ang_pattern_idx.all())
+        {
+            temp_ang = ang_pattern_stars.cwiseProduct(ang_pattern_idx.cast <double> ());
+            temp_ang_pattern_idx = temp_ang.array() > max_half_fov;
+            num_stars_in_fov = temp_ang_pattern_idx.cast <int>().sum();
+            if (num_stars_in_fov < pattern_stars_per_fov)
+            {
+                ang_pattern_idx(ii) = true;
+                ang_verify_idx(ii) = true;
+            }
+        }
+        
+        temp_ang_pattern_idx = (ang_pattern_stars < min_separation);
+        temp_ang_pattern_idx = temp_ang_pattern_idx || !ang_verify_idx;
+        if (temp_ang_pattern_idx.all())
+        {
+            temp_ang = ang_pattern_stars.cwiseProduct(ang_verify_idx.cast <double> ());
+            temp_ang_pattern_idx = temp_ang.array() > max_half_fov;
+            num_stars_in_fov = temp_ang_pattern_idx.cast<int>().sum();
+            if(num_stars_in_fov < catalog_stars_per_fov)
+            {
+                ang_verify_idx(ii) = true;
+            }
+        }
+
+    }
+}
+
+void init_hash_table(Eigen::MatrixXd star_table, std::map<Eigen::MatrixXi,std::list<int>> course_sky_map)
+{
+    // TODO: Verify/Pattern Indexing
+    //Eigen::MatrixXi codes = Eigen::MatrixXi(star_table.size());
+    //codes = (star_bins * (star_table.array() + 1)).cast<int>();
+    //for(int ii = 0; ii < codes.rows(); ii++)
+    //{
+        // Nope, also need to check for list set of unique ids
+        //course_sky_map[codes.row(ii)].push_back(ii);
+
+    //}
 }
 
 const float get_besselian_year()
@@ -150,6 +262,7 @@ const float get_besselian_year()
 // Coorect for stars motion per year from catalog date
 void proper_motion_correction(const Eigen::MatrixXd hippo_data, const Eigen::MatrixXd rBCRF, Eigen::MatrixXd &pmc)
 {
+    // TODO: Determine numpy vs eigen 7th decimal place differences in this math
     assert(hippo_data.rows() > hippo_data.cols());
     Eigen::MatrixXd proper_motion(hippo_data.rows(), 3);
     Eigen::MatrixXd plx(hippo_data.rows(), 3);
@@ -159,7 +272,8 @@ void proper_motion_correction(const Eigen::MatrixXd hippo_data, const Eigen::Mat
     
 
 #ifdef DEBUG_PM
-    const float cur_byear = 2000.0012775136654;
+    // const float cur_byear = 2000.0012775136654;
+    const float cur_byear = 2022.7028553603136; // Sept 13, 2022 21:30 CST
 #else
     const float cur_byear = get_besselian_year();
 #endif
@@ -200,8 +314,10 @@ void proper_motion_correction(const Eigen::MatrixXd hippo_data, const Eigen::Mat
 
 int main(int argc, char **argv)
 {
-    fs::path h_file = fs::current_path();
-    h_file += default_hip_path;
+    fs::path base = fs::current_path() / "..";
+    fs::path output = base / "results";
+    fs::path h_file = base / "data" / "hipparcos.tsv";
+    create_dir(output);
 
     if (!fs::exists(h_file))
         std::cout << "Does not exist: " << h_file.string() << std::endl;
@@ -211,6 +327,7 @@ int main(int argc, char **argv)
     std::string db_name = "hippo";
     Eigen::MatrixXd all_data(hip_rows, hip_columns);
     Eigen::MatrixXd pmc(hip_rows, 3);
+    std::map<Eigen::MatrixXi,std::list<int>> course_sky_map;
     
     // Barycentric Celestial Reference System (observer position relative to sun)
     // TODO: Replace to include parallax, currently ignoring
@@ -229,16 +346,33 @@ int main(int argc, char **argv)
             Eigen::VectorXi idx(num_stars);
             idx = Eigen::VectorXi::LinSpaced(num_stars, 0, num_stars - 1);
             Eigen::MatrixXd bright_data(num_stars, hip_columns);
-            bright_data = all_data(idx, Eigen::placeholders::all);
+            ArrayXb ang_pattern_idx = ArrayXb::Constant(num_stars, false);
+            ArrayXb ang_verify_idx = ArrayXb::Constant(num_stars, false);
+            
+            bright_data = all_data(idx, Eigen::all);
             convert_hipparcos(bright_data);
             sort_star_magnitude(bright_data);
-            proper_motion_correction(bright_data, rBCRF_Mat(idx, Eigen::placeholders::all), pmc); 
+            proper_motion_correction(bright_data, rBCRF_Mat(idx, Eigen::all), pmc); 
+            filter_star_separation(pmc, ang_pattern_idx, ang_verify_idx);
+            init_hash_table(pmc, course_sky_map); 
+            std::printf("Retained %d out of %d stars for pattern matching\n", (int)ang_pattern_idx.cast<int>().sum(), (int)ang_pattern_idx.size());
+            std::flush(std::cout);
+
+#ifdef DEBUG_CSV_OUTPUTS
+            fs::path bright_stars = output / "bright.csv";
+            write_to_csv(bright_stars, bright_data);
+#endif
         }
         else
         {
             std::cout << "Failed to read hipparcos" << std::endl;
         }
     }
+
+#ifdef DEBUG_CSV_OUTPUTS
+    fs::path pmc_path = output / "pmc.csv";
+    write_to_csv(pmc_path, pmc);
+#endif
 
     std::cout << "End Starhash" << std::endl;
     return 0;
