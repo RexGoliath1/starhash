@@ -18,7 +18,6 @@ endif()
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Set StartUp Project
@@ -28,7 +27,9 @@ set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME} )
 set( OpenCV_DIR /home/gonk/opencv/build ) 
 option( OpenCV_STATIC OFF )
 find_package( OpenCV REQUIRED )
-find_package( Eigen3 3.3 REQUIRED )
+find_package( Eigen3 3.4 REQUIRED )
+
+list(APPEND USER_INC ${PROJECT_SOURCE_DIR}/include)
 
 if (OpenCV_FOUND)
   list(APPEND USER_INC ${OpenCV_INCLUDE_DIRS} )
@@ -58,6 +59,8 @@ endif()
 
 # Additional Include Directories
 include_directories( ${USER_INC} )
+
+message("PROJECT_SOUCE_DIR: ${PROJECT_SOURCE_DIR}")
 
 file(GLOB ALL_SRC
   "${PROJECT_SOURCE_DIR}/include/*.h"

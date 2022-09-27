@@ -1,22 +1,4 @@
-#include "opencv2/opencv.hpp"
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <cstdlib>
-#include <cstdio>
-#include <sys/stat.h>
-#include <fstream>
-#include <inttypes.h>
-#include <memory>
-#include <array>
-#include <math.h>
-#include <eigen3/Eigen/Dense>
-#include <chrono>
-#include <ctime>
-#include <assert.h>
-#include <math.h>
-#include <algorithm>
-#include <experimental/filesystem>
+#include "starhash.hpp"
 
 namespace fs = std::experimental::filesystem;
 
@@ -24,6 +6,7 @@ namespace fs = std::experimental::filesystem;
 //#define DEBUG_HIP 1
 #define DEBUG_PM
 #define DEBUG_CSV_OUTPUTS
+#define DEBUG_HASH
 
 const double deg2rad = M_PI / 180.0;
 const double arcsec2deg =  (1.0 / 3600.0);
@@ -45,7 +28,7 @@ const unsigned int hip_header_rows = 55;
 //const unsigned int pattern_stars_per_fov = 10;
 //const unsigned int catalog_stars_per_fov = 20;
 //const float max_fov_angle = 20.0; 
-//const float max_half_fov = std::cos(max_fov_angle * deg2rad / 2.0);
+//const float max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
 
 // Database thresholding
 const double default_b_thresh = 6.0; // Minimum brightness of db
@@ -54,8 +37,10 @@ const double min_separation = std::cos(min_separation_angle * deg2rad); // Minim
 const unsigned int pattern_stars_per_fov = 30;
 const unsigned int catalog_stars_per_fov = 60;
 const double max_fov_angle = 65.8;
-const double max_half_fov = std::cos(max_fov_angle * deg2rad / 2.0);
-const double star_bins = 4.0;
+const double max_fov_dist = std::cos(max_fov_angle * deg2rad);
+const double max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
+const unsigned int temp_star_bins = 4;
+const unsigned int pattern_size = 4;
 
 
 // Database user settings
@@ -76,7 +61,25 @@ enum {
     SIZE_ELEMS
 };
 
+
+// Hash function for Eigen Matricies 
+template<typename T>
+struct matrix_hash : std::unary_function<T, size_t> {
+  std::size_t operator()(T const& matrix) const {
+    // Note that it is oblivious to the storage order of Eigen matrix (column- or
+    // row-major). It will give you the same hash value for two different matrices if they
+    // are the transpose of each other in different storage order.
+    size_t seed = 0;
+    for (size_t i = 0; i < (size_t)matrix.size(); ++i) {
+      auto elem = *(matrix.data() + i);
+      seed ^= std::hash<typename T::Scalar>()(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+    return seed;
+  }
+};
+
 typedef Eigen::Array<bool,Eigen::Dynamic,1> ArrayXb;
+
 const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
 
 template <typename Derived>
@@ -196,7 +199,7 @@ void sort_star_magnitude(Eigen::MatrixXd &hippo_data)
         hippo_data.row(i) = vec[i];
 }
 
-void filter_star_separation(Eigen::MatrixXd pmc, ArrayXb &ang_pattern_idx, ArrayXb &ang_verify_idx)
+void filter_star_separation(Eigen::MatrixXd pmc, ArrayXb &ang_pattern_idx, ArrayXb &ang_verify_idx, std::vector<int>&ang_pattern_vec, std::vector<int>&ang_verify_vec)
 {
     // TODO: Remove stars near one another
     Eigen::ArrayXd ang_pattern_stars = Eigen::ArrayXd(pmc.rows());
@@ -204,53 +207,129 @@ void filter_star_separation(Eigen::MatrixXd pmc, ArrayXb &ang_pattern_idx, Array
     ArrayXb temp_ang_pattern_idx = ArrayXb::Constant(pmc.rows(),false);
     ang_pattern_idx(0) = true;
     ang_verify_idx(0) = true;
+    ang_pattern_vec.push_back(0);
+    ang_verify_vec.push_back(0);
     double num_stars_in_fov = -1;
+
+    
 
     for (int ii = 1; ii < pmc.rows(); ii++)
     {
+        // Pattern test: Number of pattern stars (hash/ISA) per FOV
         ang_pattern_stars = pmc(ii, Eigen::all) * pmc.transpose();
         temp_ang_pattern_idx = (ang_pattern_stars < min_separation); 
         temp_ang_pattern_idx = temp_ang_pattern_idx || !ang_pattern_idx;
         if (temp_ang_pattern_idx.all())
         {
             temp_ang = ang_pattern_stars.cwiseProduct(ang_pattern_idx.cast <double> ());
-            temp_ang_pattern_idx = temp_ang.array() > max_half_fov;
+            temp_ang_pattern_idx = temp_ang.array() > max_half_fov_dist;
             num_stars_in_fov = temp_ang_pattern_idx.cast <int>().sum();
             if (num_stars_in_fov < pattern_stars_per_fov)
             {
                 ang_pattern_idx(ii) = true;
                 ang_verify_idx(ii) = true;
+                ang_pattern_vec.push_back(ii);
+                ang_verify_vec.push_back(ii);
             }
         }
         
+        // Verification test: Number of catalog stars (hash/ISA) per FOV
         temp_ang_pattern_idx = (ang_pattern_stars < min_separation);
         temp_ang_pattern_idx = temp_ang_pattern_idx || !ang_verify_idx;
         if (temp_ang_pattern_idx.all())
         {
             temp_ang = ang_pattern_stars.cwiseProduct(ang_verify_idx.cast <double> ());
-            temp_ang_pattern_idx = temp_ang.array() > max_half_fov;
+            temp_ang_pattern_idx = temp_ang.array() > max_half_fov_dist;
             num_stars_in_fov = temp_ang_pattern_idx.cast<int>().sum();
             if(num_stars_in_fov < catalog_stars_per_fov)
             {
                 ang_verify_idx(ii) = true;
+                ang_verify_vec.push_back(ii);
             }
         }
 
     }
+
 }
 
-void init_hash_table(Eigen::MatrixXd star_table, std::map<Eigen::MatrixXi,std::list<int>> course_sky_map)
+
+void init_hash_table(Eigen::MatrixXd star_table, std::unordered_map<Eigen::MatrixXi,std::list<int>, matrix_hash<Eigen::MatrixXi>> &course_sky_map) 
 {
-    // TODO: Verify/Pattern Indexing
-    //Eigen::MatrixXi codes = Eigen::MatrixXi(star_table.size());
-    //codes = (star_bins * (star_table.array() + 1)).cast<int>();
-    //for(int ii = 0; ii < codes.rows(); ii++)
-    //{
-        // Nope, also need to check for list set of unique ids
-        //course_sky_map[codes.row(ii)].push_back(ii);
+    Eigen::MatrixXi codes = Eigen::MatrixXi(star_table.cols(), star_table.rows());
+    codes = ((double)temp_star_bins * (star_table.array() + 1)).cast<int>();
 
-    //}
+// Debug IO
+#ifdef DEBUG_HASH
+const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols,  ", ");
+#endif
+
+    for(int ii = 0; ii < codes.rows(); ii++)
+    {
+#ifdef DEBUG_HASH
+        std::cout << "Star Table Row: " << star_table.row(ii).format(fmt) << std::endl; 
+        std::cout << "Codes Row: " << codes.row(ii).format(fmt) << std::endl;
+#endif
+        course_sky_map[codes.row(ii)].push_back(ii);
+    }
+
+#ifdef DEBUG_HASH
+            Eigen::MatrixXi test(3,1);
+            test = ((double)temp_star_bins * (star_table.row(0).array() + 1)).cast<int>();
+            std::cout << "List: ";
+            const std::list<int> llist = course_sky_map[test];
+            if (llist.empty())
+                std::cout << "Hash map is empty for tested code/key" << std::endl;
+            else
+            {
+                for ( const auto &item : llist ) std::cout << item << ' ';
+                std::cout << '\n';
+            }
+#endif
+
+
 }
+
+void get_nearby_stars(std::unordered_map<Eigen::MatrixXi,std::list<int>, matrix_hash<Eigen::MatrixXi>> &course_sky_map, Eigen::MatrixXd verify_star_map, Eigen::Vector3d star_vector, std::list<int> &nearby_stars) 
+{
+    // Vector to fill in with hash codes for indexing
+    Eigen::Vector3i codes, low_codes, high_codes;
+    Eigen::Vector3i zeros = Eigen::Vector3i::Zero();
+    Eigen::Vector3i bin_limit = int(2 * temp_star_bins) * Eigen::Vector3i::Ones();
+    std::list<int> star_ids;
+
+    low_codes = (temp_star_bins * (star_vector.array() + 1.0 - max_fov_dist)).cast <int> ();
+    low_codes.array().max(zeros.array());
+    high_codes = (temp_star_bins * (star_vector.array() + 1.0 + max_fov_dist)).cast <int> ();
+    high_codes.array().min(bin_limit.array());
+
+
+    // For all nearby star hash codes (+/- FOV) get list of nearby stars for new hash map
+    for(int ii = low_codes(0); ii <= high_codes(0); ii++)
+    {
+        for(int jj = low_codes(1); jj <= high_codes(1); jj++)
+        {
+            for(int kk = low_codes(2); kk <= high_codes(2); kk++)
+            {
+                codes[0] = ii;
+                codes[1] = jj;
+                codes[2] = kk;
+                star_ids = course_sky_map[codes];
+                
+                for (const int & star_id : star_ids)
+                {
+                    double dp = star_vector.dot(verify_star_map.row(star_id));
+                    if(dp > max_fov_dist)
+                    {
+                        nearby_stars.push_back(star_id);
+                    }
+                }
+            }
+        }
+    }
+
+
+}
+
 
 const float get_besselian_year()
 {
@@ -327,7 +406,7 @@ int main(int argc, char **argv)
     std::string db_name = "hippo";
     Eigen::MatrixXd all_data(hip_rows, hip_columns);
     Eigen::MatrixXd pmc(hip_rows, 3);
-    std::map<Eigen::MatrixXi,std::list<int>> course_sky_map;
+    std::unordered_map<Eigen::MatrixXi, std::list<int>, matrix_hash<Eigen::MatrixXi>> course_sky_map;
     
     // Barycentric Celestial Reference System (observer position relative to sun)
     // TODO: Replace to include parallax, currently ignoring
@@ -346,6 +425,8 @@ int main(int argc, char **argv)
             Eigen::VectorXi idx(num_stars);
             idx = Eigen::VectorXi::LinSpaced(num_stars, 0, num_stars - 1);
             Eigen::MatrixXd bright_data(num_stars, hip_columns);
+            std::vector<int> ang_pattern_vec;
+            std::vector<int> ang_verify_vec; 
             ArrayXb ang_pattern_idx = ArrayXb::Constant(num_stars, false);
             ArrayXb ang_verify_idx = ArrayXb::Constant(num_stars, false);
             
@@ -353,15 +434,22 @@ int main(int argc, char **argv)
             convert_hipparcos(bright_data);
             sort_star_magnitude(bright_data);
             proper_motion_correction(bright_data, rBCRF_Mat(idx, Eigen::all), pmc); 
-            filter_star_separation(pmc, ang_pattern_idx, ang_verify_idx);
-            init_hash_table(pmc, course_sky_map); 
+            filter_star_separation(pmc, ang_pattern_idx, ang_verify_idx, ang_pattern_vec, ang_verify_vec);
             std::printf("Retained %d out of %d stars for pattern matching\n", (int)ang_pattern_idx.cast<int>().sum(), (int)ang_pattern_idx.size());
-            std::flush(std::cout);
+            std::printf("Retained %d out of %d stars for pattern verification\n", (int)ang_verify_idx.cast<int>().sum(), (int)ang_verify_idx.size());
+            std::cout << std::endl;
+            Eigen::MatrixXd valid_pmc_table = pmc(ang_verify_vec, Eigen::all); 
+            Eigen::MatrixXd pattern_pmc_table = pmc(ang_pattern_vec, Eigen::all); 
+            init_hash_table(valid_pmc_table, course_sky_map); 
+            std::cout << "Generating all possible patterns" << std::endl;
+
+
 
 #ifdef DEBUG_CSV_OUTPUTS
             fs::path bright_stars = output / "bright.csv";
             write_to_csv(bright_stars, bright_data);
 #endif
+
         }
         else
         {
