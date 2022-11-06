@@ -1,5 +1,13 @@
 #include "starhash.hpp"
 
+/* SBG List of Major TODO's */
+// 1. Vector -> Array 
+//      - Limit vector growth.
+//      - Need to determine max star neighborhoods for given FOV / Star Catalog Parameters
+//      - This is only neccessary for FSW, not this database generation
+// 2. Possible double to float conversion (in FSW, fine here. MatrixXd -> MatrixXf).
+// 3. Make invariant to catalog (GAIA + BCBS import)
+
 namespace fs = std::experimental::filesystem;
 
 /* Helpful debug flags */
@@ -21,6 +29,8 @@ const unsigned int hip_columns = 10;
 const unsigned int hip_rows = 117955;
 const unsigned int hip_header_rows = 55;
 
+const int magic_number = 2654435761;
+
 // Tetra thresholding
 //const double default_b_thresh = 6.5; // Minimum brightness of db
 //const double min_separation_angle = 0.5; // Minimum angle between 2 stars (ifov degrees)
@@ -41,6 +51,9 @@ const double max_fov_dist = std::cos(max_fov_angle * deg2rad);
 const double max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
 const unsigned int temp_star_bins = 4;
 const unsigned int pattern_size = 4;
+const unsigned int num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
+const int pattern_bins = 25;
+
 
 
 // Database user settings
@@ -253,7 +266,7 @@ void filter_star_separation(Eigen::MatrixXd pmc, ArrayXb &ang_pattern_idx, Array
 }
 
 
-void init_hash_table(Eigen::MatrixXd star_table, std::unordered_map<Eigen::MatrixXi,std::list<int>, matrix_hash<Eigen::MatrixXi>> &course_sky_map) 
+void init_hash_table(Eigen::MatrixXd star_table, std::unordered_map<Eigen::Vector3i,std::vector<int>, matrix_hash<Eigen::Vector3i>> &course_sky_map) 
 {
     Eigen::MatrixXi codes = Eigen::MatrixXi(star_table.cols(), star_table.rows());
     codes = ((double)temp_star_bins * (star_table.array() + 1)).cast<int>();
@@ -273,10 +286,10 @@ const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols,  ", ");
     }
 
 #ifdef DEBUG_HASH
-            Eigen::MatrixXi test(3,1);
+            Eigen::Vector3i test(3,1);
             test = ((double)temp_star_bins * (star_table.row(0).array() + 1)).cast<int>();
             std::cout << "List: ";
-            const std::list<int> llist = course_sky_map[test];
+            const std::vector<int> llist = course_sky_map[test];
             if (llist.empty())
                 std::cout << "Hash map is empty for tested code/key" << std::endl;
             else
@@ -289,13 +302,27 @@ const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols,  ", ");
 
 }
 
-void get_nearby_stars(std::unordered_map<Eigen::MatrixXi,std::list<int>, matrix_hash<Eigen::MatrixXi>> &course_sky_map, Eigen::MatrixXd verify_star_map, Eigen::Vector3d star_vector, std::list<int> &nearby_stars) 
+// int key_to_index(Eigen::Vector3i key, int bin_factor, int max_index)
+// {
+//     key * bin_factor;
+// }
+
+// def _key_to_index(key, int bin_factor, int max_index):
+//     """Get hash index for a given key."""
+//     # Get key as a single integer
+//     index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+//     # Randomise by magic constant and modulo to maximum index
+//     return (index * _MAGIC_RAND) % max_index
+
+void get_nearby_stars(std::unordered_map<Eigen::Vector3i,std::vector<int>, matrix_hash<Eigen::Vector3i>> course_sky_map, Eigen::MatrixXd verify_star_map, Eigen::Vector3d star_vector, std::vector<int> &nearby_stars) 
 {
+    // TODO: Figure out why map is empty ... (Also skip self-id from entry lookup)
     // Vector to fill in with hash codes for indexing
-    Eigen::Vector3i codes, low_codes, high_codes;
+    Eigen::Vector3i low_codes, high_codes;
+    Eigen::Vector3i codes; 
     Eigen::Vector3i zeros = Eigen::Vector3i::Zero();
     Eigen::Vector3i bin_limit = int(2 * temp_star_bins) * Eigen::Vector3i::Ones();
-    std::list<int> star_ids;
+    std::vector<int> star_ids;
 
     low_codes = (temp_star_bins * (star_vector.array() + 1.0 - max_fov_dist)).cast <int> ();
     low_codes.array().max(zeros.array());
@@ -304,6 +331,7 @@ void get_nearby_stars(std::unordered_map<Eigen::MatrixXi,std::list<int>, matrix_
 
 
     // For all nearby star hash codes (+/- FOV) get list of nearby stars for new hash map
+    // TODO: Codes should never be negative. May want to cast all associated hashes to unsigned
     for(int ii = low_codes(0); ii <= high_codes(0); ii++)
     {
         for(int jj = low_codes(1); jj <= high_codes(1); jj++)
@@ -330,6 +358,158 @@ void get_nearby_stars(std::unordered_map<Eigen::MatrixXi,std::list<int>, matrix_
 
 }
 
+// void combo_breaker(std::vector<int>star_ids, std::vector<int>& combos, int offset, int k) {
+//   if (k == 0) {
+//     return;
+//   }
+//   for (long unsigned int ii = offset; ii <= star_ids.size() - k; ++ii) {
+//     combos.push_back(star_ids[ii]);
+//     combo_breaker(star_ids, combos, ii+1, k-1);
+//     combos.pop_back();
+//   }
+// }
+
+bool is_star_pattern_in_fov(std::vector<int> nearby_star_combo, Eigen::MatrixXd star_table, Eigen::Array edges)
+{
+    assert(nearby_star_combo.size() == pattern_size);
+    std::vector<int> star_pair;
+    std::vector<int> selector(pattern_size);
+
+    
+    // Only checking all pair angles
+    std::fill(selector.begin(), selector.begin() + 2, 1);
+
+    bool all_stars_in_fov = true;
+    double dot_p;
+    // Eigen::ArrayXf edges = Eigen::ArrayXf::Zero(num_pattern_angles);
+    unsigned int cnt = 0;
+
+    // TODO: Make Fixed Vector3d. Requires star_table to be Matrix3d 
+    Eigen::VectorXd star_vector_1;
+    Eigen::VectorXd star_vector_2;
+    Eigen::VectorXi hash_code;
+
+    do {
+        // Check if number checked exceeds number of actual permutations
+        if(cnt > num_pattern_angles)
+            throw std::out_of_range("Star FOV check exceeded expected permutations\n");
+
+        for(unsigned int ii = 0; ii < pattern_size; ii++)
+        {
+            if(selector[ii])
+            {
+                star_pair.push_back(nearby_star_combo[ii]);
+            }
+        }
+
+        // Filter out stars outside FOV and compute edges        
+        star_vector_1 = star_table.row(star_pair[0]);
+        star_vector_2 = star_table.row(star_pair[1]);
+        dot_p = star_vector_1.dot(star_vector_2);
+
+        
+        star_vector_1 -= star_vector_2;
+        edges[cnt] = star_vector_1.norm();
+
+        if (dot_p < max_fov_dist)
+        {
+            all_stars_in_fov = false;
+            break;
+        }
+
+        if(!all_stars_in_fov)
+        {
+            star_pair.clear();
+            break;
+        }
+        else 
+        {
+            // 
+        }
+        star_pair.clear();
+        cnt++;
+    }
+    while(std::prev_permutation(selector.begin(), selector.end()));
+
+    if ((cnt == num_pattern_angles) && (all_stars_in_fov))
+    {
+        std::sort(edges.begin(), edges.end());
+        edges /= edges.maxCoeff();
+    }
+
+    return all_stars_in_fov;
+}
+
+
+void get_nearby_star_combo(std::vector<int> nearby_stars, Eigen::MatrixXd star_table, int star_id)
+{
+    int n = nearby_stars.size();
+    std::vector<int> nearby_star_combo;
+    std::vector<int> selector(n);
+    Eigen::MatrixXd vectors;
+    const unsigned int catalog_length = 2 * n;
+    Eigen::Array<double, num_pattern_angles, 1> edges; 
+
+    // pattern_size - 1 : Find combinations of stars with current star
+    std::fill(selector.begin(), selector.begin() + pattern_size - 1, 1);
+
+    do {
+        nearby_star_combo.push_back(star_id);
+        for (int ii = 0; ii < n; ii++)
+        {
+            if(selector[ii])
+            {
+                nearby_star_combo.push_back(nearby_stars[ii]);
+            }
+        }
+
+        if(is_star_pattern_in_fov(nearby_star_combo, star_table, edges))
+        {
+            // Do the thing (Put pattern ids into map as hash codes)
+            hash_code = (edges * (double)pattern_bins).cast<int>();
+            hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
+            std::cout << "Found a pair:";
+            for (auto star: nearby_star_combo)
+                std::cout << " " << star;
+
+            std::cout << std::endl;
+        }
+
+        nearby_star_combo.clear();
+    }
+    while(std::prev_permutation(selector.begin(), selector.end()));
+}
+
+void key_to_index(Eigen::VectorXd hash_code, const unsigned int pattern_bins, const unsigned int catalog_length)
+{
+    Eigen::VectorXd index = hash_code * std::pow(pattern_bins, 2);
+    return (index.sum() * magic_number) % catalog_length;
+
+}
+
+// def _key_to_index(key, bin_factor, max_index):
+//     """Get hash index for a given key."""
+//     # Get key as a single integer
+//     index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+//     # Randomise by magic constant and modulo to maximum index
+//     return (index * _MAGIC_RAND) % max_index
+
+void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int>, matrix_hash<Eigen::Vector3i>> &course_sky_map, Eigen::MatrixXd star_table, std::vector<int> ang_verify_vec) 
+{
+    std::vector<int> nearby_stars;
+    std::vector<int> nearby_star_combos;
+    Eigen::Vector3d star_vector; 
+    Eigen::Matrix3d star_vector_combos;
+    int star_id;
+
+    for(long unsigned int ii = 0; ii < ang_verify_vec.size(); ii++)
+    {
+        star_id = ang_verify_vec[ii];
+        star_vector = star_table.row(ang_verify_vec[ii]);
+        get_nearby_stars(course_sky_map, star_table, star_vector, nearby_stars);
+        get_nearby_star_combo(nearby_stars, star_table, star_id);
+    }
+}
 
 const float get_besselian_year()
 {
@@ -406,7 +586,7 @@ int main(int argc, char **argv)
     std::string db_name = "hippo";
     Eigen::MatrixXd all_data(hip_rows, hip_columns);
     Eigen::MatrixXd pmc(hip_rows, 3);
-    std::unordered_map<Eigen::MatrixXi, std::list<int>, matrix_hash<Eigen::MatrixXi>> course_sky_map;
+    std::unordered_map<Eigen::Vector3i, std::vector<int>, matrix_hash<Eigen::Vector3i>> course_sky_map;
     
     // Barycentric Celestial Reference System (observer position relative to sun)
     // TODO: Replace to include parallax, currently ignoring
@@ -441,8 +621,20 @@ int main(int argc, char **argv)
             Eigen::MatrixXd valid_pmc_table = pmc(ang_verify_vec, Eigen::all); 
             Eigen::MatrixXd pattern_pmc_table = pmc(ang_pattern_vec, Eigen::all); 
             init_hash_table(valid_pmc_table, course_sky_map); 
-            std::cout << "Generating all possible patterns" << std::endl;
+#ifdef DEBUG_HASH
+            Eigen::Vector3i codes;
+            codes << 4, 0, 5;
+            std::vector<int> testing;
+            testing = course_sky_map[codes];
+            for (auto v : testing)
+                std::cout << v << "\n";
 
+            std::cout << std::endl;
+#endif
+
+
+            std::cout << "Generating all possible patterns" << std::endl;
+            generate_pattern_catalog(course_sky_map, pmc, ang_pattern_vec);
 
 
 #ifdef DEBUG_CSV_OUTPUTS
