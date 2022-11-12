@@ -7,6 +7,8 @@
 //      - This is only neccessary for FSW, not this database generation
 // 2. Possible double to float conversion (in FSW, fine here. MatrixXd -> MatrixXf).
 // 3. Make invariant to catalog (GAIA + BCBS import)
+// 4. For all vectors that can't become arrays (do these exist?), make sure to explicitly clear before losing scope (break, continue, etc).
+// 5. Run Code coverage / static analysis to check above works.
 
 namespace fs = std::experimental::filesystem;
 
@@ -302,17 +304,6 @@ const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols,  ", ");
 
 }
 
-// int key_to_index(Eigen::Vector3i key, int bin_factor, int max_index)
-// {
-//     key * bin_factor;
-// }
-
-// def _key_to_index(key, int bin_factor, int max_index):
-//     """Get hash index for a given key."""
-//     # Get key as a single integer
-//     index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-//     # Randomise by magic constant and modulo to maximum index
-//     return (index * _MAGIC_RAND) % max_index
 
 void get_nearby_stars(std::unordered_map<Eigen::Vector3i,std::vector<int>, matrix_hash<Eigen::Vector3i>> course_sky_map, Eigen::MatrixXd verify_star_map, Eigen::Vector3d star_vector, std::vector<int> &nearby_stars) 
 {
@@ -369,7 +360,7 @@ void get_nearby_stars(std::unordered_map<Eigen::Vector3i,std::vector<int>, matri
 //   }
 // }
 
-bool is_star_pattern_in_fov(std::vector<int> nearby_star_combo, Eigen::MatrixXd star_table, Eigen::Array edges)
+bool is_star_pattern_in_fov(std::vector<int> nearby_star_combo, Eigen::MatrixXd star_table, Eigen::Array<double, num_pattern_angles, 1> edges)
 {
     assert(nearby_star_combo.size() == pattern_size);
     std::vector<int> star_pair;
@@ -414,7 +405,6 @@ bool is_star_pattern_in_fov(std::vector<int> nearby_star_combo, Eigen::MatrixXd 
         if (dot_p < max_fov_dist)
         {
             all_stars_in_fov = false;
-            break;
         }
 
         if(!all_stars_in_fov)
@@ -440,6 +430,16 @@ bool is_star_pattern_in_fov(std::vector<int> nearby_star_combo, Eigen::MatrixXd 
     return all_stars_in_fov;
 }
 
+int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length)
+{
+	const unsigned int rng_size = hash_code.size();
+	Eigen::VectorXi key_range = Eigen::VectorXi::LinSpaced(rng_size, 0, rng_size - 1);
+    Eigen::VectorXi pat_bin_cast= Eigen::VectorXi::Ones(rng_size);
+	Eigen::VectorXi index = hash_code.array() * Eigen::pow(pat_bin_cast.array(), key_range.array());
+
+    // TODO: Carefully check python types to see if this matches TETRA Logic
+	return (int(index.sum() * magic_number) % catalog_length);
+}
 
 void get_nearby_star_combo(std::vector<int> nearby_stars, Eigen::MatrixXd star_table, int star_id)
 {
@@ -449,6 +449,10 @@ void get_nearby_star_combo(std::vector<int> nearby_stars, Eigen::MatrixXd star_t
     Eigen::MatrixXd vectors;
     const unsigned int catalog_length = 2 * n;
     Eigen::Array<double, num_pattern_angles, 1> edges; 
+    // TODO: uint16 matrix class necessary? (Could pull this up one level)
+    Eigen::MatrixXi pattern_catalog = Eigen::VectorXi::Zero(catalog_length, pattern_size);
+    int quadprobe_count = 0;
+
 
     // pattern_size - 1 : Find combinations of stars with current star
     std::fill(selector.begin(), selector.begin() + pattern_size - 1, 1);
@@ -466,8 +470,35 @@ void get_nearby_star_combo(std::vector<int> nearby_stars, Eigen::MatrixXd star_t
         if(is_star_pattern_in_fov(nearby_star_combo, star_table, edges))
         {
             // Do the thing (Put pattern ids into map as hash codes)
-            hash_code = (edges * (double)pattern_bins).cast<int>();
-            hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
+		    Eigen::VectorXi hash_code = (edges * (double)pattern_bins).cast<int>();
+            
+            int hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
+            // SBG Note: This changes the logic flow slightly. In Tetra, pattern_list consists of all star combinations.
+            // Therefore hash code and thus edges are done for all stars only after confirming FOV for all star combinations.
+            // I think it is okay to do this all at once instead, but pattern_catalog must be accessable outside.
+            // Recommend: Keep logic, and move pattern_catalog outside.
+            // Problem: catalog_length is then unknown since we don't know pattern_list size ... 
+            // Problem 2: Making pattern_catalog dynamic breaks quadratic probling..
+            // Solution: Sucks, but need to move edge calculation outside.
+            // Next: append star_combos to dynamic list in loop in catalog_generate
+            // Next: Make pattern_catalog size of this dynamic array.
+            // Next: 2nd loop to iterate over pattern_list insertions from star_combo 1st loop
+            // Next: Move edge logic and perform key_to_index and quad probing
+            // Next Save everything to big structure
+
+            // Use quadratic probing to find an open space in the pattern catalog to insert
+            // Dangerous af, might want to constrain this, but Tetra does not.
+            while(true)
+            {
+                int index = (hash_index + (int)std::pow(quadprobe_count, 2)) % (int)pattern_catalog.rows();
+                if (pattern_catalog[index, 0] != 0)
+                {
+                    // This doesn't work. Need to change from vector to array and be careful.
+                    pattern_catalog[index, 0] = nearby_star_combo;
+                    break;
+                }
+                quadprobe_count++;
+            }
             std::cout << "Found a pair:";
             for (auto star: nearby_star_combo)
                 std::cout << " " << star;
@@ -480,12 +511,6 @@ void get_nearby_star_combo(std::vector<int> nearby_stars, Eigen::MatrixXd star_t
     while(std::prev_permutation(selector.begin(), selector.end()));
 }
 
-void key_to_index(Eigen::VectorXd hash_code, const unsigned int pattern_bins, const unsigned int catalog_length)
-{
-    Eigen::VectorXd index = hash_code * std::pow(pattern_bins, 2);
-    return (index.sum() * magic_number) % catalog_length;
-
-}
 
 // def _key_to_index(key, bin_factor, max_index):
 //     """Get hash index for a given key."""
@@ -501,12 +526,15 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
     Eigen::Vector3d star_vector; 
     Eigen::Matrix3d star_vector_combos;
     int star_id;
+    Eigen::MatrixXi pattern_catalog = Eigen::VectorXi::Zero(catalog_length, pattern_size);
 
     for(long unsigned int ii = 0; ii < ang_verify_vec.size(); ii++)
     {
         star_id = ang_verify_vec[ii];
         star_vector = star_table.row(ang_verify_vec[ii]);
+        // For each star kept for pattern matching and verificaiton, find all nearby stars in FOV
         get_nearby_stars(course_sky_map, star_table, star_vector, nearby_stars);
+        // For all stars nearby, for each combination of "pattern_size" stars, 
         get_nearby_star_combo(nearby_stars, star_table, star_id);
     }
 }
