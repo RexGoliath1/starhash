@@ -56,6 +56,8 @@ const unsigned int pattern_size = 4;
 const unsigned int num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
 const int pattern_bins = 25;
 
+// Global counter for pattern_list
+int pattern_list_size = 0;
 
 
 // Database user settings
@@ -349,36 +351,79 @@ void get_nearby_stars(std::unordered_map<Eigen::Vector3i,std::vector<int>, matri
 
 }
 
-// void combo_breaker(std::vector<int>star_ids, std::vector<int>& combos, int offset, int k) {
-//   if (k == 0) {
-//     return;
-//   }
-//   for (long unsigned int ii = offset; ii <= star_ids.size() - k; ++ii) {
-//     combos.push_back(star_ids[ii]);
-//     combo_breaker(star_ids, combos, ii+1, k-1);
-//     combos.pop_back();
-//   }
-// }
-
-bool is_star_pattern_in_fov(std::vector<int> nearby_star_combo, Eigen::MatrixXd star_table, Eigen::Array<double, num_pattern_angles, 1> edges)
+void append_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_star_pattern, Eigen::MatrixXd star_table) 
 {
-    assert(nearby_star_combo.size() == pattern_size);
-    std::vector<int> star_pair;
-    std::vector<int> selector(pattern_size);
-
+    // Make sure passed in Star ID combination matches pattern_size
+    assert(nearby_star_pattern.size() == pattern_size);
     
-    // Only checking all pair angles
+    // Checking all pair angles
+    std::vector<int> star_pair, selector(pattern_size);
     std::fill(selector.begin(), selector.begin() + 2, 1);
 
     bool all_stars_in_fov = true;
     double dot_p;
-    // Eigen::ArrayXf edges = Eigen::ArrayXf::Zero(num_pattern_angles);
     unsigned int cnt = 0;
 
     // TODO: Make Fixed Vector3d. Requires star_table to be Matrix3d 
-    Eigen::VectorXd star_vector_1;
-    Eigen::VectorXd star_vector_2;
-    Eigen::VectorXi hash_code;
+    Eigen::VectorXd star_vector_1, star_vector_2;
+    int* pat_ptr = &nearby_star_pattern[0];
+    Eigen::Map<Eigen::VectorXi> star_pattern_vec(pat_ptr, nearby_star_pattern.size()); 
+
+    // Eigen::VectorXi star_pattern_vec(nearby_star_pattern.data());
+
+
+    do {
+        // Check if number checked exceeds number of actual permutations
+        if(cnt > num_pattern_angles)
+            throw std::runtime_error("Star FOV check exceeded expected permutations\n");
+
+        for(unsigned int ii = 0; ii < pattern_size; ii++)
+        {
+            if(selector[ii])
+            {
+                star_pair.push_back(nearby_star_pattern[ii]);
+            }
+        }
+
+        // Filter out stars outside FOV and compute edges        
+        star_vector_1 = star_table.row(star_pair[0]);
+        star_vector_2 = star_table.row(star_pair[1]);
+        dot_p = star_vector_1.dot(star_vector_2);
+
+        if (dot_p < max_fov_dist)
+        {
+            all_stars_in_fov = false;
+            star_pair.clear();
+            break;
+        }
+
+        star_pair.clear();
+        cnt++;
+    }
+    while(std::prev_permutation(selector.begin(), selector.end()));
+
+    if(all_stars_in_fov)
+    {
+        // Add pattern to pattern_list
+        pattern_list_size++;
+        pattern_list.conservativeResize(pattern_list_size, Eigen::NoChange);
+        pattern_list.row(pattern_list.rows() - 1) =  star_pattern_vec;
+    }
+}
+
+void get_star_edge_pattern(Eigen::VectorXi nearby_star_combo, Eigen::MatrixXd star_table, Eigen::Array<double, num_pattern_angles, 1> edges)
+{
+    assert(nearby_star_combo.cols() == pattern_size);
+    std::vector<int> star_pair, selector(pattern_size);
+    
+    // Only checking all pair angles
+    std::fill(selector.begin(), selector.begin() + 2, 1);
+
+    double dot_p;
+    unsigned int cnt = 0;
+
+    // TODO: Make Fixed Vector3d. Requires star_table to be Matrix3d 
+    Eigen::VectorXd star_vector_1, star_vector_2;
 
     do {
         // Check if number checked exceeds number of actual permutations
@@ -402,32 +447,19 @@ bool is_star_pattern_in_fov(std::vector<int> nearby_star_combo, Eigen::MatrixXd 
         star_vector_1 -= star_vector_2;
         edges[cnt] = star_vector_1.norm();
 
-        if (dot_p < max_fov_dist)
-        {
-            all_stars_in_fov = false;
-        }
+        // If star pattern contains angles outside FOV, somthing went wrong in prior pattern_list creation
+        assert(dot_p < max_fov_dist);
 
-        if(!all_stars_in_fov)
-        {
-            star_pair.clear();
-            break;
-        }
-        else 
-        {
-            // 
-        }
         star_pair.clear();
         cnt++;
     }
     while(std::prev_permutation(selector.begin(), selector.end()));
 
-    if ((cnt == num_pattern_angles) && (all_stars_in_fov))
-    {
-        std::sort(edges.begin(), edges.end());
-        edges /= edges.maxCoeff();
-    }
+    // If edge count != num_pattern_angles, expected combination not correct
+    assert(cnt == num_pattern_angles);
 
-    return all_stars_in_fov;
+    std::sort(edges.begin(), edges.end());
+    edges /= edges.maxCoeff();
 }
 
 int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length)
@@ -441,83 +473,37 @@ int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, con
 	return (int(index.sum() * magic_number) % catalog_length);
 }
 
-void get_nearby_star_combo(std::vector<int> nearby_stars, Eigen::MatrixXd star_table, int star_id)
+void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_stars, Eigen::MatrixXd star_table, int star_id)
 {
     int n = nearby_stars.size();
-    std::vector<int> nearby_star_combo;
+    std::vector<int> nearby_star_pattern;
     std::vector<int> selector(n);
-    Eigen::MatrixXd vectors;
     const unsigned int catalog_length = 2 * n;
     Eigen::Array<double, num_pattern_angles, 1> edges; 
     // TODO: uint16 matrix class necessary? (Could pull this up one level)
     Eigen::MatrixXi pattern_catalog = Eigen::VectorXi::Zero(catalog_length, pattern_size);
-    int quadprobe_count = 0;
 
+    // Vector of star indicies that contains pattern size combinatorics (k choose n pattern FOV checks)
+    std::vector<int> pattern(pattern_size);
 
     // pattern_size - 1 : Find combinations of stars with current star
     std::fill(selector.begin(), selector.begin() + pattern_size - 1, 1);
 
     do {
-        nearby_star_combo.push_back(star_id);
+        nearby_star_pattern.push_back(star_id);
         for (int ii = 0; ii < n; ii++)
         {
             if(selector[ii])
             {
-                nearby_star_combo.push_back(nearby_stars[ii]);
+                nearby_star_pattern.push_back(nearby_stars[ii]);
             }
         }
 
-        if(is_star_pattern_in_fov(nearby_star_combo, star_table, edges))
-        {
-            // Do the thing (Put pattern ids into map as hash codes)
-		    Eigen::VectorXi hash_code = (edges * (double)pattern_bins).cast<int>();
-            
-            int hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
-            // SBG Note: This changes the logic flow slightly. In Tetra, pattern_list consists of all star combinations.
-            // Therefore hash code and thus edges are done for all stars only after confirming FOV for all star combinations.
-            // I think it is okay to do this all at once instead, but pattern_catalog must be accessable outside.
-            // Recommend: Keep logic, and move pattern_catalog outside.
-            // Problem: catalog_length is then unknown since we don't know pattern_list size ... 
-            // Problem 2: Making pattern_catalog dynamic breaks quadratic probling..
-            // Solution: Sucks, but need to move edge calculation outside.
-            // Next: append star_combos to dynamic list in loop in catalog_generate
-            // Next: Make pattern_catalog size of this dynamic array.
-            // Next: 2nd loop to iterate over pattern_list insertions from star_combo 1st loop
-            // Next: Move edge logic and perform key_to_index and quad probing
-            // Next Save everything to big structure
-
-            // Use quadratic probing to find an open space in the pattern catalog to insert
-            // Dangerous af, might want to constrain this, but Tetra does not.
-            while(true)
-            {
-                int index = (hash_index + (int)std::pow(quadprobe_count, 2)) % (int)pattern_catalog.rows();
-                if (pattern_catalog[index, 0] != 0)
-                {
-                    // This doesn't work. Need to change from vector to array and be careful.
-                    pattern_catalog[index, 0] = nearby_star_combo;
-                    break;
-                }
-                quadprobe_count++;
-            }
-            std::cout << "Found a pair:";
-            for (auto star: nearby_star_combo)
-                std::cout << " " << star;
-
-            std::cout << std::endl;
-        }
-
-        nearby_star_combo.clear();
+        append_star_pattern_in_fov(pattern_list, nearby_star_pattern, star_table);
+        nearby_star_pattern.clear();
     }
     while(std::prev_permutation(selector.begin(), selector.end()));
 }
-
-
-// def _key_to_index(key, bin_factor, max_index):
-//     """Get hash index for a given key."""
-//     # Get key as a single integer
-//     index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-//     # Randomise by magic constant and modulo to maximum index
-//     return (index * _MAGIC_RAND) % max_index
 
 void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int>, matrix_hash<Eigen::Vector3i>> &course_sky_map, Eigen::MatrixXd star_table, std::vector<int> ang_verify_vec) 
 {
@@ -526,16 +512,57 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
     Eigen::Vector3d star_vector; 
     Eigen::Matrix3d star_vector_combos;
     int star_id;
-    Eigen::MatrixXi pattern_catalog = Eigen::VectorXi::Zero(catalog_length, pattern_size);
+
+    Eigen::VectorXi pattern(pattern_size);
+    Eigen::MatrixXi pattern_list;
+    int quadprobe_count;
+
+    Eigen::Array<double, num_pattern_angles, 1> edges; 
 
     for(long unsigned int ii = 0; ii < ang_verify_vec.size(); ii++)
     {
         star_id = ang_verify_vec[ii];
         star_vector = star_table.row(ang_verify_vec[ii]);
+
         // For each star kept for pattern matching and verificaiton, find all nearby stars in FOV
         get_nearby_stars(course_sky_map, star_table, star_vector, nearby_stars);
-        // For all stars nearby, for each combination of "pattern_size" stars, 
-        get_nearby_star_combo(nearby_stars, star_table, star_id);
+
+        // For all stars nearby, find each star pattern combination (pattern_size)
+        // If pattern contains star angles within FOV limits, add to pattern_list 
+        get_nearby_star_patterns(pattern_list, nearby_stars, star_table, star_id);
+    }
+
+    // TODO: Move this into higher level Class / Structure. This is our catalog
+    int catalog_length = 2 * pattern_list.rows();
+    // WARNING: This is not how Tetra does this. They init to zeros.. But that is (possibly) a legitimate star in the pattern
+    // Starhash inits to -1 (TODO: Macro) to avoid star ID conflicts
+    Eigen::MatrixXi pattern_catalog = -1 * Eigen::MatrixXi::Ones(catalog_length, pattern_size);
+
+    // For all pattens in pattern_list, find hash and insert into pattern_catalog
+    for(long unsigned int ii = 0; ii < (unsigned int)pattern_list.rows(); ii++)
+    {
+        quadprobe_count = 0;
+
+        // For each pattern, get edges
+        pattern = pattern_list.row(ii);
+        get_star_edge_pattern(pattern, star_table, edges);
+        Eigen::VectorXi hash_code = (edges * (double)pattern_bins).cast<int>();
+        int hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
+
+        // Use quadratic probing to find an open space in the pattern catalog to insert
+        // TODO: Check if quad probe bounding is required to avoid infinite loops
+        while(true)
+        {
+            int index = (hash_index + (int)std::pow(quadprobe_count, 2)) % (int)pattern_catalog.rows();
+            if (pattern_catalog(index, 0) != -1)
+            {
+                // This doesn't work. Need to change from vector to array and be careful.
+                pattern_catalog.row(index) = pattern;
+                break;
+            }
+            quadprobe_count++;
+        }
+
     }
 }
 
