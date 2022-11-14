@@ -27,7 +27,8 @@ set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME} )
 set( OpenCV_DIR /home/gonk/opencv/build ) 
 option( OpenCV_STATIC OFF )
 find_package( OpenCV REQUIRED )
-find_package( Eigen3 3.4 REQUIRED )
+find_package(PkgConfig)
+pkg_search_module( Eigen3 REQUIRED eigen3)
 
 list(APPEND USER_INC ${PROJECT_SOURCE_DIR}/include)
 

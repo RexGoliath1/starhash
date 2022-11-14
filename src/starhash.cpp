@@ -14,9 +14,9 @@ namespace fs = std::experimental::filesystem;
 
 /* Helpful debug flags */
 //#define DEBUG_HIP 1
-#define DEBUG_PM
-#define DEBUG_CSV_OUTPUTS
-#define DEBUG_HASH
+// #define DEBUG_PM
+// #define DEBUG_CSV_OUTPUTS
+// #define DEBUG_HASH
 
 const double deg2rad = M_PI / 180.0;
 const double arcsec2deg =  (1.0 / 3600.0);
@@ -43,12 +43,12 @@ const int magic_number = 2654435761;
 //const float max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
 
 // Database thresholding
-const double default_b_thresh = 6.0; // Minimum brightness of db
-const double min_separation_angle = 0.3; // Minimum angle between 2 stars (ifov degrees)
+const double default_b_thresh = 11.0; // Minimum brightness of db
+const double min_separation_angle = 0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for dealing with double / close stars)
 const double min_separation = std::cos(min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
-const unsigned int pattern_stars_per_fov = 30;
-const unsigned int catalog_stars_per_fov = 60;
-const double max_fov_angle = 65.8;
+const unsigned int pattern_stars_per_fov = 20;
+const unsigned int catalog_stars_per_fov = 30;
+const double max_fov_angle = 42;
 const double max_fov_dist = std::cos(max_fov_angle * deg2rad);
 const double max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
 const unsigned int temp_star_bins = 4;
@@ -58,6 +58,7 @@ const int pattern_bins = 25;
 
 // Global counter for pattern_list
 int pattern_list_size = 0;
+int pattern_list_growth = 20000;
 
 
 // Database user settings
@@ -168,7 +169,7 @@ int read_hipparcos(fs::path h_file, Eigen::MatrixXd &hippo_data, const double b_
         }
 
         // If magnitude is below threshold, zero out row and continue
-        if ((ccnt > 0) && (float(hippo_data(rcnt, HPMAG)) < float(b_thresh))) 
+        if ((ccnt > 0) && (float(hippo_data(rcnt, HPMAG)) > float(b_thresh))) 
         {
             rcnt++;
         }
@@ -233,7 +234,7 @@ void filter_star_separation(Eigen::MatrixXd pmc, ArrayXb &ang_pattern_idx, Array
     for (int ii = 1; ii < pmc.rows(); ii++)
     {
         // Pattern test: Number of pattern stars (hash/ISA) per FOV
-        ang_pattern_stars = pmc(ii, Eigen::all) * pmc.transpose();
+        ang_pattern_stars = pmc(ii, Eigen::placeholders::all) * pmc.transpose();
         temp_ang_pattern_idx = (ang_pattern_stars < min_separation); 
         temp_ang_pattern_idx = temp_ang_pattern_idx || !ang_pattern_idx;
         if (temp_ang_pattern_idx.all())
@@ -302,8 +303,6 @@ const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols,  ", ");
                 std::cout << '\n';
             }
 #endif
-
-
 }
 
 
@@ -339,7 +338,7 @@ void get_nearby_stars(std::unordered_map<Eigen::Vector3i,std::vector<int>, matri
                 for (const int & star_id : star_ids)
                 {
                     double dp = star_vector.dot(verify_star_map.row(star_id));
-                    if(dp > max_fov_dist)
+                    if((dp > max_fov_dist) && (dp < min_separation))
                     {
                         nearby_stars.push_back(star_id);
                     }
@@ -368,9 +367,6 @@ void append_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> 
     Eigen::VectorXd star_vector_1, star_vector_2;
     int* pat_ptr = &nearby_star_pattern[0];
     Eigen::Map<Eigen::VectorXi> star_pattern_vec(pat_ptr, nearby_star_pattern.size()); 
-
-    // Eigen::VectorXi star_pattern_vec(nearby_star_pattern.data());
-
 
     do {
         // Check if number checked exceeds number of actual permutations
@@ -406,14 +402,16 @@ void append_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> 
     {
         // Add pattern to pattern_list
         pattern_list_size++;
-        pattern_list.conservativeResize(pattern_list_size, Eigen::NoChange);
+        if(pattern_list_size > pattern_list.rows())
+            pattern_list.conservativeResize(pattern_list.rows() + pattern_list_growth, Eigen::NoChange);
         pattern_list.row(pattern_list.rows() - 1) =  star_pattern_vec;
     }
+
 }
 
 void get_star_edge_pattern(Eigen::VectorXi nearby_star_combo, Eigen::MatrixXd star_table, Eigen::Array<double, num_pattern_angles, 1> edges)
 {
-    assert(nearby_star_combo.cols() == pattern_size);
+    assert(nearby_star_combo.size() == pattern_size);
     std::vector<int> star_pair, selector(pattern_size);
     
     // Only checking all pair angles
@@ -448,7 +446,7 @@ void get_star_edge_pattern(Eigen::VectorXi nearby_star_combo, Eigen::MatrixXd st
         edges[cnt] = star_vector_1.norm();
 
         // If star pattern contains angles outside FOV, somthing went wrong in prior pattern_list creation
-        assert(dot_p < max_fov_dist);
+        assert(dot_p > max_fov_dist);
 
         star_pair.clear();
         cnt++;
@@ -478,13 +476,6 @@ void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> ne
     int n = nearby_stars.size();
     std::vector<int> nearby_star_pattern;
     std::vector<int> selector(n);
-    const unsigned int catalog_length = 2 * n;
-    Eigen::Array<double, num_pattern_angles, 1> edges; 
-    // TODO: uint16 matrix class necessary? (Could pull this up one level)
-    Eigen::MatrixXi pattern_catalog = Eigen::VectorXi::Zero(catalog_length, pattern_size);
-
-    // Vector of star indicies that contains pattern size combinatorics (k choose n pattern FOV checks)
-    std::vector<int> pattern(pattern_size);
 
     // pattern_size - 1 : Find combinations of stars with current star
     std::fill(selector.begin(), selector.begin() + pattern_size - 1, 1);
@@ -513,29 +504,40 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
     Eigen::Matrix3d star_vector_combos;
     int star_id;
 
+    // TODO: uint16 matrix class necessary? (Could pull this up one level)
+    Eigen::MatrixXi pattern_list(1, pattern_size);
     Eigen::VectorXi pattern(pattern_size);
-    Eigen::MatrixXi pattern_list;
     int quadprobe_count;
 
     Eigen::Array<double, num_pattern_angles, 1> edges; 
+    time_t tstart, tend;
 
     for(long unsigned int ii = 0; ii < ang_verify_vec.size(); ii++)
     {
+        tstart = time(0);
+        nearby_stars.clear(); // lol, quite important.
         star_id = ang_verify_vec[ii];
         star_vector = star_table.row(ang_verify_vec[ii]);
+        std::cout << "Looking for patterns near star id " << star_id << std::endl;
+
 
         // For each star kept for pattern matching and verificaiton, find all nearby stars in FOV
         get_nearby_stars(course_sky_map, star_table, star_vector, nearby_stars);
+        std::cout << "Number of Neighbors = " << nearby_stars.size() << std::endl;
 
         // For all stars nearby, find each star pattern combination (pattern_size)
         // If pattern contains star angles within FOV limits, add to pattern_list 
         get_nearby_star_patterns(pattern_list, nearby_stars, star_table, star_id);
+        tend = time(0);
+        std::cout << "Took " << difftime(tend, tstart) << " Seconds." << std::endl;
     }
+
+    pattern_list.conservativeResize(pattern_list_size, Eigen::NoChange);
 
     // TODO: Move this into higher level Class / Structure. This is our catalog
     int catalog_length = 2 * pattern_list.rows();
     // WARNING: This is not how Tetra does this. They init to zeros.. But that is (possibly) a legitimate star in the pattern
-    // Starhash inits to -1 (TODO: Macro) to avoid star ID conflicts
+    // Starhash inits to -1 (TODO: Macro of -1 ) to avoid star ID conflicts
     Eigen::MatrixXi pattern_catalog = -1 * Eigen::MatrixXi::Ones(catalog_length, pattern_size);
 
     // For all pattens in pattern_list, find hash and insert into pattern_catalog
@@ -554,7 +556,7 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
         while(true)
         {
             int index = (hash_index + (int)std::pow(quadprobe_count, 2)) % (int)pattern_catalog.rows();
-            if (pattern_catalog(index, 0) != -1)
+            if (pattern_catalog(index, 0) == -1)
             {
                 // This doesn't work. Need to change from vector to array and be careful.
                 pattern_catalog.row(index) = pattern;
@@ -665,16 +667,16 @@ int main(int argc, char **argv)
             ArrayXb ang_pattern_idx = ArrayXb::Constant(num_stars, false);
             ArrayXb ang_verify_idx = ArrayXb::Constant(num_stars, false);
             
-            bright_data = all_data(idx, Eigen::all);
+            bright_data = all_data(idx, Eigen::placeholders::all);
             convert_hipparcos(bright_data);
             sort_star_magnitude(bright_data);
-            proper_motion_correction(bright_data, rBCRF_Mat(idx, Eigen::all), pmc); 
+            proper_motion_correction(bright_data, rBCRF_Mat(idx, Eigen::placeholders::all), pmc); 
             filter_star_separation(pmc, ang_pattern_idx, ang_verify_idx, ang_pattern_vec, ang_verify_vec);
             std::printf("Retained %d out of %d stars for pattern matching\n", (int)ang_pattern_idx.cast<int>().sum(), (int)ang_pattern_idx.size());
             std::printf("Retained %d out of %d stars for pattern verification\n", (int)ang_verify_idx.cast<int>().sum(), (int)ang_verify_idx.size());
             std::cout << std::endl;
-            Eigen::MatrixXd valid_pmc_table = pmc(ang_verify_vec, Eigen::all); 
-            Eigen::MatrixXd pattern_pmc_table = pmc(ang_pattern_vec, Eigen::all); 
+            Eigen::MatrixXd valid_pmc_table = pmc(ang_verify_vec, Eigen::placeholders::all); 
+            Eigen::MatrixXd pattern_pmc_table = pmc(ang_pattern_vec, Eigen::placeholders::all); 
             init_hash_table(valid_pmc_table, course_sky_map); 
 #ifdef DEBUG_HASH
             Eigen::Vector3i codes;
