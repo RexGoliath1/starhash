@@ -27,6 +27,7 @@ set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME} )
 set( OpenCV_DIR /home/gonk/opencv/build ) 
 option( OpenCV_STATIC OFF )
 find_package( OpenCV REQUIRED )
+find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
 find_package(PkgConfig)
 pkg_search_module( Eigen3 REQUIRED eigen3)
 
@@ -40,6 +41,14 @@ endif()
 if (EIGEN3_FOUND)
   list( APPEND USER_INC ${EIGEN3_INCLUDE_DIR} )
   list( APPEND LINK_LIBS ${EIGEN3_LIBRARIES})
+endif()
+
+if (HDF5_FOUND)
+ message("HDF5 Found!")
+ message("${HDF5_INCLUDE_DIRS}")
+ message("${HDF5_LIBRARIES}")
+	list(APPEND USER_INC ${HDF5_INCLUDE_DIRS})
+	list(APPEND LINK_LIBS ${HDF5_CXX_LIBRARIES})
 endif()
 
 list( APPEND USER_INC ${PROJECT_SOURCE_DIR/include})
@@ -73,7 +82,7 @@ file(GLOB ALL_SRC
 add_executable( ${CMAKE_PROJECT_NAME} ${ALL_SRC} )
 
 # Additional Library Directories
-link_directories( ${OpenCV_LIB_DIR} )
+link_directories( ${OpenCV_LIB_DIR} ${HDF5_LIBRARY_DIRS})
 
 # Additional Dependencies
 target_link_libraries( ${CMAKE_PROJECT_NAME} ${LINK_LIBS} )

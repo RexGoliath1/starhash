@@ -26,6 +26,7 @@ const double au2km = 149597870.691;
 
 // Hipparcos Info
 const fs::path default_hip_path("/../data/hipparcos.tsv"); // Default relative path
+const fs::path default_catalog_path("/../results/output.h5"); // Default relative path
 const float hip_byear = 1991.25; // Hipparcos Besellian Epoch
 const unsigned int hip_columns = 10;
 const unsigned int hip_rows = 117955;
@@ -228,7 +229,6 @@ void filter_star_separation(Eigen::MatrixXd pmc, ArrayXb &ang_pattern_idx, Array
     ang_pattern_vec.push_back(0);
     ang_verify_vec.push_back(0);
     double num_stars_in_fov = -1;
-
     
 
     for (int ii = 1; ii < pmc.rows(); ii++)
@@ -350,7 +350,7 @@ void get_nearby_stars(std::unordered_map<Eigen::Vector3i,std::vector<int>, matri
 
 }
 
-void append_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_star_pattern, Eigen::MatrixXd star_table) 
+bool is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_star_pattern, Eigen::MatrixXd star_table) 
 {
     // Make sure passed in Star ID combination matches pattern_size
     assert(nearby_star_pattern.size() == pattern_size);
@@ -365,8 +365,6 @@ void append_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> 
 
     // TODO: Make Fixed Vector3d. Requires star_table to be Matrix3d 
     Eigen::VectorXd star_vector_1, star_vector_2;
-    int* pat_ptr = &nearby_star_pattern[0];
-    Eigen::Map<Eigen::VectorXi> star_pattern_vec(pat_ptr, nearby_star_pattern.size()); 
 
     do {
         // Check if number checked exceeds number of actual permutations
@@ -381,7 +379,7 @@ void append_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> 
             }
         }
 
-        // Filter out stars outside FOV and compute edges        
+        // Filter out stars outsid>e FOV and compute edges        
         star_vector_1 = star_table.row(star_pair[0]);
         star_vector_2 = star_table.row(star_pair[1]);
         dot_p = star_vector_1.dot(star_vector_2);
@@ -398,14 +396,8 @@ void append_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> 
     }
     while(std::prev_permutation(selector.begin(), selector.end()));
 
-    if(all_stars_in_fov)
-    {
-        // Add pattern to pattern_list
-        pattern_list_size++;
-        if(pattern_list_size > pattern_list.rows())
-            pattern_list.conservativeResize(pattern_list.rows() + pattern_list_growth, Eigen::NoChange);
-        pattern_list.row(pattern_list.rows() - 1) =  star_pattern_vec;
-    }
+    return all_stars_in_fov;
+
 
 }
 
@@ -480,6 +472,7 @@ void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> ne
     // pattern_size - 1 : Find combinations of stars with current star
     std::fill(selector.begin(), selector.begin() + pattern_size - 1, 1);
 
+
     do {
         nearby_star_pattern.push_back(star_id);
         for (int ii = 0; ii < n; ii++)
@@ -490,11 +483,38 @@ void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> ne
             }
         }
 
-        append_star_pattern_in_fov(pattern_list, nearby_star_pattern, star_table);
+        if(is_star_pattern_in_fov(pattern_list, nearby_star_pattern, star_table))
+        {
+            int* pat_ptr = &nearby_star_pattern[0];
+            Eigen::Map<Eigen::VectorXi> star_pattern_vec(pat_ptr, nearby_star_pattern.size()); 
+
+            // Add pattern to pattern_list
+            pattern_list_size++;
+            if(pattern_list_size > pattern_list.rows())
+            {
+                // pattern_list.resize(pattern_list.rows() + pattern_list_growth, Eigen::NoChange);
+                pattern_list.conservativeResize(pattern_list.rows() + pattern_list_growth, Eigen::NoChange);
+            }
+            pattern_list.row(pattern_list_size- 1) =  star_pattern_vec;
+        }
+
         nearby_star_pattern.clear();
     }
     while(std::prev_permutation(selector.begin(), selector.end()));
 }
+
+int* matrix_to_array(Eigen::MatrixXi const &input){
+    int const NX = input.rows();
+    int const NY = input.cols();
+    int *data = new int[NX*NY];
+    for(int i=0; i<NX; i++){
+        for(int j=0; j<NY; j++){
+            data[j+i*NX] = input(i,j);
+        }
+    }
+    return data;
+}
+
 
 void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int>, matrix_hash<Eigen::Vector3i>> &course_sky_map, Eigen::MatrixXd star_table, std::vector<int> ang_verify_vec) 
 {
@@ -566,6 +586,19 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
         }
 
     }
+
+    // Save everthing off to HDF5
+    std::cout << "Saving off catalog." << std::endl;
+    fs::path output = fs::current_path() / default_catalog_path;
+    H5::H5File hf_file(output.string(), H5F_ACC_TRUNC);
+    hsize_t dim[2];
+    dim[0] = pattern_catalog.rows();
+    dim[1] = pattern_catalog.cols();
+    H5::DataSpace ds(2, dim);
+    H5::DataSet dataset = hf_file.createDataSet("catalog", H5::PredType::NATIVE_INT, ds);
+    auto data_arr = matrix_to_array(pattern_catalog);
+    dataset.write(data_arr, H5::PredType::NATIVE_INT);
+    delete[] data_arr;
 }
 
 const float get_besselian_year()

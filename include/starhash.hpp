@@ -22,3 +22,4 @@
 #include <unordered_map>
 #include <vector>
 #include <exception>
+#include "H5Cpp.h"
