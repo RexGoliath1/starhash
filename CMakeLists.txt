@@ -29,7 +29,7 @@ option( OpenCV_STATIC OFF )
 find_package( OpenCV REQUIRED )
 find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
 find_package(PkgConfig)
-pkg_search_module( Eigen3 REQUIRED eigen3)
+find_package (Eigen3 3.4 REQUIRED NO_MODULE)
 
 list(APPEND USER_INC ${PROJECT_SOURCE_DIR}/include)
 
@@ -39,14 +39,13 @@ if (OpenCV_FOUND)
 endif()
 
 if (EIGEN3_FOUND)
+	message("EIGEN3_INC: ${EIGEN3_INCLUDE_DIR}")
   list( APPEND USER_INC ${EIGEN3_INCLUDE_DIR} )
-  list( APPEND LINK_LIBS ${EIGEN3_LIBRARIES})
 endif()
 
 if (HDF5_FOUND)
- message("HDF5 Found!")
- message("${HDF5_INCLUDE_DIRS}")
- message("${HDF5_LIBRARIES}")
+	message("${HDF5_INCLUDE_DIRS}")
+	message("${HDF5_CXX_LIBRARIES}")
 	list(APPEND USER_INC ${HDF5_INCLUDE_DIRS})
 	list(APPEND LINK_LIBS ${HDF5_CXX_LIBRARIES})
 endif()
@@ -85,4 +84,4 @@ add_executable( ${CMAKE_PROJECT_NAME} ${ALL_SRC} )
 link_directories( ${OpenCV_LIB_DIR} ${HDF5_LIBRARY_DIRS})
 
 # Additional Dependencies
-target_link_libraries( ${CMAKE_PROJECT_NAME} ${LINK_LIBS} )
+target_link_libraries( ${CMAKE_PROJECT_NAME} ${LINK_LIBS} Eigen3::Eigen)

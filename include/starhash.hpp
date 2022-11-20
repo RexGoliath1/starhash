@@ -10,7 +10,7 @@
 #include <memory>
 #include <array>
 #include <math.h>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 #include <chrono>
 #include <ctime>
 #include <assert.h>

@@ -234,7 +234,7 @@ void filter_star_separation(Eigen::MatrixXd pmc, ArrayXb &ang_pattern_idx, Array
     for (int ii = 1; ii < pmc.rows(); ii++)
     {
         // Pattern test: Number of pattern stars (hash/ISA) per FOV
-        ang_pattern_stars = pmc(ii, Eigen::placeholders::all) * pmc.transpose();
+        ang_pattern_stars = pmc(ii, Eigen::all) * pmc.transpose();
         temp_ang_pattern_idx = (ang_pattern_stars < min_separation); 
         temp_ang_pattern_idx = temp_ang_pattern_idx || !ang_pattern_idx;
         if (temp_ang_pattern_idx.all())
@@ -700,16 +700,16 @@ int main(int argc, char **argv)
             ArrayXb ang_pattern_idx = ArrayXb::Constant(num_stars, false);
             ArrayXb ang_verify_idx = ArrayXb::Constant(num_stars, false);
             
-            bright_data = all_data(idx, Eigen::placeholders::all);
+            bright_data = all_data(idx, Eigen::all);
             convert_hipparcos(bright_data);
             sort_star_magnitude(bright_data);
-            proper_motion_correction(bright_data, rBCRF_Mat(idx, Eigen::placeholders::all), pmc); 
+            proper_motion_correction(bright_data, rBCRF_Mat(idx, Eigen::all), pmc); 
             filter_star_separation(pmc, ang_pattern_idx, ang_verify_idx, ang_pattern_vec, ang_verify_vec);
             std::printf("Retained %d out of %d stars for pattern matching\n", (int)ang_pattern_idx.cast<int>().sum(), (int)ang_pattern_idx.size());
             std::printf("Retained %d out of %d stars for pattern verification\n", (int)ang_verify_idx.cast<int>().sum(), (int)ang_verify_idx.size());
             std::cout << std::endl;
-            Eigen::MatrixXd valid_pmc_table = pmc(ang_verify_vec, Eigen::placeholders::all); 
-            Eigen::MatrixXd pattern_pmc_table = pmc(ang_pattern_vec, Eigen::placeholders::all); 
+            Eigen::MatrixXd valid_pmc_table = pmc(ang_verify_vec, Eigen::all); 
+            Eigen::MatrixXd pattern_pmc_table = pmc(ang_pattern_vec, Eigen::all); 
             init_hash_table(valid_pmc_table, course_sky_map); 
 #ifdef DEBUG_HASH
             Eigen::Vector3i codes;
