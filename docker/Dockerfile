@@ -41,6 +41,21 @@ WORKDIR /root
 # Define default command.
 CMD ["bash"]
 
+RUN wget -O https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.zip && \
+	unzip eigen-3.4.0.zip && \
+	mv eigen-3.4.0.zip && \
+	rm eigen-3.4.0.zip
+
+RUN cd ~/eigen && \
+	mkdir build && \
+	cd build && \
+	cmake .. && \
+	make && \
+	make install && \
+	ldconfig && \
+
+RUN cd ~/ && \
+	rm -rf ~/eigen 
 
 RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.5.zip && \
 	wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/4.5.5.zip && \
@@ -81,6 +96,6 @@ RUN cd ~/opencv && \
 	ldconfig && \
 	apt-get update 
 
-RUN rm -rf ~/opencv && \
+RUN cd ~/ && \
+	rm -rf ~/opencv && \
 	rm -rf ~/opencv_contrib
-
