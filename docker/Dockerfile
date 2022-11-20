@@ -6,7 +6,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN \
   apt-get update && \
   apt-get -y upgrade && \
-	apt-get install -y build-essential cmake git unzip pkg-config && \
+	apt-get install -y build-essential cmake git gdb unzip pkg-config && \
 	apt-get install -y libjpeg-dev libpng-dev && \
 	apt-get install -y libavcodec-dev libavformat-dev libswscale-dev && \
 	apt-get install -y libgtk2.0-dev libcanberra-gtk* libgtk-3-dev && \

@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD 17)  # enable C++17 standard
 # Build Configures
 message("Build with " ${CMAKE_CXX_COMPILER_ID})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -lstdc++fs -Wall ")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
@@ -29,7 +32,7 @@ option( OpenCV_STATIC OFF )
 find_package( OpenCV REQUIRED )
 find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
 find_package(PkgConfig)
-find_package (Eigen3 3.4 REQUIRED NO_MODULE)
+find_package (Eigen3 REQUIRED NO_MODULE)
 
 list(APPEND USER_INC ${PROJECT_SOURCE_DIR}/include)
 

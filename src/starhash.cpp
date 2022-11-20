@@ -17,6 +17,7 @@ namespace fs = std::experimental::filesystem;
 // #define DEBUG_PM
 // #define DEBUG_CSV_OUTPUTS
 // #define DEBUG_HASH
+// #define DEBUG_CATALOG_GENERATE_NEIGHBORS
 
 const double deg2rad = M_PI / 180.0;
 const double arcsec2deg =  (1.0 / 3600.0);
@@ -31,7 +32,7 @@ const float hip_byear = 1991.25; // Hipparcos Besellian Epoch
 const unsigned int hip_columns = 10;
 const unsigned int hip_rows = 117955;
 const unsigned int hip_header_rows = 55;
-
+// TODO: Inspect if python is doing things with this.. Currently > INT_MAX so modulo is of -1640531535
 const int magic_number = 2654435761;
 
 // Tetra thresholding
@@ -44,11 +45,11 @@ const int magic_number = 2654435761;
 //const float max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
 
 // Database thresholding
-const double default_b_thresh = 11.0; // Minimum brightness of db
+const double default_b_thresh = 11.4; // Minimum brightness of db
 const double min_separation_angle = 0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for dealing with double / close stars)
 const double min_separation = std::cos(min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
-const unsigned int pattern_stars_per_fov = 20;
-const unsigned int catalog_stars_per_fov = 30;
+const unsigned int pattern_stars_per_fov = 10;
+const unsigned int catalog_stars_per_fov = 20;
 const double max_fov_angle = 42;
 const double max_fov_dist = std::cos(max_fov_angle * deg2rad);
 const double max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
@@ -401,7 +402,7 @@ bool is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> near
 
 }
 
-void get_star_edge_pattern(Eigen::VectorXi nearby_star_combo, Eigen::MatrixXd star_table, Eigen::Array<double, num_pattern_angles, 1> edges)
+void get_star_edge_pattern(Eigen::VectorXi nearby_star_combo, Eigen::MatrixXd star_table, Eigen::Array<double, num_pattern_angles, 1> &edges)
 {
     assert(nearby_star_combo.size() == pattern_size);
     std::vector<int> star_pair, selector(pattern_size);
@@ -456,7 +457,7 @@ int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, con
 {
 	const unsigned int rng_size = hash_code.size();
 	Eigen::VectorXi key_range = Eigen::VectorXi::LinSpaced(rng_size, 0, rng_size - 1);
-    Eigen::VectorXi pat_bin_cast= Eigen::VectorXi::Ones(rng_size);
+    Eigen::VectorXi pat_bin_cast= pattern_bins * Eigen::VectorXi::Ones(rng_size);
 	Eigen::VectorXi index = hash_code.array() * Eigen::pow(pat_bin_cast.array(), key_range.array());
 
     // TODO: Carefully check python types to see if this matches TETRA Logic
@@ -495,24 +496,12 @@ void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> ne
                 // pattern_list.resize(pattern_list.rows() + pattern_list_growth, Eigen::NoChange);
                 pattern_list.conservativeResize(pattern_list.rows() + pattern_list_growth, Eigen::NoChange);
             }
-            pattern_list.row(pattern_list_size- 1) =  star_pattern_vec;
+            pattern_list.row(pattern_list_size - 1) =  star_pattern_vec;
         }
 
         nearby_star_pattern.clear();
     }
     while(std::prev_permutation(selector.begin(), selector.end()));
-}
-
-int* matrix_to_array(Eigen::MatrixXi const &input){
-    int const NX = input.rows();
-    int const NY = input.cols();
-    int *data = new int[NX*NY];
-    for(int i=0; i<NX; i++){
-        for(int j=0; j<NY; j++){
-            data[j+i*NX] = input(i,j);
-        }
-    }
-    return data;
 }
 
 
@@ -530,26 +519,37 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
     int quadprobe_count;
 
     Eigen::Array<double, num_pattern_angles, 1> edges; 
+
+#ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
     time_t tstart, tend;
+#endif
 
     for(long unsigned int ii = 0; ii < ang_verify_vec.size(); ii++)
     {
+#ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
         tstart = time(0);
+#endif
         nearby_stars.clear(); // lol, quite important.
         star_id = ang_verify_vec[ii];
         star_vector = star_table.row(ang_verify_vec[ii]);
+// #ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
         std::cout << "Looking for patterns near star id " << star_id << std::endl;
-
+// #endif
 
         // For each star kept for pattern matching and verificaiton, find all nearby stars in FOV
         get_nearby_stars(course_sky_map, star_table, star_vector, nearby_stars);
+#ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
         std::cout << "Number of Neighbors = " << nearby_stars.size() << std::endl;
+#endif
 
         // For all stars nearby, find each star pattern combination (pattern_size)
         // If pattern contains star angles within FOV limits, add to pattern_list 
         get_nearby_star_patterns(pattern_list, nearby_stars, star_table, star_id);
+
+#ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
         tend = time(0);
         std::cout << "Took " << difftime(tend, tstart) << " Seconds." << std::endl;
+#endif
     }
 
     pattern_list.conservativeResize(pattern_list_size, Eigen::NoChange);
@@ -560,15 +560,18 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
     // Starhash inits to -1 (TODO: Macro of -1 ) to avoid star ID conflicts
     Eigen::MatrixXi pattern_catalog = -1 * Eigen::MatrixXi::Ones(catalog_length, pattern_size);
 
-    // For all pattens in pattern_list, find hash and insert into pattern_catalog
+    // For all patterns in pattern_list, find hash and insert into pattern_catalog
     for(long unsigned int ii = 0; ii < (unsigned int)pattern_list.rows(); ii++)
     {
+        if ((ii % 10000) == 0)
+            std::cout << "Indexing pattern " << ii << " of " << pattern_list.rows() << std::endl;
+
         quadprobe_count = 0;
 
         // For each pattern, get edges
         pattern = pattern_list.row(ii);
         get_star_edge_pattern(pattern, star_table, edges);
-        Eigen::VectorXi hash_code = (edges * (double)pattern_bins).cast<int>();
+        Eigen::VectorXi hash_code = (edges(Eigen::seqN(0, edges.size() - 1)) * (double)pattern_bins).cast<int>();
         int hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
 
         // Use quadratic probing to find an open space in the pattern catalog to insert
@@ -584,7 +587,6 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
             }
             quadprobe_count++;
         }
-
     }
 
     // Save everthing off to HDF5
@@ -594,11 +596,31 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
     hsize_t dim[2];
     dim[0] = pattern_catalog.rows();
     dim[1] = pattern_catalog.cols();
+    int NX = (int)dim[1];
+    int NY = (int)dim[0];
+    int **data_arr = new int*[NX];
+    for (size_t i = 0; (int)i < NX; i++) {
+        data_arr[i] = new int[NY];
+    }
+   
+    for (int jj = 0; jj < NX; jj++)
+    {
+        for (int ii = 0; ii < NY; ii++)
+        {
+            data_arr[jj][ii] = pattern_catalog(ii, jj);
+        }
+    }
     H5::DataSpace ds(2, dim);
     H5::DataSet dataset = hf_file.createDataSet("catalog", H5::PredType::NATIVE_INT, ds);
-    auto data_arr = matrix_to_array(pattern_catalog);
     dataset.write(data_arr, H5::PredType::NATIVE_INT);
+
+    for (size_t i = NX; i > 0; ) {
+        delete[] data_arr[--i];
+    }
     delete[] data_arr;
+    
+    fs::path debug_catalog = output / "pattern_catalog.csv";
+    // write_to_csv(pattern_catalog, debug_catalog);
 }
 
 const float get_besselian_year()
