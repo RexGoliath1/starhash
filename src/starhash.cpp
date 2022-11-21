@@ -13,7 +13,7 @@
 namespace fs = std::experimental::filesystem;
 
 /* Helpful debug flags */
-//#define DEBUG_HIP 1
+// #define DEBUG_HIP 1
 // #define DEBUG_PM
 // #define DEBUG_CSV_OUTPUTS
 // #define DEBUG_HASH
@@ -61,6 +61,7 @@ const int pattern_bins = 25;
 // Global counter for pattern_list
 int pattern_list_size = 0;
 int pattern_list_growth = 20000;
+int index_pattern_debug_freq = 10000;
 
 
 // Database user settings
@@ -68,7 +69,7 @@ int pattern_list_growth = 20000;
 // Camera settings
 
 enum {
-    RA_J2000,
+    RA_J2000 = 0,
     DE_J2000,
     HID,
     RA_ICRS,
@@ -563,7 +564,7 @@ void generate_pattern_catalog(std::unordered_map<Eigen::Vector3i,std::vector<int
     // For all patterns in pattern_list, find hash and insert into pattern_catalog
     for(long unsigned int ii = 0; ii < (unsigned int)pattern_list.rows(); ii++)
     {
-        if ((ii % 10000) == 0)
+        if ((ii % index_pattern_debug_freq) == 0)
             std::cout << "Indexing pattern " << ii << " of " << pattern_list.rows() << std::endl;
 
         quadprobe_count = 0;

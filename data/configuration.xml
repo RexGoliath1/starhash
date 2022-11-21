@@ -1,0 +1,42 @@
+<?xml version="1.0" encodign="UTF-8"?>
+
+<catalog_generator_properties>
+    <brightness_threshold>6.5</brightness_threshold>
+    <min_separation_angle>0.3</min_separation_angle>
+    <pattern_stars_per_fov>10</pattern_stars_per_fov>
+    <catalog_stars_per_fov>20</catalog_stars_per_fov>
+    <fov_estimate>40.0</fov_estimate>
+    <initial_hash_table_star_bins>4</hash_table_1_star_bins>
+    <num_pattern_stars>4</num_pattern_stars>
+    <final_hash_table_star_bins>25</final_hash_table_star_bins>
+    <hash_magic_number>2654435761</hash_magic_number>
+</catalog_generator_properties>
+
+<solver_properties>
+
+    <camera_properties>
+        <fov_estimate>40.0</fov_estimate>
+        <fov_max_error>0.1</fov_max_error>
+    </camera_properties>
+
+    <star_match_properties>
+        <num_pattern_stars>6</num_pattern_stars>
+        <match_radius>0.01</match_radius>
+        <match_threshold>1e-9</match_threshold>
+    </star_match_properties>
+
+    <filter_properties>
+        <filter_size>7</filter_size>
+        <centroid_window_size>-1</centroid_window_size>
+        <binary_open>1</binary_open>
+        <background_mode>0</background_mode>
+    </filter_properties>
+    
+    <centroid_properties>
+        <max_spot_area>-1</max_spot_area>
+        <min_spot_area>3</min_spot_area>
+        <max_spot_sum>-1</max_spot_sum>
+        <min_spot_sum>-1</min_spot_sum>
+    </centroid_properties>
+
+</solver_properties>
