@@ -1,18 +1,16 @@
 #include "solver.hpp"
 
+// SBG Ongoing TODOs
+// 1. ROI Mode
+
 Solver::Solver()
 {
-    ;
+    std::cout << "Class init";
 }
 
-void Solver::get_roi(cv::Mat img)
+void Solver::sub_darkframe()
 {
-    // Avoiding cropping. TODO: Try pyramid techniques
-    cur_img = img(cv::Range(roi_x_min,roi_y_min), cv::Range(roi_x_max,roi_y_max));
-}
-
-void Solver::check_filter_size()
-{
+    cur_img = cur_img - dark_frame;
 }
 
 void Solver::get_centroids_from_image()
@@ -20,68 +18,111 @@ void Solver::get_centroids_from_image()
     ;
 }
 
-void Solver::load_generated_catalog(TODO star_centroids, float fov)
+double Solver::get_median(cv::Mat input, int n)
 {
-    H5::File hf_file(catalog_file, HF5_ACC_RDONLY);
-    H5::Dataset ds_cat = hf_file.openDataSet("/catalog");
+    // COMPUTE HISTOGRAM OF SINGLE CHANNEL MATRIX
+    float range[] = { 0, (float)n};
+    const float* hist_range = { range };
+    bool uniform = true; 
+    bool accumulate = false;
+    cv::Mat hist;
+    cv::calcHist(&input, 1, 0, cv::Mat(), hist, 1, &n, &hist_range, uniform, accumulate);
+
+    // COMPUTE CUMULATIVE DISTRIBUTION FUNCTION (CDF)
+    cv::Mat cdf;
+    hist.copyTo(cdf);
+    for (int i = 1; i <= n - 1; i++){
+        cdf.at<float>(i) += cdf.at<float>(i - 1);
+    }
+    cdf /= input.total();
+
+    // COMPUTE MEDIAN
+    double medianVal;
+    for (int i = 0; i <= n - 1; i++)
+    {
+        if(cdf.at<float>(i) >= 0.5) 
+        {
+            medianVal = i;
+            break; 
+        }
+    }
+    return medianVal / n; 
+}
+
+void Solver::load_generated_catalog()
+{
+    H5::H5File hf_file(catalog_file, H5F_ACC_RDONLY);
+    H5::DataSet ds_cat = hf_file.openDataSet("/catalog");
     H5::DataSpace dspace = ds_cat.getSpace();
-    H5T_class_t type_class = ds_cat.getTypeClass();
+    // H5T_class_t type_class = ds_cat.getTypeClass();
     hsize_t dims[2];
-    hsize_t rank = dspace.getSimpleExtentDims(dims, NULL); 
+    // hsize_t rank = dspace.getSimpleExtentDims(dims, NULL); 
 
     hsize_t dimsm[1];
     dimsm[0] = dims[0];
     H5::DataSpace memspace(1, dimsm);
 
-    vector<float> data;
+    std::vector<float> data;
     data.resize(dims[0]);
-
 }
 
-void Solver::compute_vectors()
+void Solver::compute_vectors(float fov)
 {
     float cx = width / 2.0f;
     float cy = height / 2.0f;
 
-    float scale_factor = std::tan()
+    float scale_factor = std::tan(fov / 2 ) / cx;
+    // TODO: Implement
+    std::cout << cx << cy << scale_factor << std::endl;
+    // Loop over centroids and compute norm vectors
 }
 
 void Solver::set_frame(cv::Mat img)
 {
     // TODO: Float frame
-    if(img.size() != cur_img.size()))
-        cur_img = cv::resize(img, cur_img, cur_img.size(1), cur_img.size(0));
+    if(img.size() != cur_img.size())
+        cv::resize(img, cur_img, cur_img.size(), cv::INTER_LINEAR);
     else
         cur_img = img;
 }
 
-Solver::solve_from_image()
+void Solver::solve_from_image()
 {
-
     switch(b_mode)
     {
-        case: LOCAL_MEDIAN
+        case LOCAL_MEDIAN:
+        {
             assert(filter_size > 0);
             assert(filter_size % 2 == 1);
             cv::medianBlur(cur_img, filter_buffer, filter_size);
             break;
-        case: LOCAL_MEAN
+        }
+        case LOCAL_MEAN:
+        {
             assert(filter_size > 0);
             assert(filter_size % 2 == 1);
-            cv::blur(cur_img, filter_buffer, Size(filter_size, filter_size));
+            cv::Mat kernel = cv::Mat::ones(filter_size, filter_size, CV_32F) / (filter_size * filter_size);
+            cv::filter2D(cur_img, filter_buffer, -1, kernel);
             break;
-        case: GLOBAL_MEDIAN
-            cv::medianBlur(cur_img, filter_buffer, cur_img.size());
+        }
+        case GLOBAL_MEDIAN:
+        {
+            double img_median = get_median(cur_img, cur_img.cols * cur_img.rows);
+            filter_buffer = img_median * cv::Mat::ones(cur_img.rows, cur_img.cols, cur_img.type());
             break;
-        case: GLOBAL_MEAN
-            filter_buffer = cv::mean(cur_img) * cv::Mat::ones(cur_img.rows(), cur_img.cols(), cur_img.type());
+        }
+        case GLOBAL_MEAN:
+        {
+            filter_buffer = cv::mean(cur_img) * cv::Mat::ones(cur_img.rows, cur_img.cols, cur_img.type());
             break;
+        }
         default:
+        {
             throw std::runtime_error("Background Mode incorrect type");
+        }
     }
 
     cur_img = cur_img - filter_buffer;
-
 
     if(img_threshold < 0)
     {
@@ -89,17 +130,56 @@ Solver::solve_from_image()
 
         switch(s_mode)
         {
-            case: LOCAL_MEDIAN_ABS
+            default:
+            {
                 assert(filter_size > 0);
                 assert(filter_size % 2 == 1);
-            case: LOCAL_ROOT_SQUARE
-                //
-            case: GLOBAL_MEDIAN_ABS
-                //
-            case: GLOBAL_ROOT_SQUARE
-                //
-            default:
-                throw std::runtime_error("Threshold Mode incorrect type");
+            }
+            case LOCAL_MEDIAN_ABS:
+            {
+                cv::medianBlur(cur_img, filter_buffer, filter_size);
+                filter_buffer *= med_sigma_coef;
+                break;
+            }
+            case LOCAL_ROOT_SQUARE:
+            {
+                cv::Mat kernel = cv::Mat::ones(filter_size, filter_size, CV_32F) / (filter_size * filter_size);
+
+                cur_img.convertTo(filter_buffer, CV_32F);
+                filter_buffer = cv::abs(filter_buffer);
+                cv::pow(filter_buffer, 2, filter_buffer);
+                cv::filter2D(filter_buffer, filter_buffer, -1, kernel);
+                cv::pow(filter_buffer, 2, filter_buffer);
+                break;
+            }
+            case GLOBAL_MEDIAN_ABS:
+            {
+                cur_img.convertTo(filter_buffer, CV_32F);
+                filter_buffer = cv::abs(filter_buffer);
+                double img_median = get_median(filter_buffer, (int)(filter_buffer.cols * filter_buffer.rows));
+                filter_buffer = med_sigma_coef * img_median * cv::Mat::ones(filter_buffer.rows, filter_buffer.cols, cur_img.type());
+                break;
+            }
+            case GLOBAL_ROOT_SQUARE:
+            {
+                cur_img.convertTo(filter_buffer, CV_32F);
+                cv::pow(filter_buffer, 2, filter_buffer);
+                cv::Scalar img_sq_mean = cv::mean(filter_buffer);
+                cv::pow(img_sq_mean, 0.5, img_sq_mean);
+                filter_buffer = img_sq_mean * cv::Mat::ones(filter_buffer.rows, filter_buffer.cols, cur_img.type());
+                break;
+            }
         }
+        sigma_buffer = filter_buffer * sigma;
     }
+
+    thresh_img = cur_img > sigma_buffer;
+
+    if (binary_open)
+    {
+        cv::Mat element = cv::getStructuringElement(morph_elem, cv::Size(2 * morph_size + 1, 2 * morph_size + 1), cv::Point(morph_size, morph_size));
+        cv::morphologyEx(thresh_img, thresh_img, cv::MORPH_OPEN, element);
+    }
+
+    filter_buffer.copyTo(std_img);
 }

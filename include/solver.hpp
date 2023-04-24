@@ -1,6 +1,7 @@
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include "H5Cpp.h"
+#include <vector>
 
 typedef enum bkgd_sub_mode {
     LOCAL_MEDIAN = 0,
@@ -9,7 +10,7 @@ typedef enum bkgd_sub_mode {
     GLOBAL_MEAN
 } bkrd_sub_mode_t;
 
-enum sigma_mode {
+typedef enum sigma_mode {
     LOCAL_MEDIAN_ABS = 0,
     LOCAL_ROOT_SQUARE,
     GLOBAL_MEDIAN_ABS,
@@ -19,17 +20,28 @@ enum sigma_mode {
 class Solver {
     public:
         Solver();
-        ~Solver();
+        ~Solver(){};
         void set_frame(cv::Mat img);
-        void solve_from_img();
+        void solve_from_image();
+        void get_centroids_from_image();
+        void load_generated_catalog();
+        void compute_vectors(float fov);
+        void get_roi();
+        void sub_darkframe();
+        double get_median(cv::Mat input, int n);
+        
 
         // Image parameters
         unsigned int width;
         unsigned int height;
         cv::Mat cur_img; // TODO: Convert to float / double for precision
         cv::Mat prev_img;
+        cv::Mat dark_frame;
+        cv::Mat thresh_img;
+        cv::Mat std_img;
         cv::Mat filter_buffer;
         cv::Mat sigma_buffer;
+        cv::Mat kernel;
 
         // FOV solver threshold parameters
         float fov_estimate; 
@@ -45,9 +57,14 @@ class Solver {
         sigma_mode_t s_mode;
         unsigned int filter_size;
         float img_threshold;
+        float img_std;
         float sigma;
         unsigned int centroid_window_size;
         bool binary_open;
+        float med_sigma_coef = 1.48;
+        int morph_elem = 2;
+        int morph_size = 11;
+			
 
         // Centroiding spot parameters
         int max_spot_area;
@@ -73,5 +90,4 @@ class Solver {
         std::string catalog_file;
         std::string debug_folder;
         int debug_level;
-
-}
+};
