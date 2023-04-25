@@ -24,7 +24,6 @@ RUN \
   apt-get install -y byobu curl git htop man unzip vim wget && \
 	apt-get install -y qt5-default && \
 	apt-get install -y libhdf5-dev && \
-	apt-get install -y libeigen3-dev && \  
   rm -rf /var/lib/apt/lists/*
 
 # Add files.
