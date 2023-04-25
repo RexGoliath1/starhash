@@ -1,4 +1,3 @@
-#include "opencv2/opencv.hpp"
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -59,16 +58,14 @@ const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignC
 class StarCatalog
 {
 public:
-    StarCatalog(const std::string &file);
-    StarCatalog();
+    StarCatalog(const std::string &in_file, const std::string &out_file);
+    explicit StarCatalog();
     ~StarCatalog();
 
-    bool load_catalog(const std::string& file);
-    //static const int pattern_size = 4;
-    //static const int num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
-    const unsigned int pattern_size = 4;
-    const unsigned int num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;;
-    Eigen::ArrayXd edges;
+    bool load_pattern_catalog();
+    // Pipeline method for everything
+    void run_pipeline();
+
 
 private:
     fs::path input_catalog_file;
@@ -81,6 +78,11 @@ private:
     std::vector<int> pattern_stars; // Vector of "Pattern stars" satisfying separation thresholds
 
     CoarseSkyMap coarse_sky_map;
+    Eigen::ArrayXd edges;
+
+    // TODO: Load dynamically through some kind of configuration
+    const unsigned int pattern_size = 4;
+    const unsigned int num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;;
 
     int total_catalog_stars = 0;
     int number_hippo_stars_bright = 0;
@@ -134,8 +136,7 @@ private:
 
     void create_new_catalog();
 
-    bool catalog_file_exists(const std::string& file);
-    bool create_output_dir(fs::path dir_name);
+    bool pattern_catalog_file_exists();
 
     // Initial catalog transforms
     bool read_hipparcos();
@@ -159,8 +160,6 @@ private:
     int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length);
     void generate_output_catalog();
 
-    // Pipeline method for everything
-    void hipparcos_pipeline(const std::string &file);
 
     // Generic Eigen 2 csv writer
     template <typename Derived> void write_to_csv(std::string name, const Eigen::MatrixBase<Derived>& matrix)

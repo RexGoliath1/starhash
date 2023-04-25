@@ -3,27 +3,38 @@
 //const int StarCatalog::pattern_size = 4;
 //const int StarCatalog::num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
 
-StarCatalog::StarCatalog(const std::string &file) {
-    input_catalog_file = file;
-    //const int StarCatalog::pattern_size = 4;
-    //const int num_pattern_angles = = (pattern_size * (pattern_size - 1)) / 2;
+StarCatalog::StarCatalog(const std::string &in_file, const std::string &out_file) {
+    input_catalog_file = in_file;
+    output_catalog_file = out_file;
+
     edges.resize(num_pattern_angles);
     edges.setZero();
 }
 
+StarCatalog::StarCatalog(): StarCatalog(default_hipparcos_path, default_catalog_path) {
 
-StarCatalog::StarCatalog() {
-    input_catalog_file = default_hipparcos_path;
 }
 
 StarCatalog::~StarCatalog() {
 
 }
 
-bool StarCatalog::catalog_file_exists(const std::string& file)
+bool StarCatalog::pattern_catalog_file_exists()
 {
     struct stat buffer;
-    return (stat (file.c_str(), &buffer) == 0);
+    return (stat (output_catalog_file.c_str(), &buffer) == 0);
+}
+
+bool StarCatalog::load_pattern_catalog()
+{
+    // TODO: Load from HDF5 and put into star_table and pattern_catalog
+    // TODO: Need to save off parameter? 
+    // TODO: Should the catalog be loading the initial camera parameters?
+        // Probably not, but maybe have separate set of catalog parameters as some kind of assert /check
+        // Have some other routine that creates a new catalog at runtime if parameters don't match expectations
+    std::cout << "Loading existing pattern_catalog " << output_catalog_file << std::endl;
+
+    return true;
 }
 
 bool StarCatalog::read_hipparcos()
@@ -588,51 +599,100 @@ void StarCatalog::generate_output_catalog()
     }
 
     // Save everthing off to HDF5
-    std::cout << "Saving off catalog." << std::endl;
+    // Need both pattern catalog and star table for real time operation
+
     fs::path output = fs::current_path() / default_catalog_path;
     H5::H5File hf_file(output.string(), H5F_ACC_TRUNC);
+
+    std::cout << "Saving off catalog." << std::endl;
     hsize_t dim[2];
     dim[0] = pattern_catalog.rows();
     dim[1] = pattern_catalog.cols();
-    int NX = (int)dim[1];
-    int NY = (int)dim[0];
-    int **data_arr = new int*[NX];
-    for (size_t i = 0; (int)i < NX; i++) {
-        data_arr[i] = new int[NY];
+    int pc_cols = (int)dim[1];
+    int pc_rows = (int)dim[0];
+    int **data_arr = new int*[pc_cols];
+    for (size_t i = 0; (int)i < pc_cols; i++) {
+        data_arr[i] = new int[pc_rows];
     }
    
-    for (int jj = 0; jj < NX; jj++)
+    for (int jj = 0; jj < pc_cols; jj++)
     {
-        for (int ii = 0; ii < NY; ii++)
+        for (int ii = 0; ii < pc_rows; ii++)
         {
             data_arr[jj][ii] = pattern_catalog(ii, jj);
         }
     }
-    H5::DataSpace ds(2, dim);
-    H5::DataSet dataset = hf_file.createDataSet("catalog", H5::PredType::NATIVE_INT, ds);
-    dataset.write(data_arr, H5::PredType::NATIVE_INT);
+    H5::DataSpace pc_ds(2, dim);
 
-    for (size_t i = NX; i > 0; ) {
+    H5::DataSet pc_dataset = hf_file.createDataSet("pattern_catalog", H5::PredType::NATIVE_INT, pc_ds);
+    pc_dataset.write(data_arr, H5::PredType::NATIVE_INT);
+
+    std::cout << "Saving off star table." << std::endl;
+    hsize_t st_dim[2];
+    st_dim[0] = star_table.rows();
+    st_dim[1] = star_table.cols();
+    int st_cols = (int)st_dim[1];
+    int st_rows = (int)st_dim[0];
+    double **st_data_arr = new double*[st_cols];
+    for (size_t i = 0; (int)i < st_cols; i++) {
+        st_data_arr[i] = new double[st_rows];
+    }
+   
+    for (int jj = 0; jj < st_cols; jj++)
+    {
+        for (int ii = 0; ii < st_rows; ii++)
+        {
+            st_data_arr[jj][ii] = star_table(ii, jj);
+        }
+    }
+
+    H5::DataSpace st_ds(2, dim);
+
+    H5::DataSet st_dataset = hf_file.createDataSet("star_table", H5::PredType::NATIVE_DOUBLE, st_ds);
+    st_dataset.write(st_data_arr, H5::PredType::NATIVE_DOUBLE);
+
+    for (size_t i = pc_cols; i > 0; ) {
         delete[] data_arr[--i];
     }
     delete[] data_arr;
-    
+
+    for (size_t i = st_cols; i > 0; ) {
+        delete[] st_data_arr[--i];
+    }
+    delete[] st_data_arr;
+
+#ifdef DEBUG_PATTERN_CATALOG 
     fs::path debug_catalog = output / "pattern_catalog.csv";
-    // write_to_csv(pattern_catalog, debug_catalog);
+    write_to_csv(pattern_catalog, debug_catalog);
+#endif
+
 }
 
 // Dumb pipeline to keep things organized
-void StarCatalog::hipparcos_pipeline(const std::string &file)
+void StarCatalog::run_pipeline()
 {
-    if (catalog_file_exists(file))
+    // Load pre-existing catalog if exists, otherwise create new database (hash table)
+    if (!pattern_catalog_file_exists())
     {
+        std::cout << "Reading Hipparcos Catalog" << std::endl;
         if (read_hipparcos())
         {
+            std::cout << "Sorting Stars" << std::endl;
             sort_star_magnitudes();
+            std::cout << "Correcting Proper Motion" << std::endl;
             correct_proper_motion();
+            std::cout << "Filtering Star Separation" << std::endl;
             filter_star_separation();
+            std::cout << "Initializing output catalog" << std::endl;
             init_output_catalog();
+            std::cout << "Generating output catalog" << std::endl;
             generate_output_catalog();
         }
     }
+    else
+    {
+        std::cout << "Loading existing pattern catalog and star table" << std::endl;
+        load_pattern_catalog();
+    }
+
 }
