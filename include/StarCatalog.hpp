@@ -29,6 +29,7 @@ static const fs::path default_hipparcos_path = "/../data/hipparcos.tsv"; // Defa
 static const fs::path default_catalog_path("/../results/output.h5"); // Default relative path
 
 const unsigned int hip_rows = 117955;
+const unsigned int hip_cols = 10;
 
 // Hash function for Eigen Matricies 
 template<typename T> struct matrix_hash : std::unary_function<T, size_t> {
@@ -102,6 +103,7 @@ private:
 
     // Default thresholding parameters (Default tetra amounts are in readme)
     float brightness_thresh = 11.4; // Minimum brightness of db
+    //float brightness_thresh = 7.0; // Minimum brightness of db
     double min_separation_angle = 0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for dealing with double / close stars)
     double min_separation = std::cos(min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
     unsigned int pattern_stars_per_fov = 10;

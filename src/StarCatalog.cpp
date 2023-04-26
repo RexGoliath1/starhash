@@ -9,6 +9,13 @@ StarCatalog::StarCatalog(const std::string &in_file, const std::string &out_file
 
     edges.resize(num_pattern_angles);
     edges.setZero();
+    proper_motion_data.resize(hip_rows, 3);
+    proper_motion_data.setZero();
+    bcrf_frame.resize(hip_rows, 3);
+    bcrf_frame.setZero();
+
+    init_besselian_year();
+    init_bcrf();
 }
 
 StarCatalog::StarCatalog(): StarCatalog(default_hipparcos_path, default_catalog_path) {
@@ -42,6 +49,10 @@ bool StarCatalog::read_hipparcos()
     std::ifstream data(input_catalog_file.c_str());
     unsigned int rcnt = 0, ccnt = 0;
     std::string lstr;
+    std::vector<unsigned int> idx;
+    Eigen::MatrixXd temp_catalog;
+    temp_catalog.resize(hip_rows, hip_cols);
+    temp_catalog.setZero();
 
     // Skip header info
    for (unsigned int ii = 0; ii < hip_header_rows; ii++)
@@ -63,7 +74,7 @@ bool StarCatalog::read_hipparcos()
 #endif
             if (ccnt < hip_columns)
             {
-                input_catalog_data(rcnt, ccnt) = std::stod(num);
+                temp_catalog(rcnt, ccnt) = std::stod(num);
                 ccnt++;
             }
             else 
@@ -73,13 +84,14 @@ bool StarCatalog::read_hipparcos()
         }
 
         // If magnitude is below threshold, zero out row and continue
-        if ((ccnt > 0) && (float(input_catalog_data(rcnt, HPMAG)) > brightness_thresh)) 
+        if ((ccnt > 0) && (float(temp_catalog(rcnt, HPMAG)) > brightness_thresh)) 
         {
+            idx.push_back(rcnt);
             rcnt++;
         }
         else
         {
-            input_catalog_data.row(rcnt).setZero();
+            temp_catalog.row(rcnt).setZero();
         }
 
 #ifdef DEBUG_HIP
@@ -91,6 +103,12 @@ bool StarCatalog::read_hipparcos()
     }
 
     total_catalog_stars += rcnt;
+
+    // Perform resizing of large matricies here
+    input_catalog_data = temp_catalog(idx, Eigen::all);
+    proper_motion_data.resize(total_catalog_stars, 3);
+    bcrf_frame.resize(total_catalog_stars, 3);
+
 
 #ifdef DEBUG_HIP
     printf("Hippo contains %d bright stars out of %ld\n", rcnt, hip_rows);
@@ -151,7 +169,6 @@ void StarCatalog::correct_proper_motion()
     // TODO: Make sure this is appropriate for other catalogs (UCAC4, Tycho, Gaia, etc)
     // TODO: Determine numpy vs eigen 7th decimal place differences in this math
     assert(input_catalog_data.rows() > input_catalog_data.cols());
-    Eigen::MatrixXd proper_motion(input_catalog_data.rows(), 3);
     Eigen::MatrixXd plx(input_catalog_data.rows(), 3);
     Eigen::MatrixXd los(input_catalog_data.rows(), 3);
     Eigen::MatrixXd p_hat(input_catalog_data.rows(), 3);
@@ -169,10 +186,10 @@ void StarCatalog::correct_proper_motion()
     q_hat.col(1) = -1 * input_catalog_data.col(DE_ICRS).array().sin() * input_catalog_data.col(DE_ICRS).array().sin();
     q_hat.col(2) = -1 * input_catalog_data.col(DE_ICRS).array().cos();
 
-    proper_motion = (current_byear  - hip_byear) * (p_hat.array().colwise() * input_catalog_data.col(PMRA).array() + q_hat.array().colwise() * input_catalog_data.col(PMDE).array());
+    proper_motion_data = (current_byear  - hip_byear) * (p_hat.array().colwise() * input_catalog_data.col(PMRA).array() + q_hat.array().colwise() * input_catalog_data.col(PMDE).array());
     plx = bcrf_frame.array().colwise() * input_catalog_data.col(PLX).array();
 
-    proper_motion_data = los + proper_motion - plx;
+    proper_motion_data = los + proper_motion_data - plx;
     proper_motion_data.rowwise().normalize();
 
     #ifdef DEBUG_PM
@@ -240,16 +257,14 @@ void StarCatalog::filter_star_separation()
     for (int ii = 1; ii < proper_motion_data.rows(); ii++)
     {
         // Determine angle between current star and all other stars
+        // This is wrong. Need to remove current star in the current_star_angles calculations.
         current_star_angles = proper_motion_data(ii, Eigen::all) * proper_motion_data.transpose();
 
         // Find idicies that pass angle test
         separated_star_indicies = (current_star_angles < min_separation); 
 
-        // Explanation: Slight difference from tetra. In Tetra they look at pattern stars only. 
-        // In starhash we look at all stars every loop, so we need to flag all "non-pattern stars" as true so that
-        // the .all() check is really only checking the ang_pattern_idx indicies. Super confusing.
-        // Same logic applies for verification.
-        separated_pattern_indicies = separated_star_indicies || !ang_pattern_idx;
+        // Explanation: Apply min_sep check to only marked pattern stars 
+        separated_pattern_indicies = (separated_star_indicies && ang_pattern_idx) || !ang_pattern_idx;
 
         // Pattern test: Limit "close stars" by number of stars used for pattern matching per FOV
 
@@ -264,11 +279,14 @@ void StarCatalog::filter_star_separation()
             {
                 ang_verify_idx(ii) = true;
                 ang_pattern_idx(ii) = true;
+                verification_stars.push_back(ii);
                 pattern_stars.push_back(ii);
+                continue;
             }
         }
         
-        separated_verify_indicies = separated_star_indicies || !ang_verify_idx;
+        // Explanation: Apply min_sep check to only marked verification stars 
+        separated_verify_indicies = (separated_star_indicies && ang_verify_idx) || !ang_verify_idx;
 
         // Verification test: Limit number of "close stars" used for further verification per FOV
         if (separated_verify_indicies.all())
@@ -482,8 +500,8 @@ void StarCatalog::get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::v
 
 void StarCatalog::init_output_catalog()
 {
-    Eigen::MatrixXi codes = Eigen::MatrixXi(proper_motion_data.cols(), proper_motion_data.rows());
-    codes = ((double)temp_star_bins * (proper_motion_data.array() + 1)).cast<int>();
+    Eigen::MatrixXi codes = Eigen::MatrixXi(star_table.cols(), star_table.rows());
+    codes = ((double)temp_star_bins * (star_table.array() + 1)).cast<int>();
 
 // Debug IO
 #ifdef DEBUG_HASH
@@ -493,7 +511,7 @@ const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols,  ", ");
     for(int ii = 0; ii < codes.rows(); ii++)
     {
 #ifdef DEBUG_HASH
-        std::cout << "Star Table Row: " << proper_motion_data.row(ii).format(fmt) << std::endl; 
+        std::cout << "Star Table Row: " << star_table.row(ii).format(fmt) << std::endl; 
         std::cout << "Codes Row: " << codes.row(ii).format(fmt) << std::endl;
 #endif
         coarse_sky_map[codes.row(ii)].push_back(ii);
@@ -501,7 +519,7 @@ const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols,  ", ");
 
 #ifdef DEBUG_HASH
             Eigen::Vector3i test(3,1);
-            test = ((double)temp_star_bins * (proper_motion_data.row(0).array() + 1)).cast<int>();
+            test = ((double)temp_star_bins * (star_table.row(0).array() + 1)).cast<int>();
             std::cout << "List: ";
             const std::vector<int> llist = coarse_sky_map[test];
             if (llist.empty())
