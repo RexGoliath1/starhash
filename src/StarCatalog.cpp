@@ -1,7 +1,5 @@
 #include "StarCatalog.hpp"
 
-//const int StarCatalog::pattern_size = 4;
-//const int StarCatalog::num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
 
 StarCatalog::StarCatalog(const std::string &in_file, const std::string &out_file) {
     input_catalog_file = in_file;
@@ -222,7 +220,7 @@ void StarCatalog::filter_star_separation()
                 0.005 is a normalized value take from the edge computed (normed to max edge as usual).
             This could be bad, in that stars that are near other stars will never contribute. 
             This needs analysis of camera geometry and if solution is bad enough to merit more thought.
-            Steve G Comment: This seems like an okay trade off if multiple patterns can be used for the final solution. Hard kill if otherwise though.
+            Steve G Comme/temnt: This seems like an okay trade off if multiple patterns can be used for the final solution. Hard kill if otherwise though.
                 All other kinds of solutions (Triangle Pyramid, ISA values) have this problem. I think the right mitigation is to use several clusters, but that might need compute limits.
                 Something like random forest or XGB might be good for finding an optimal solution space here.
     */
@@ -251,6 +249,7 @@ void StarCatalog::filter_star_separation()
     ang_verify_idx(0) = true;
     ang_pattern_idx(0) = true;
     pattern_stars.push_back(0);
+    verification_stars.push_back(0);
 
     double num_stars_in_fov = -1;
 
@@ -279,8 +278,12 @@ void StarCatalog::filter_star_separation()
             {
                 ang_verify_idx(ii) = true;
                 ang_pattern_idx(ii) = true;
+
+                // Explanation: We are later indexing with this into an already indexed matrix of verification stars. 
+                // This is how tetra does it, but this could likely be improved for readability
+                pattern_stars.push_back(verification_stars.size());
+
                 verification_stars.push_back(ii);
-                pattern_stars.push_back(ii);
                 continue;
             }
         }
@@ -332,6 +335,9 @@ void StarCatalog::get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int>
                 codes[0] = ii;
                 codes[1] = jj;
                 codes[2] = kk;
+
+                // TODO: temp_coarse_sky_map[hash_code].remove(pattern[0])
+                // Do we need to remove stars from the unordered map?
                 star_ids = coarse_sky_map[codes];
                 
                 for (const int & star_id : star_ids)
@@ -584,7 +590,7 @@ void StarCatalog::generate_output_catalog()
     // WARNING: This is not how Tetra does this. They init to zeros.. But that is (possibly) a legitimate star in the pattern
     // Starhash inits to -1 (TODO: Macro of -1 ) to avoid star ID conflicts
     // Other TODO: This usees a base matrix of double which I think uses more memory than needed (but is nice). 
-    // Other TODO: May want to copy unordered map logic. Could reduce lookup timing.
+    // Other TODO: May want to copy unordered map logic for output pattern_catalog. Could reduce lookup timing. (currently sparse quad probing of large matrix)
     Eigen::MatrixXi pattern_catalog = -1 * Eigen::MatrixXi::Ones(catalog_length, pattern_size);
 
     // For all patterns in pattern_list, find hash and insert into pattern_catalog
@@ -603,6 +609,7 @@ void StarCatalog::generate_output_catalog()
 
         // Use quadratic probing to find an open space in the pattern catalog to insert
         // TODO: Check if quad probe bounding is required to avoid infinite loops
+        // If quad probe is required, maybe cap this to avoid infinites (This may end up as FSW?)
         while(true)
         {
             int index = (hash_index + (int)std::pow(quadprobe_count, 2)) % (int)pattern_catalog.rows();
@@ -664,10 +671,9 @@ void StarCatalog::generate_output_catalog()
         }
     }
 
-    H5::DataSpace st_ds(2, dim);
+    H5::DataSpace st_ds(2, st_dim);
 
     H5::DataSet st_dataset = hf_file.createDataSet("star_table", H5::PredType::NATIVE_DOUBLE, st_ds);
-    st_dataset.write(st_data_arr, H5::PredType::NATIVE_DOUBLE);
 
     for (size_t i = pc_cols; i > 0; ) {
         delete[] data_arr[--i];
