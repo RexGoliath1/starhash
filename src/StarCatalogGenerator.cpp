@@ -225,23 +225,23 @@ void StarCatalogGenerator::filter_star_separation()
     */
     int num_bright_stars = proper_motion_data.rows();
     // Angles (ICRS) between current star and all others
-    Eigen::ArrayXd current_star_angles = Eigen::ArrayXd(num_bright_stars);
-    // Angles (ICRS) between current star and all pattern stars
-    Eigen::ArrayXd current_pattern_star_angles = Eigen::ArrayXd(num_bright_stars);
-    // Angles (ICRS) between current star and all verification stars
-    Eigen::ArrayXd current_verify_star_angles = Eigen::ArrayXd(num_bright_stars);
-    // Minimum separation check for all stars
-    ArrayXb separated_star_indicies = ArrayXb::Constant(num_bright_stars,false);
-    // Minimum separation check for all pattern stars
-    ArrayXb separated_pattern_indicies = ArrayXb::Constant(num_bright_stars,false);
-    // Minimum separation check for all verification stars
-    ArrayXb separated_verify_indicies = ArrayXb::Constant(num_bright_stars,false);
+    //Eigen::ArrayXd current_star_angles = Eigen::ArrayXd(num_bright_stars);
+    //// Angles (ICRS) between current star and all pattern stars
+    //Eigen::ArrayXd current_pattern_star_angles = Eigen::ArrayXd(num_bright_stars);
+    //// Angles (ICRS) between current star and all verification stars
+    //Eigen::ArrayXd current_verify_star_angles = Eigen::ArrayXd(num_bright_stars);
+    //// Minimum separation check for all stars
+    //ArrayXb separated_star_indicies = ArrayXb::Constant(num_bright_stars,false);
+    //// Minimum separation check for all pattern stars
+    //ArrayXb separated_pattern_indicies = ArrayXb::Constant(num_bright_stars,false);
+    //// Minimum separation check for all verification stars
+    //ArrayXb separated_verify_indicies = ArrayXb::Constant(num_bright_stars,false);
 
-    // Is star "pattern star" (updated in loop)
+    //// Is star "pattern star" (updated in loop)
     ArrayXb ang_pattern_idx = ArrayXb::Constant(proper_motion_data.rows(), false);
-    // Is star "verification star" (updated in loop)
+    //// Is star "verification star" (updated in loop)
     ArrayXb ang_verify_idx = ArrayXb::Constant(proper_motion_data.rows(), false);
-    // Verification vector used to index final star table before creation of catalog
+    //// Verification vector used to index final star table before creation of catalog
     std::vector<int> verification_stars;
     
     // Brightest star (after sort) is always in pattern / verification
@@ -252,58 +252,57 @@ void StarCatalogGenerator::filter_star_separation()
 
     double num_stars_in_fov = -1;
 
-    for (int ii = 1; ii < proper_motion_data.rows(); ii++)
+  for (int ii = 1; ii < proper_motion_data.rows(); ii++)
+{
+    // Determine angle between current star and all other stars
+    Eigen::VectorXd current_star = proper_motion_data.row(ii);
+    Eigen::VectorXd current_star_angles = proper_motion_data.topRows(ii) * current_star;
+
+    // Find idicies that pass angle test
+    ArrayXb separated_star_indicies = (current_star_angles.array() < min_separation); 
+
+    // Explanation: Apply min_sep check to only marked pattern stars 
+    ArrayXb separated_pattern_indicies = (separated_star_indicies && ang_pattern_idx.topRows(ii)) || !ang_pattern_idx.topRows(ii);
+
+    // Pattern test: Limit "close stars" by number of stars used for pattern matching per FOV
+
+    // Check that all pattern stars are close
+    if (separated_pattern_indicies.all())
     {
-        // Determine angle between current star and all other stars
-        // This is wrong. Need to remove current star in the current_star_angles calculations.
-        current_star_angles = proper_motion_data(ii, Eigen::all) * proper_motion_data.transpose();
-
-        // Find idicies that pass angle test
-        separated_star_indicies = (current_star_angles < min_separation); 
-
-        // Explanation: Apply min_sep check to only marked pattern stars 
-        separated_pattern_indicies = (separated_star_indicies && ang_pattern_idx) || !ang_pattern_idx;
-
-        // Pattern test: Limit "close stars" by number of stars used for pattern matching per FOV
-
-        // Check that all pattern stars are close
-        if (separated_pattern_indicies.all())
+        // separated_pattern_indicies is reused to count number of close stars
+        Eigen::ArrayXd current_pattern_star_angles = current_star_angles.array() * ang_pattern_idx.topRows(ii).cast<double>().array();
+        separated_pattern_indicies = current_pattern_star_angles.array() > max_half_fov_dist;
+        double num_stars_in_fov = separated_pattern_indicies.cast <int>().sum();
+        if (num_stars_in_fov < pattern_stars_per_fov)
         {
-            // separted_pattern_indicies is reused to count number of close stars
-            current_pattern_star_angles = current_star_angles.cwiseProduct(ang_pattern_idx.cast <double> ());
-            separated_pattern_indicies = current_pattern_star_angles.array() > max_half_fov_dist;
-            num_stars_in_fov = separated_pattern_indicies.cast <int>().sum();
-            if (num_stars_in_fov < pattern_stars_per_fov)
-            {
-                ang_verify_idx(ii) = true;
-                ang_pattern_idx(ii) = true;
+            ang_verify_idx(ii) = true;
+            ang_pattern_idx(ii) = true;
 
-                // Explanation: We are later indexing with this into an already indexed matrix of verification stars. 
-                // This is how tetra does it, but this could likely be improved for readability
-                pattern_stars.push_back(verification_stars.size());
+            // Explanation: We are later indexing with this into an already indexed matrix of verification stars. 
+            // This is how tetra does it, but this could likely be improved for readability
+            pattern_stars.push_back(verification_stars.size());
 
-                verification_stars.push_back(ii);
-                continue;
-            }
+            verification_stars.push_back(ii);
+            continue;
         }
-        
-        // Explanation: Apply min_sep check to only marked verification stars 
-        separated_verify_indicies = (separated_star_indicies && ang_verify_idx) || !ang_verify_idx;
-
-        // Verification test: Limit number of "close stars" used for further verification per FOV
-        if (separated_verify_indicies.all())
-        {
-            current_verify_star_angles = current_star_angles.cwiseProduct(ang_verify_idx.cast <double> ());
-            separated_verify_indicies = current_verify_star_angles.array() > max_half_fov_dist;
-            num_stars_in_fov = separated_verify_indicies.cast<int>().sum();
-            if(num_stars_in_fov < catalog_stars_per_fov)
-            {
-                ang_verify_idx(ii) = true;
-                verification_stars.push_back(ii);
-            }
-        }
-
     }
+    
+    // Explanation: Apply min_sep check to only marked verification stars 
+    ArrayXb separated_verify_indicies = (separated_star_indicies && ang_verify_idx.topRows(ii)) || !ang_verify_idx.topRows(ii);
+
+    // Verification test: Limit number of "close stars" used for further verification per FOV
+    if (separated_verify_indicies.all())
+    {
+        Eigen::ArrayXd current_verify_star_angles = current_star_angles.array() * ang_verify_idx.topRows(ii).cast<double>().array();
+        separated_verify_indicies = current_verify_star_angles.array() > max_half_fov_dist;
+        double num_stars_in_fov = separated_verify_indicies.cast<int>().sum();
+        if(num_stars_in_fov < catalog_stars_per_fov)
+        {
+            ang_verify_idx(ii) = true;
+            verification_stars.push_back(ii);
+        }
+    }
+}  
 
     star_table = proper_motion_data(verification_stars, Eigen::all);
 }
