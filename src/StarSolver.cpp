@@ -1,24 +1,18 @@
-#include "solver.hpp"
+#include "StarSolver.hpp"
 
 // SBG Ongoing TODOs
 // 1. ROI Mode
 
-Solver::Solver()
-{
-    std::cout << "Class init";
-}
+StarSolver::StarSolver(int maxContours, int maxPointsPerContour) :
+        maxContours(maxContours), maxPointsPerContour(maxPointsPerContour) {}
 
-void Solver::sub_darkframe()
+
+void StarSolver::sub_darkframe()
 {
     cur_img = cur_img - dark_frame;
 }
 
-void Solver::get_centroids_from_image()
-{
-    ;
-}
-
-double Solver::get_median(cv::Mat input, int n)
+double StarSolver::get_median(cv::Mat input, int n)
 {
     // COMPUTE HISTOGRAM OF SINGLE CHANNEL MATRIX
     float range[] = { 0, (float)n};
@@ -49,7 +43,7 @@ double Solver::get_median(cv::Mat input, int n)
     return medianVal / n; 
 }
 
-void Solver::load_generated_catalog()
+void StarSolver::load_catalog()
 {
     H5::H5File hf_file(catalog_file, H5F_ACC_RDONLY);
     H5::DataSet ds_cat = hf_file.openDataSet("/catalog");
@@ -66,7 +60,7 @@ void Solver::load_generated_catalog()
     data.resize(dims[0]);
 }
 
-void Solver::compute_vectors(float fov)
+void StarSolver::compute_vectors(float fov)
 {
     float cx = width / 2.0f;
     float cy = height / 2.0f;
@@ -77,7 +71,20 @@ void Solver::compute_vectors(float fov)
     // Loop over centroids and compute norm vectors
 }
 
-void Solver::set_frame(cv::Mat img)
+void StarSolver::load_image(fs::path img_path)
+{
+    cur_img = cv::imread(img_path.string(), cv::IMREAD_GRAYSCALE);
+    if(cur_img.empty())
+    {
+        std::cout << "Error loading image" << std::endl;
+        exit(1);
+    }
+    width = cur_img.cols;
+    height = cur_img.rows;
+    std::cout << "Loaded image: " << img_path << std::endl;
+}
+
+void StarSolver::set_frame(cv::Mat img)
 {
     // TODO: Float frame
     if(img.size() != cur_img.size())
@@ -86,7 +93,7 @@ void Solver::set_frame(cv::Mat img)
         cur_img = img;
 }
 
-void Solver::solve_from_image()
+void StarSolver::get_centroids()
 {
     switch(b_mode)
     {
@@ -182,4 +189,19 @@ void Solver::solve_from_image()
     }
 
     filter_buffer.copyTo(std_img);
+
+
+    // find moments of the image
+    findContours();
+    computeMoments();
+}
+
+void StarSolver::findContours() {
+    cv::findContours(cur_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+}
+
+void StarSolver::computeMoments() {
+    for (int ii = 0; ii < contours.size(); ii++) {
+        moments.push_back(cv::moments(contours[ii], false));
+    }
 }

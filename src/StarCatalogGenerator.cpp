@@ -1,7 +1,6 @@
-#include "StarCatalog.hpp"
+#include "StarCatalogGenerator.hpp"
 
-
-StarCatalog::StarCatalog(const std::string &in_file, const std::string &out_file) {
+StarCatalogGenerator::StarCatalogGenerator(const std::string &in_file, const std::string &out_file) {
     input_catalog_file = in_file;
     output_catalog_file = out_file;
 
@@ -16,21 +15,21 @@ StarCatalog::StarCatalog(const std::string &in_file, const std::string &out_file
     init_bcrf();
 }
 
-StarCatalog::StarCatalog(): StarCatalog(default_hipparcos_path, default_catalog_path) {
+StarCatalogGenerator::StarCatalogGenerator(): StarCatalogGenerator(default_hipparcos_path, default_catalog_path) {
 
 }
 
-StarCatalog::~StarCatalog() {
+StarCatalogGenerator::~StarCatalogGenerator() {
 
 }
 
-bool StarCatalog::pattern_catalog_file_exists()
+bool StarCatalogGenerator::pattern_catalog_file_exists()
 {
     struct stat buffer;
     return (stat (output_catalog_file.c_str(), &buffer) == 0);
 }
 
-bool StarCatalog::load_pattern_catalog()
+bool StarCatalogGenerator::load_pattern_catalog()
 {
     // TODO: Load from HDF5 and put into star_table and pattern_catalog
     // TODO: Need to save off parameter? 
@@ -42,7 +41,7 @@ bool StarCatalog::load_pattern_catalog()
     return true;
 }
 
-bool StarCatalog::read_hipparcos()
+bool StarCatalogGenerator::read_hipparcos()
 {
     std::ifstream data(input_catalog_file.c_str());
     unsigned int rcnt = 0, ccnt = 0;
@@ -120,7 +119,7 @@ bool StarCatalog::read_hipparcos()
 }
 
 // Filter out dim stars, change some units to radians
-void StarCatalog::convert_hipparcos()
+void StarCatalogGenerator::convert_hipparcos()
 {
     input_catalog_data.col(RA_ICRS) *= deg2rad;
     input_catalog_data.col(DE_ICRS) *= deg2rad;
@@ -129,7 +128,7 @@ void StarCatalog::convert_hipparcos()
     input_catalog_data.col(PLX) *= mas2rad;
 }
 
-void StarCatalog::sort_star_magnitudes()
+void StarCatalogGenerator::sort_star_magnitudes()
 {
     std::vector<Eigen::VectorXd> vec;
     for (int64_t i = 0; i < input_catalog_data.rows(); ++i)
@@ -141,13 +140,13 @@ void StarCatalog::sort_star_magnitudes()
         input_catalog_data.row(i) = vec[i];
 }
 
-void StarCatalog::init_besselian_year()
+void StarCatalogGenerator::init_besselian_year()
 {
     // MAJOR TODO: Replace with chrono / ERFA equivilent byear calculation. (See astropy.time.Time())
     current_byear = 2022.6583374268196;// "Current" Besellian Epoch (08/2022)
 }
 
-void StarCatalog::init_bcrf()
+void StarCatalogGenerator::init_bcrf()
 {
     // Initialize BCRF (Barycentric Celestial Reference System) aka observer position relative to sun
     // Hard TODO: Replace to include parallax, currently ignoring
@@ -162,7 +161,7 @@ void StarCatalog::init_bcrf()
     bcrf_frame = row_bcrf_obs_pos.replicate<hip_rows, 1>();
 }
 
-void StarCatalog::correct_proper_motion()
+void StarCatalogGenerator::correct_proper_motion()
 {
     // TODO: Make sure this is appropriate for other catalogs (UCAC4, Tycho, Gaia, etc)
     // TODO: Determine numpy vs eigen 7th decimal place differences in this math
@@ -203,7 +202,7 @@ void StarCatalog::correct_proper_motion()
     #endif
 }
 
-void StarCatalog::filter_star_separation()
+void StarCatalogGenerator::filter_star_separation()
 {
     /* Separate stars into "pattern stars" vs "verification stars" 
         "Pattern Stars": Star idicies that are minimum separated and have less than pattern_stars_per_fov stars in any single fov.
@@ -220,7 +219,7 @@ void StarCatalog::filter_star_separation()
                 0.005 is a normalized value take from the edge computed (normed to max edge as usual).
             This could be bad, in that stars that are near other stars will never contribute. 
             This needs analysis of camera geometry and if solution is bad enough to merit more thought.
-            Steve G Comme/temnt: This seems like an okay trade off if multiple patterns can be used for the final solution. Hard kill if otherwise though.
+            Steve G Comment: This seems like an okay trade off if multiple patterns can be used for the final solution. Hard kill if otherwise though.
                 All other kinds of solutions (Triangle Pyramid, ISA values) have this problem. I think the right mitigation is to use several clusters, but that might need compute limits.
                 Something like random forest or XGB might be good for finding an optimal solution space here.
     */
@@ -309,7 +308,7 @@ void StarCatalog::filter_star_separation()
     star_table = proper_motion_data(verification_stars, Eigen::all);
 }
 
-void StarCatalog::get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int> &nearby_stars) 
+void StarCatalogGenerator::get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int> &nearby_stars) 
 {
     // Vector to fill in with hash codes for indexing
     Eigen::Vector3i low_codes, high_codes;
@@ -353,7 +352,7 @@ void StarCatalog::get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int>
     }
 }
 
-bool StarCatalog::is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_star_pattern) 
+bool StarCatalogGenerator::is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_star_pattern) 
 {
     // Make sure passed in Star ID combination matches pattern_size
     assert(nearby_star_pattern.size() == pattern_size);
@@ -402,7 +401,7 @@ bool StarCatalog::is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vec
     return all_stars_in_fov;
 }
 
-void StarCatalog::get_star_edge_pattern(Eigen::VectorXi pattern) 
+void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) 
 {
     assert(pattern.size() == pattern_size);
     std::vector<int> star_pair, selector(pattern_size);
@@ -453,7 +452,7 @@ void StarCatalog::get_star_edge_pattern(Eigen::VectorXi pattern)
     edges /= edges.maxCoeff();
 }
 
-int StarCatalog::key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length)
+int StarCatalogGenerator::key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length)
 {
 	const unsigned int rng_size = hash_code.size();
 	Eigen::VectorXi key_range = Eigen::VectorXi::LinSpaced(rng_size, 0, rng_size - 1);
@@ -464,7 +463,7 @@ int StarCatalog::key_to_index(Eigen::VectorXi hash_code, const unsigned int patt
 	return (int(index.sum() * magic_number) % catalog_length);
 }
 
-void StarCatalog::get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_stars, int star_id)
+void StarCatalogGenerator::get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_stars, int star_id)
 {
     int n = nearby_stars.size();
     std::vector<int> nearby_star_pattern;
@@ -504,7 +503,7 @@ void StarCatalog::get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::v
     while(std::prev_permutation(selector.begin(), selector.end()));
 }
 
-void StarCatalog::init_output_catalog()
+void StarCatalogGenerator::init_output_catalog()
 {
     Eigen::MatrixXi codes = Eigen::MatrixXi(star_table.cols(), star_table.rows());
     codes = ((double)temp_star_bins * (star_table.array() + 1)).cast<int>();
@@ -538,7 +537,7 @@ const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols,  ", ");
 #endif
 }
 
-void StarCatalog::generate_output_catalog()
+void StarCatalogGenerator::generate_output_catalog()
 {
     std::vector<int> nearby_stars;
     std::vector<int> nearby_star_combos;
@@ -693,10 +692,10 @@ void StarCatalog::generate_output_catalog()
 }
 
 // Dumb pipeline to keep things organized
-void StarCatalog::run_pipeline()
+void StarCatalogGenerator::run_pipeline()
 {
     // Load pre-existing catalog if exists, otherwise create new database (hash table)
-    if (!pattern_catalog_file_exists())
+    if (!pattern_catalog_file_exists() || regenerate_catalog)
     {
         std::cout << "Reading Hipparcos Catalog" << std::endl;
         if (read_hipparcos())

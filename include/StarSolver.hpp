@@ -1,14 +1,23 @@
+#ifndef STAR_SOLVER_H
+#define STAR_SOLVER_H
+
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include "H5Cpp.h"
 #include <vector>
+#include <experimental/filesystem>
+
+namespace fs = std::experimental::filesystem;
+
+#define MAX_CONTOURS 100
+#define MAX_POINTS_PER_CONTOUR 1000
 
 typedef enum bkgd_sub_mode {
     LOCAL_MEDIAN = 0,
     LOCAL_MEAN,
     GLOBAL_MEDIAN,
     GLOBAL_MEAN
-} bkrd_sub_mode_t;
+} bkgd_sub_mode_t;
 
 typedef enum sigma_mode {
     LOCAL_MEDIAN_ABS = 0,
@@ -17,18 +26,22 @@ typedef enum sigma_mode {
     GLOBAL_ROOT_SQUARE
 } sigma_mode_t;
 
-class Solver {
+class StarSolver {
     public:
-        Solver();
-        ~Solver(){};
+        StarSolver(int maxContours, int maxPointsPerContour);
+        ~StarSolver(){};
         void set_frame(cv::Mat img);
         void solve_from_image();
-        void get_centroids_from_image();
-        void load_generated_catalog();
+        void get_centroids();
+        void load_catalog();
+        void load_image(fs::path img_path);
         void compute_vectors(float fov);
         void get_roi();
         void sub_darkframe();
         double get_median(cv::Mat input, int n);
+
+        void findContours();
+        void computeMoments();
         
 
         // Image parameters
@@ -36,12 +49,19 @@ class Solver {
         unsigned int height;
         cv::Mat cur_img; // TODO: Convert to float / double for precision
         cv::Mat prev_img;
-        cv::Mat dark_frame;
-        cv::Mat thresh_img;
+        cv::Mat dark_frame; // Dark frame to subtract from image
+        cv::Mat thresh_img; // Binary mask containing thresholded image
         cv::Mat std_img;
         cv::Mat filter_buffer;
         cv::Mat sigma_buffer;
         cv::Mat kernel;
+
+        // Centroiding parameters
+        int maxContours;
+        int maxPointsPerContour;
+        int numContours;
+        std::vector<std::vector<cv::Point>> contours;
+        std::vector<cv::Moments> moments;
 
         // FOV solver threshold parameters
         float fov_estimate; 
@@ -53,14 +73,14 @@ class Solver {
         double match_threshold;
 
         // Centroiding filtering parameters 
-        bkrd_sub_mode_t b_mode;
-        sigma_mode_t s_mode;
-        unsigned int filter_size;
-        float img_threshold;
+        bkgd_sub_mode b_mode = LOCAL_MEDIAN;
+        sigma_mode_t s_mode = LOCAL_MEDIAN_ABS;
+        unsigned int filter_size = 11;
+        float img_threshold = -1;
         float img_std;
-        float sigma;
+        float sigma = 3.0;
         unsigned int centroid_window_size;
-        bool binary_open;
+        bool binary_open = true;
         float med_sigma_coef = 1.48;
         int morph_elem = 2;
         int morph_size = 11;
@@ -91,3 +111,5 @@ class Solver {
         std::string debug_folder;
         int debug_level;
 };
+
+#endif // STAR_SOLVER_H

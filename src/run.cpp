@@ -1,4 +1,5 @@
-#include "StarCatalog.hpp"
+#include "StarCatalogGenerator.hpp"
+#include "StarSolver.hpp"
 
 #include <iostream>
 #include <experimental/filesystem>
@@ -31,6 +32,7 @@ int main(int argc, char **argv)
     fs::path output;
     fs::path h_file;
     fs::path out_file;
+    fs::path test_image = fs::current_path() / ".." / "data" / "star_field.png";
 
     if (argc == 1) {
         std::cout << "Creating new catalog with defaults" << std::endl; 
@@ -51,8 +53,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    StarCatalog catalog(h_file, out_file);
+    StarCatalogGenerator catalog(h_file, out_file);
     catalog.run_pipeline();
+
+    StarSolver solver(100, 1000);
+    solver.load_image(test_image);
+    solver.get_centroids();
 
     return 0;
 }
