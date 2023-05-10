@@ -29,34 +29,41 @@ bool create_out_directory(fs::path dir_name)
 
 int main(int argc, char **argv)
 {
-    fs::path output;
-    fs::path h_file;
-    fs::path out_file;
-    fs::path test_image = fs::current_path() / ".." / "data" / "star_field.png";
+    fs::path base_path, data_path, hipparcos_file, output_path, p_cat_out_file;
+    //fs::path test_image = fs::current_path() / ".." / "data" / "star_tracker_image.jpeg";
+    fs::path test_image = fs::current_path() / ".." / "data" / "large_star_image.JPG";
 
+    int max_contours = 100;
+    int max_points_per_contour = 1000;
+
+    // Until we have full config controls, use defaults
     if (argc == 1) {
         std::cout << "Creating new catalog with defaults" << std::endl; 
-        fs::path base = fs::current_path() / "..";
-        output = base / "results";
-        h_file = base / "data" / "hipparcos.tsv";
-        out_file = base / "results" / "output.h5";
-    }
-    create_out_directory(output);
+        base_path = fs::current_path() / "..";
 
-    if (fs::exists(h_file))
+        data_path = base_path / "data";
+        hipparcos_file = data_path / "hipparcos.tsv";
+
+        output_path = base_path / "results";
+        p_cat_out_file = output_path / "output.h5";
+    }
+
+    create_out_directory(output_path);
+
+    if (fs::exists(hipparcos_file))
     {
-        std:: cout << "Hipparcos Catalog Path: " << h_file.string() << std::endl;
+        std:: cout << "Hipparcos Catalog Path: " << hipparcos_file.string() << std::endl;
     }
     else
     {
-        std::cout << "Hipparcos Catalog does not exist: " << h_file.string() << std::endl;
+        std::cout << "Hipparcos Catalog does not exist: " << hipparcos_file.string() << std::endl;
         return 1;
     }
 
-    StarCatalogGenerator catalog(h_file, out_file);
+    StarCatalogGenerator catalog(hipparcos_file, p_cat_out_file);
     catalog.run_pipeline();
 
-    StarSolver solver(100, 1000);
+    StarSolver solver(max_contours, max_points_per_contour, output_path);
     solver.load_image(test_image);
     solver.get_centroids();
 

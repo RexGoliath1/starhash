@@ -7,10 +7,17 @@
 #include <vector>
 #include <experimental/filesystem>
 
+// Some macro defines to debug various functions before valgrid setup
+#define DEBUG_BACKGROUND_SUB
+#define DEBUG_SIGMA_FILTER
+#define DEBUG_MORPH_OPEN
+
 namespace fs = std::experimental::filesystem;
 
 #define MAX_CONTOURS 100
 #define MAX_POINTS_PER_CONTOUR 1000
+
+static const fs::path default_output_path = fs::current_path() / ".." / "results";
 
 typedef enum bkgd_sub_mode {
     LOCAL_MEDIAN = 0,
@@ -28,7 +35,7 @@ typedef enum sigma_mode {
 
 class StarSolver {
     public:
-        StarSolver(int maxContours, int maxPointsPerContour);
+        StarSolver(int maxContours, int maxPointsPerContour, fs::path output_path);
         ~StarSolver(){};
         void set_frame(cv::Mat img);
         void solve_from_image();
@@ -57,9 +64,9 @@ class StarSolver {
         cv::Mat kernel;
 
         // Centroiding parameters
-        int maxContours;
-        int maxPointsPerContour;
-        int numContours;
+        int max_contours;
+        int max_points_per_contour;
+        int num_contours;
         std::vector<std::vector<cv::Point>> contours;
         std::vector<cv::Moments> moments;
 
@@ -73,17 +80,18 @@ class StarSolver {
         double match_threshold;
 
         // Centroiding filtering parameters 
-        bkgd_sub_mode b_mode = LOCAL_MEDIAN;
-        sigma_mode_t s_mode = LOCAL_MEDIAN_ABS;
-        unsigned int filter_size = 11;
+        bkgd_sub_mode background_sub_mode = LOCAL_MEDIAN;
+        sigma_mode_t sigma_sub_mode = LOCAL_MEDIAN_ABS;
+        unsigned int filter_size = 31;
         float img_threshold = -1;
         float img_std;
-        float sigma = 3.0;
+        float sigma = 0.05;
         unsigned int centroid_window_size;
-        bool binary_open = true;
-        float med_sigma_coef = 1.48;
+        bool binary_close = true;
+        bool binary_open = !binary_close;
+        float med_sigma_coef = 3;
         int morph_elem = 2;
-        int morph_size = 11;
+        int morph_size = 31;
 			
 
         // Centroiding spot parameters
@@ -106,6 +114,7 @@ class StarSolver {
         unsigned int roi_y_max;
 
         //File Handling Paramters
+        fs::path output_path;
         std::string config_file;
         std::string catalog_file;
         std::string debug_folder;

@@ -4,8 +4,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Install.
 # sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
 RUN \
-  apt-get update && \
-  apt-get -y upgrade && \
+	apt-get update && \
+	apt-get -y upgrade && \
 	apt-get install -y build-essential cmake git gdb unzip pkg-config && \
 	apt-get install -y libjpeg-dev libpng-dev && \
 	apt-get install -y libavcodec-dev libavformat-dev libswscale-dev && \
@@ -20,11 +20,11 @@ RUN \
 	apt-get install -y liblapack-dev gfortran libhdf5-dev && \
 	apt-get install -y libprotobuf-dev libgoogle-glog-dev libgflags-dev && \
 	apt-get install -y protobuf-compiler ffmpeg && \
-  apt-get install -y software-properties-common && \
-  apt-get install -y byobu curl git htop man unzip vim wget && \
+	apt-get install -y software-properties-common && \
+	apt-get install -y byobu curl git htop man unzip vim wget && \
 	apt-get install -y qt5-default && \
 	apt-get install -y libhdf5-dev && \
-  rm -rf /var/lib/apt/lists/*
+	rm -rf /var/lib/apt/lists/*
 
 # Add files.
 # ADD root/.bashrc /root/.bashrc
@@ -98,3 +98,10 @@ RUN cd ~/opencv && \
 RUN cd ~/ && \
 	rm -rf ~/opencv && \
 	rm -rf ~/opencv_contrib
+
+RUN pip instal numpy && \
+	pip install opencv-python && \
+	pip install opencv-contrib-python && \
+	pip install astroquery && \
+	pip install pandas && \
+	pip install astropy

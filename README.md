@@ -53,6 +53,11 @@ https://github.com/Nerenisa/UCAC4-UCAC5
 
 https://github.com/jobovy/gaia_tools
 
+
+Good tooling in astroquery, but a lot of work needed for cleaning up:
+https://arxiv.org/pdf/1804.09366.pdf
+
+
 ## State Diagrams
 TODO: Implement in plantUML or equivilent. 
 

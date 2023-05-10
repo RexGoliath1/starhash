@@ -223,88 +223,83 @@ void StarCatalogGenerator::filter_star_separation()
                 All other kinds of solutions (Triangle Pyramid, ISA values) have this problem. I think the right mitigation is to use several clusters, but that might need compute limits.
                 Something like random forest or XGB might be good for finding an optimal solution space here.
     */
-    int num_bright_stars = proper_motion_data.rows();
-    // Angles (ICRS) between current star and all others
-    //Eigen::ArrayXd current_star_angles = Eigen::ArrayXd(num_bright_stars);
-    //// Angles (ICRS) between current star and all pattern stars
-    //Eigen::ArrayXd current_pattern_star_angles = Eigen::ArrayXd(num_bright_stars);
-    //// Angles (ICRS) between current star and all verification stars
-    //Eigen::ArrayXd current_verify_star_angles = Eigen::ArrayXd(num_bright_stars);
-    //// Minimum separation check for all stars
-    //ArrayXb separated_star_indicies = ArrayXb::Constant(num_bright_stars,false);
-    //// Minimum separation check for all pattern stars
-    //ArrayXb separated_pattern_indicies = ArrayXb::Constant(num_bright_stars,false);
-    //// Minimum separation check for all verification stars
-    //ArrayXb separated_verify_indicies = ArrayXb::Constant(num_bright_stars,false);
 
-    //// Is star "pattern star" (updated in loop)
+    // Is star "pattern star" (updated in loop)
     ArrayXb ang_pattern_idx = ArrayXb::Constant(proper_motion_data.rows(), false);
-    //// Is star "verification star" (updated in loop)
+
+    // Is star "verification star" (updated in loop)
     ArrayXb ang_verify_idx = ArrayXb::Constant(proper_motion_data.rows(), false);
-    //// Verification vector used to index final star table before creation of catalog
+
+    // Verification vector used to index final star table before creation of catalog
     std::vector<int> verification_stars;
     
     // Brightest star (after sort) is always in pattern / verification
     ang_verify_idx(0) = true;
     ang_pattern_idx(0) = true;
+
     pattern_stars.push_back(0);
     verification_stars.push_back(0);
 
     double num_stars_in_fov = -1;
 
-  for (int ii = 1; ii < proper_motion_data.rows(); ii++)
-{
-    // Determine angle between current star and all other stars
-    Eigen::VectorXd current_star = proper_motion_data.row(ii);
-    Eigen::VectorXd current_star_angles = proper_motion_data.topRows(ii) * current_star;
-
-    // Find idicies that pass angle test
-    ArrayXb separated_star_indicies = (current_star_angles.array() < min_separation); 
-
-    // Explanation: Apply min_sep check to only marked pattern stars 
-    ArrayXb separated_pattern_indicies = (separated_star_indicies && ang_pattern_idx.topRows(ii)) || !ang_pattern_idx.topRows(ii);
-
-    // Pattern test: Limit "close stars" by number of stars used for pattern matching per FOV
-
-    // Check that all pattern stars are close
-    if (separated_pattern_indicies.all())
+    for (int ii = 1; ii < proper_motion_data.rows(); ii++)
     {
-        // separated_pattern_indicies is reused to count number of close stars
-        Eigen::ArrayXd current_pattern_star_angles = current_star_angles.array() * ang_pattern_idx.topRows(ii).cast<double>().array();
-        separated_pattern_indicies = current_pattern_star_angles.array() > max_half_fov_dist;
-        double num_stars_in_fov = separated_pattern_indicies.cast <int>().sum();
-        if (num_stars_in_fov < pattern_stars_per_fov)
+        if ((ii % separation_debug_freq) == 0)
+            std::cout << "Checking Star Separation " << ii << " of " << proper_motion_data.rows() << std::endl;
+
+        // Determine angle between current star and all other stars
+        Eigen::VectorXd current_star = proper_motion_data.row(ii);
+        Eigen::VectorXd current_star_angles = proper_motion_data.topRows(ii) * current_star;
+
+        // Find idicies that pass angle test
+        ArrayXb separated_star_indicies = (current_star_angles.array() < min_separation); 
+
+        // Explanation: Apply min_sep check to only marked pattern stars 
+        ArrayXb separated_pattern_indicies = (separated_star_indicies && ang_pattern_idx.topRows(ii)) || !ang_pattern_idx.topRows(ii);
+
+        // Pattern test: Limit "close stars" by number of stars used for pattern matching per FOV
+
+        // Check that all pattern stars are close
+        if (separated_pattern_indicies.all())
         {
-            ang_verify_idx(ii) = true;
-            ang_pattern_idx(ii) = true;
+            // separated_pattern_indicies is reused to count number of close stars
+            Eigen::ArrayXd current_pattern_star_angles = current_star_angles.array() * ang_pattern_idx.topRows(ii).cast<double>().array();
+            separated_pattern_indicies = current_pattern_star_angles.array() > max_half_fov_dist;
+            num_stars_in_fov = separated_pattern_indicies.cast <int>().sum();
+            if (num_stars_in_fov < pattern_stars_per_fov)
+            {
+                ang_verify_idx(ii) = true;
+                ang_pattern_idx(ii) = true;
 
-            // Explanation: We are later indexing with this into an already indexed matrix of verification stars. 
-            // This is how tetra does it, but this could likely be improved for readability
-            pattern_stars.push_back(verification_stars.size());
+                // Explanation: We are later indexing with this into an already indexed matrix of verification stars. 
+                // This is how tetra does it, but this could likely be improved for readability
+                pattern_stars.push_back(verification_stars.size());
 
-            verification_stars.push_back(ii);
-            continue;
+                verification_stars.push_back(ii);
+                continue;
+            }
         }
-    }
-    
-    // Explanation: Apply min_sep check to only marked verification stars 
-    ArrayXb separated_verify_indicies = (separated_star_indicies && ang_verify_idx.topRows(ii)) || !ang_verify_idx.topRows(ii);
+        
+        // Explanation: Apply min_sep check to only marked verification stars 
+        ArrayXb separated_verify_indicies = (separated_star_indicies && ang_verify_idx.topRows(ii)) || !ang_verify_idx.topRows(ii);
 
-    // Verification test: Limit number of "close stars" used for further verification per FOV
-    if (separated_verify_indicies.all())
-    {
-        Eigen::ArrayXd current_verify_star_angles = current_star_angles.array() * ang_verify_idx.topRows(ii).cast<double>().array();
-        separated_verify_indicies = current_verify_star_angles.array() > max_half_fov_dist;
-        double num_stars_in_fov = separated_verify_indicies.cast<int>().sum();
-        if(num_stars_in_fov < catalog_stars_per_fov)
+        // Verification test: Limit number of "close stars" used for further verification per FOV
+        if (separated_verify_indicies.all())
         {
-            ang_verify_idx(ii) = true;
-            verification_stars.push_back(ii);
+            Eigen::ArrayXd current_verify_star_angles = current_star_angles.array() * ang_verify_idx.topRows(ii).cast<double>().array();
+            separated_verify_indicies = current_verify_star_angles.array() > max_half_fov_dist;
+            double num_stars_in_fov = separated_verify_indicies.cast<int>().sum();
+            if(num_stars_in_fov < catalog_stars_per_fov)
+            {
+                ang_verify_idx(ii) = true;
+                verification_stars.push_back(ii);
+            }
         }
-    }
-}  
+    }  
 
     star_table = proper_motion_data(verification_stars, Eigen::all);
+    std::cout << "Found " << star_table.rows() << " verification stars for catalog." << std::endl;
+    std::cout << "Found " << pattern_stars.size() << " pattern stars for catalog." << std::endl;
 }
 
 void StarCatalogGenerator::get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int> &nearby_stars) 
@@ -549,36 +544,42 @@ void StarCatalogGenerator::generate_output_catalog()
     Eigen::VectorXi pattern(pattern_size);
     int quadprobe_count;
 
-#ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
-    time_t tstart, tend;
+#if defined(DEBUG_GET_NEARBY_STARS) || defined(DEBUG_GET_NEARBY_STAR_PATTERNS)
+    time_t tstart;
 #endif
 
     for(long unsigned int ii = 0; ii < pattern_stars.size(); ii++)
     {
-#ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
-        tstart = time(0);
-#endif
         nearby_stars.clear(); // lol, quite important.
         star_id = pattern_stars[ii];
         star_vector = star_table.row(star_id);
-// #ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
-        std::cout << "Looking for patterns near star id " << star_id << std::endl;
-// #endif
 
+        std::cout << "Looking for patterns near star id " << star_id;
+
+#ifdef DEBUG_GET_NEARBY_STARS
+        tstart = time(0);
+#endif
         // For each star kept for pattern matching and verificaiton, find all nearby stars in FOV
         get_nearby_stars(star_vector, nearby_stars);
-#ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
-        std::cout << "Number of Neighbors = " << nearby_stars.size() << std::endl;
+
+        std::cout << ", Number of Neighbors = " << nearby_stars.size() << std::endl;
+
+#ifdef DEBUG_GET_NEARBY_STARS
+        std::cout << "get_nearby_stars took " << difftime(time(0), tstart) << " Seconds." << std::endl;
 #endif
 
+
+#ifdef DEBUG_GET_NEARBY_STAR_PATTERNS
+        tstart = time(0);
+#endif
         // For all stars nearby, find each star pattern combination (pattern_size)
         // If pattern contains star angles within FOV limits, add to pattern_list 
         get_nearby_star_patterns(pattern_list, nearby_stars, star_id);
 
-#ifdef DEBUG_CATALOG_GENERATE_NEIGHBORS
-        tend = time(0);
-        std::cout << "Took " << difftime(tend, tstart) << " Seconds." << std::endl;
+#ifdef DEBUG_GET_NEARBY_STAR_PATTERNS
+        std::cout << "get_nearby_star_patterns took " << difftime(time(0), tstart) << " Seconds." << std::endl;
 #endif
+
     }
 
     pattern_list.conservativeResize(pattern_list_size, Eigen::NoChange);

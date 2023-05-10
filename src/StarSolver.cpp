@@ -3,9 +3,8 @@
 // SBG Ongoing TODOs
 // 1. ROI Mode
 
-StarSolver::StarSolver(int maxContours, int maxPointsPerContour) :
-        maxContours(maxContours), maxPointsPerContour(maxPointsPerContour) {}
-
+StarSolver::StarSolver(int max_contours, int max_points_per_contour, fs::path output_path) :
+        max_contours(max_contours), max_points_per_contour(max_points_per_contour), output_path(output_path) {}
 
 void StarSolver::sub_darkframe()
 {
@@ -95,7 +94,7 @@ void StarSolver::set_frame(cv::Mat img)
 
 void StarSolver::get_centroids()
 {
-    switch(b_mode)
+    switch(background_sub_mode)
     {
         case LOCAL_MEDIAN:
         {
@@ -129,13 +128,18 @@ void StarSolver::get_centroids()
         }
     }
 
+#ifdef DEBUG_BACKGROUND_SUB
+    fs::path bkgrd_debug_path = output_path / "background_sub.png";
+    cv::imwrite(bkgrd_debug_path.string(), filter_buffer);
+#endif
+
     cur_img = cur_img - filter_buffer;
 
     if(img_threshold < 0)
     {
         assert(sigma > 0);
 
-        switch(s_mode)
+        switch(sigma_sub_mode)
         {
             default:
             {
@@ -180,16 +184,47 @@ void StarSolver::get_centroids()
         sigma_buffer = filter_buffer * sigma;
     }
 
-    thresh_img = cur_img > sigma_buffer;
+    thresh_img = cur_img < sigma_buffer;
+
+#ifdef DEBUG_SIGMA_FILTER
+    double minVal; 
+    double maxVal; 
+    cv::Point minLoc; 
+    cv::Point maxLoc;
+    
+    cv::minMaxLoc( sigma_buffer, &minVal, &maxVal, &minLoc, &maxLoc );
+    std::cout << "Sigma Filter Max: " << maxVal << " at " << maxLoc << std::endl;
+    std::cout << "Sigma Filter Min: " << minVal << " at " << minLoc << std::endl;
+
+    fs::path sigma_debug_path = output_path / "sigma_filter.png";
+    fs::path thresh_debug_path = output_path / "threshold_image.png";
+    cv::imwrite(sigma_debug_path.string(), sigma_buffer);
+    cv::imwrite(thresh_debug_path.string(), thresh_img);
+#endif
+
+    cv::Mat element;
+    if (binary_close)
+    {
+        //element = cv::getStructuringElement(morph_elem, cv::Size(2 * morph_size + 1, 2 * morph_size + 1), cv::Point(morph_size, morph_size));
+        element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(morph_size, morph_size));
+        cv::morphologyEx(thresh_img, thresh_img, cv::MORPH_CLOSE, element);
+        //element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2 * morph_size + 1, 2 * morph_size + 1), cv::Point(morph_size, morph_size));
+        //cv::morphologyEx(thresh_img, thresh_img, cv::MORPH_OPEN, element);
+    }
 
     if (binary_open)
     {
-        cv::Mat element = cv::getStructuringElement(morph_elem, cv::Size(2 * morph_size + 1, 2 * morph_size + 1), cv::Point(morph_size, morph_size));
+        element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(morph_size, morph_size));
         cv::morphologyEx(thresh_img, thresh_img, cv::MORPH_OPEN, element);
+        cv::morphologyEx(thresh_img, thresh_img, cv::MORPH_CLOSE, element);
     }
 
-    filter_buffer.copyTo(std_img);
+#ifdef DEBUG_MORPH_OPEN
+    fs::path open_debug_path = output_path / "morph_open_filter.png";
+    cv::imwrite(open_debug_path.string(), thresh_img);
+#endif
 
+    filter_buffer.copyTo(std_img);
 
     // find moments of the image
     findContours();
@@ -201,7 +236,26 @@ void StarSolver::findContours() {
 }
 
 void StarSolver::computeMoments() {
+    float area, m20;
+    cv::Moments moment;
+    // compute moments of the contours and save off ones that meet criteria
     for (int ii = 0; ii < contours.size(); ii++) {
-        moments.push_back(cv::moments(contours[ii], false));
+        area = cv::contourArea(contours[ii]);
+
+        if (area < min_spot_area || area > max_spot_area)
+            continue;
+
+        cv::Moments moment = cv::moments(contours[ii], false);
+
+        if (moment.m00 < min_spot_sum || moment.m00 > max_spot_sum)
+            continue;
+
+        m2_xx = max(0, np.sum((x - m1_x)**2 * a) / m0)
+        m2_yy = max(0, np.sum((y - m1_y)**2 * a) / m0)
+        m2_xy = np.sum((x - m1_x) * (y - m1_y) * a) / m0
+        major = np.sqrt(2 * (m2_xx + m2_yy + np.sqrt((m2_xx - m2_yy)**2 + 4 * m2_xy**2)))
+        minor = np.sqrt(2 * max(0, m2_xx + m2_yy - np.sqrt((m2_xx - m2_yy)**2 + 4 * m2_xy**2)))        
+
+        moments.push_back(moment);
     }
 }

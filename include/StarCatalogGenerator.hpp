@@ -23,6 +23,16 @@
 #include <exception>
 #include "H5Cpp.h"
 
+
+// Some macro defines to debug various functions before valgrid setup
+//#define DEBUG_HIP
+//#define DEBUG_PM
+//#define DEBUG_HASH
+//#define DEBUG_GET_NEARBY_STARS
+//#define DEBUG_GET_NEARBY_STAR_PATTERNS
+//#define DEBUG_PATTERN_CATALOG 
+
+
 namespace fs = std::experimental::filesystem;
 
 static const fs::path default_hipparcos_path = "/../data/hipparcos.tsv"; // Default relative path
@@ -81,7 +91,7 @@ private:
     CoarseSkyMap coarse_sky_map;
     Eigen::ArrayXd edges;
 
-    bool regenerate_catalog = true;
+    bool regenerate_catalog = false;
 
     // TODO: Load dynamically through some kind of configuration
     const unsigned int pattern_size = 4;
@@ -104,8 +114,8 @@ private:
     Eigen::MatrixXd bcrf_frame;
 
     // Default thresholding parameters (Default tetra amounts are in readme)
+    float brightness_thresh = 11; // Minimum brightness of db
     //float brightness_thresh = 6.5; // Minimum brightness of db
-    float brightness_thresh = 6.5; // Minimum brightness of db
     double min_separation_angle = 0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for dealing with double / close stars)
     double min_separation = std::cos(min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
     unsigned int pattern_stars_per_fov = 10;
@@ -120,6 +130,7 @@ private:
     int pattern_list_size = 0;
     int pattern_list_growth = 20000;
     int index_pattern_debug_freq = 10000;
+    int separation_debug_freq = 10000;
 
     enum {
         RA_J2000 = 0,
