@@ -14,6 +14,7 @@ RUN \
 	apt-get install -y libgstreamer-plugins-base1.0-dev gstreamer1.0-gl && \
 	apt-get install -y libxvidcore-dev libx264-dev && \
 	apt-get install -y python3-dev python3-numpy python3-pip python3-venv && \
+	apt-get install -y python3-tk && \ 
 	apt-get install -y libtbb2 libtbb-dev libdc1394-22-dev && \
 	apt-get install -y libv4l-dev v4l-utils && \
 	apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev && \
@@ -133,9 +134,17 @@ RUN cd ~/ && \
 	rm -rf ~/opencv && \
 	rm -rf ~/opencv_contrib
 
-RUN pip instal numpy && \
+RUN pip install numpy && \
+	pip install matplotlib && \
 	pip install opencv-python && \
 	pip install opencv-contrib-python && \
 	pip install astroquery && \
 	pip install pandas && \
-	pip install astropy
+	pip install astropy && \
+	pip install scipy
+
+# Update locales for time prop
+RUN apt-get update && apt-get install -y locales && \
+	locale-gen en_US.UTF-8 && \
+	export LANG=en_US.UTF-8 && \
+	echo "export LANG=en_US.UTF-8" >> ~/.bashrc

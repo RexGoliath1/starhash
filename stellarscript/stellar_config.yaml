@@ -1,0 +1,57 @@
+# Stellarium Camera Settings
+fov: 44.2
+focal_length: 0.025
+aperture: 0.0125
+
+# Stellarium Time Settings
+jday: 2451545.0
+timerate: 0.0
+
+# Stellarium Location Settings
+latitude: 90.0
+longitude: 0.0
+altitude: 0.0
+dec: 0
+ra: 0
+
+
+delay_sec: 0.0001
+step_size: 10000
+
+# Stellarium API URLs
+url_main: "http://localhost:8090/api/"
+url_status: "main/status"
+url_view: "main/view"
+url_fov: "main/fov"
+url_time: "main/time"
+url_actions: "stelaction/list"
+url_do_action: 'stelaction/do'
+url_prop: 'stelproperty/list'
+url_location: 'api/location'
+
+disabled_properties: [
+  "actionShow_Atmosphere",
+  "actionShow_Ground",
+  "actionShow_Fog",
+  "actionShow_Gridlines",
+  "actionShow_Cardinal_Points",
+  "actionShow_Intercardinal_Points",
+  "actionShow_LandscapeLabels",
+  "actionShow_LandscapeIllumination",
+  "actionShow_MeteorShowers_labels",
+  "actionShow_MeteorShowers",
+  "actionShow_MilkyWay",
+  # "actionShow_Nebulas",
+  "actionShow_Night_Mode",
+  "actionShow_Oculars_GUI",
+  "actionShow_Skyculture_NativePlanetNames",
+  "actionShow_Planets_Labels",
+  "actionShow_Planets_Pointers",
+  # "actionShow_Planets",
+  # "actionShow_Remote_Control",
+  "actionShow_Satellite_Hints",
+  "actionShow_Stars_Labels",
+  "actionShow_ZodiacalLight",
+  "actionToggle_GuiHidden_Global",
+  # "actionShow_DSO_Textures"
+]
