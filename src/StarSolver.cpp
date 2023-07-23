@@ -236,7 +236,7 @@ void StarSolver::findContours() {
 }
 
 void StarSolver::computeMoments() {
-    float area, m20;
+    float area, m20, m2_xx, m2_yy, major, minor;
     cv::Moments moment;
     // compute moments of the contours and save off ones that meet criteria
     for (int ii = 0; ii < contours.size(); ii++) {
@@ -250,11 +250,11 @@ void StarSolver::computeMoments() {
         if (moment.m00 < min_spot_sum || moment.m00 > max_spot_sum)
             continue;
 
-        m2_xx = max(0, np.sum((x - m1_x)**2 * a) / m0)
-        m2_yy = max(0, np.sum((y - m1_y)**2 * a) / m0)
-        m2_xy = np.sum((x - m1_x) * (y - m1_y) * a) / m0
-        major = np.sqrt(2 * (m2_xx + m2_yy + np.sqrt((m2_xx - m2_yy)**2 + 4 * m2_xy**2)))
-        minor = np.sqrt(2 * max(0, m2_xx + m2_yy - np.sqrt((m2_xx - m2_yy)**2 + 4 * m2_xy**2)))        
+        //m2_xx = max(0, np.sum((x - m1_x)**2 * a) / m0)
+        //m2_yy = max(0, np.sum((y - m1_y)**2 * a) / m0)
+        //m2_xy = np.sum((x - m1_x) * (y - m1_y) * a) / m0
+        //major = np.sqrt(2 * (m2_xx + m2_yy + np.sqrt((m2_xx - m2_yy)**2 + 4 * m2_xy**2)))
+        //minor = np.sqrt(2 * max(0, m2_xx + m2_yy - np.sqrt((m2_xx - m2_yy)**2 + 4 * m2_xy**2)))        
 
         moments.push_back(moment);
     }

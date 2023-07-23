@@ -13,7 +13,7 @@ RUN \
 	apt-get install -y libgstreamer1.0-dev gstreamer1.0-gtk3 && \
 	apt-get install -y libgstreamer-plugins-base1.0-dev gstreamer1.0-gl && \
 	apt-get install -y libxvidcore-dev libx264-dev && \
-	apt-get install -y python3-dev python3-numpy python3-pip && \
+	apt-get install -y python3-dev python3-numpy python3-pip python3-venv && \
 	apt-get install -y libtbb2 libtbb-dev libdc1394-22-dev && \
 	apt-get install -y libv4l-dev v4l-utils && \
 	apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev && \
@@ -24,7 +24,41 @@ RUN \
 	apt-get install -y byobu curl git htop man unzip vim wget && \
 	apt-get install -y qt5-default && \
 	apt-get install -y libhdf5-dev && \
+	apt-get install -y zsh && \
+	sudo apt-get install -y language-pack-en && \
+	sudo update-locale && \
 	rm -rf /var/lib/apt/lists/*
+RUN apt-get install -y locales locales-all
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
+
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+RUN sudo apt install fonts-powerline
+
+#  Build neovim (this is probably incomplete. Need to build zsh autosuggestions and configure powerline)
+RUN sudo apt-get install ninja-build gettext ripgrep && \
+	git clone https://github.com/neovim/neovim && \
+	cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo && \
+	sudo make install
+
+# Lazygit install
+RUN LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') && \
+	curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" && \
+	tar xf lazygit.tar.gz lazygit && \
+	sudo install lazygit /usr/local/bin
+
+# Set up python virtualenv
+RUN pip install virtualenvwrapper && \
+	echo "export WORKON_HOME=~/Envs" >> ~/.zshrc && \
+	export WORKON_HOME=~/Envs && \
+	mkdir -p $WORKON_HOME && \
+	source /usr/local/bin/virtualenvwrapper.sh && \
+	mkvirtualenv giant && \
+	pip install opencv-python matplotlib scipy pandas numpy cython pyqt5 astropy lxml sphinx spiceypy astroquery dill psutil
+
+# WARNING: c-compiler and openmp doesn't work on M1
+
 
 # Add files.
 # ADD root/.bashrc /root/.bashrc
