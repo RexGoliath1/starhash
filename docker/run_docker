@@ -1,2 +1,6 @@
-docker 
-docker-compose up -d
+ #!/bin/bash
+if [ "$(uname)" == "Darwin" ]; then
+  docker run -it -e DISPLAY=docker.for.mac.host.internal:0 starz
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+  docker run -it --net=host --env="DISPLAY" -e DISPLAY=$IP:0 starz
+fi
