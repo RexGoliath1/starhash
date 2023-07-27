@@ -46,14 +46,15 @@ class StarSolver {
         void get_roi();
         void sub_darkframe();
         double get_median(cv::Mat input, int n);
+        void get_gauss_centroids();
 
         void findContours();
         void computeMoments();
         
 
         // Image parameters
-        unsigned int width;
-        unsigned int height;
+        int width;
+        int height;
         cv::Mat cur_img; // TODO: Convert to float / double for precision
         cv::Mat prev_img;
         cv::Mat dark_frame; // Dark frame to subtract from image
@@ -62,6 +63,10 @@ class StarSolver {
         cv::Mat filter_buffer;
         cv::Mat sigma_buffer;
         cv::Mat kernel;
+
+        // Gaussian centroiding parameters
+        bool denoise = true;
+
 
         // Centroiding parameters
         int max_contours;

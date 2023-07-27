@@ -1,10 +1,81 @@
 #include "StarSolver.hpp"
+#include <algorithm>
+#include <random>
+#include <iterator>
+#include <iostream>
+#include <random>
+#include <unordered_set>
+
+
+template<typename I>
+class boxed_iterator {
+    I i;
+
+public:
+    typedef I difference_type;
+    typedef I value_type;
+    typedef I pointer;
+    typedef I reference;
+    typedef std::random_access_iterator_tag iterator_category;
+
+    boxed_iterator(I i) : i{i} {}
+
+    bool operator==(boxed_iterator<I> &other) { return i == other.i; }
+    I operator-(boxed_iterator<I> &other) { return i - other.i; }
+    I operator++() { return i++; }
+    I operator*() { return i; }
+};
 
 // SBG Ongoing TODOs
 // 1. ROI Mode
 
 StarSolver::StarSolver(int max_contours, int max_points_per_contour, fs::path output_path) :
         max_contours(max_contours), max_points_per_contour(max_points_per_contour), output_path(output_path) {}
+
+void StarSolver::get_gauss_centroids()
+{
+    auto rng = std::mt19937{std::random_device{}()};
+
+    if (denoise) {
+        cv::GaussianBlur(cur_img, cur_img, cv::Size(3, 3), 0);
+    }
+    
+    cv::Mat temp;
+    cv::medianBlur(cur_img, temp, 5);
+    cv::Mat flat_image = cur_img - temp;
+
+    
+    // From image, choose num_rand_pixels random pixels that are at least num_edge_pixels away from the edge
+    int num_edge_pixels = 5;
+    int num_rand_pixels = 2000;
+    int num_pixels = (width - num_edge_pixels) * (height - num_edge_pixels);
+    int num_choise = std::min(num_pixels, 2000);
+
+    std::vector<int> sample_rows;
+    std::vector<int> sample_cols;
+    std::sample(boxed_iterator{num_edge_pixels}, boxed_iterator{width}, std::back_inserter(sample_cols), num_choise, rng);
+    std::sample(boxed_iterator{num_edge_pixels}, boxed_iterator{height}, std::back_inserter(sample_rows), num_choise, rng);
+    std::shuffle(sample_rows.begin(), sample_rows.end(), rng);
+    std::shuffle(sample_cols.begin(), sample_cols.end(), rng);
+
+    std::cout << "Sampled rows: " << std::endl;
+    for (auto i: sample_rows) {
+        std::cout << i << ", ";
+    }
+
+    std::cout << "Sampled cols: " << std::endl;
+    for (auto i: sample_cols) {
+        std::cout << i << ", ";
+    }
+
+    // std::vector<float> diffs;
+    // for (auto i: indicies(sample_rows)) {
+    //     unsigned int row = sample_rows[i];
+    //     unsigned int col = sample_cols[i];
+    //     diffs.push_back(flat_image.at<float>(row + 5, col + 5) - flat_image.at<float>(row, col));
+    // }
+
+}
 
 void StarSolver::sub_darkframe()
 {

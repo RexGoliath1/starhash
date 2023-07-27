@@ -65,7 +65,8 @@ int main(int argc, char **argv)
 
     StarSolver solver(max_contours, max_points_per_contour, output_path);
     solver.load_image(test_image);
-    solver.get_centroids();
+    //solver.get_centroids();
+    solver.get_gauss_centroids();
 
     return 0;
 }
