@@ -6,6 +6,7 @@
 #include "H5Cpp.h"
 #include <vector>
 #include <experimental/filesystem>
+#include <Eigen/Dense>
 
 // Some macro defines to debug various functions before valgrid setup
 #define DEBUG_BACKGROUND_SUB
@@ -50,6 +51,8 @@ class StarSolver {
 
         void findContours();
         void computeMoments();
+        float eigen_median(Eigen::VectorXf vec);
+        float eigen_stddev(Eigen::VectorXf vec);
         
 
         // Image parameters
@@ -63,6 +66,15 @@ class StarSolver {
         cv::Mat filter_buffer;
         cv::Mat sigma_buffer;
         cv::Mat kernel;
+
+        // Flat Image Parameters
+        int num_edge_pixels = 5;
+        int num_flat_pixels = 3000; // 2000
+        float sigma_cutoff = 4.0f;
+        std::vector<int> flat_row_samples;
+        std::vector<int> flat_col_samples;
+        double flat_stddev;
+
 
         // Gaussian centroiding parameters
         bool denoise = true;
