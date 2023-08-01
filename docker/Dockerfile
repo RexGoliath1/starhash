@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:latest
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install.
@@ -16,7 +16,7 @@ RUN \
 	apt-get install -y libxvidcore-dev libx264-dev && \
 	apt-get install -y python3-dev python3-numpy python3-pip python3-venv && \
 	apt-get install -y python3-tk python-is-python3 && \ 
-	apt-get install -y libtbb2 libtbb-dev libdc1394-22-dev && \
+	apt-get install -y libtbb2 libtbb-dev libdc1394-dev && \
 	apt-get install -y libv4l-dev v4l-utils && \
 	apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev && \
 	apt-get install -y liblapack-dev gfortran libhdf5-dev && \
@@ -24,7 +24,6 @@ RUN \
 	apt-get install -y protobuf-compiler ffmpeg && \
 	apt-get install -y software-properties-common && \
 	apt-get install -y byobu curl git htop man unzip vim wget && \
-	apt-get install -y qt5-default && \
 	apt-get install -y libhdf5-dev && \
 	apt-get install -y zsh dconf-cli && \
 	apt-get install -y ripgrep golang-go nodejs npm && \
@@ -113,12 +112,12 @@ RUN cd ~/eigen && \
 RUN cd ~/ && \
 	rm -rf ~/eigen 
 
-RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.5.zip && \
-	wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/4.5.5.zip && \
+RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.8.0.zip && \
+	wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/4.8.0.zip && \
 	unzip opencv.zip && \
 	unzip opencv_contrib.zip && \
-	mv opencv-4.5.5 opencv && \
-	mv opencv_contrib-4.5.5 opencv_contrib && \
+	mv opencv-4.8.0 opencv && \
+	mv opencv_contrib-4.8.0 opencv_contrib && \
 	rm opencv.zip && \
 	rm opencv_contrib.zip 
 
