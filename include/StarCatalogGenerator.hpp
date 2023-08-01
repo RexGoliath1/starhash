@@ -23,6 +23,7 @@
 #include <exception>
 #include "H5Cpp.h"
 
+#include "eigen_mods.hpp"
 
 // Some macro defines to debug various functions before valgrid setup
 //#define DEBUG_HIP
@@ -60,8 +61,6 @@ template<typename T> struct matrix_hash : std::unary_function<T, size_t> {
 // Coarse sky map (pre computed hash table). This is only used internally to define the database.
 using CoarseSkyMap = std::unordered_map<Eigen::Vector3i, std::vector<int>, matrix_hash<Eigen::Vector3i>>;
 
-// Define dynamic eigen binary arrays
-typedef Eigen::Array<bool,Eigen::Dynamic,1> ArrayXb;
 
 // Define eigen csv formatter
 const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");

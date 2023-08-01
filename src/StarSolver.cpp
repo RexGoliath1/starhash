@@ -5,32 +5,30 @@
 #include <iostream>
 #include <random>
 #include <unordered_set>
+#include "iterators.hpp"
+#include "eigen_mods.hpp"
 
+#define DEBUG_FLATTEN_IMAGE
 
-template<typename I>
-class boxed_iterator {
-    I i;
-
-public:
-    typedef I difference_type;
-    typedef I value_type;
-    typedef I pointer;
-    typedef I reference;
-    typedef std::random_access_iterator_tag iterator_category;
-
-    boxed_iterator(I i) : i{i} {}
-
-    bool operator==(boxed_iterator<I> &other) { return i == other.i; }
-    I operator-(boxed_iterator<I> &other) { return i - other.i; }
-    I operator++() { return i++; }
-    I operator*() { return i; }
-};
 
 // SBG Ongoing TODOs
 // 1. ROI Mode
 
 StarSolver::StarSolver(int max_contours, int max_points_per_contour, fs::path output_path) :
         max_contours(max_contours), max_points_per_contour(max_points_per_contour), output_path(output_path) {}
+
+float StarSolver::eigen_median(Eigen::VectorXf vec) {
+    const auto median_it = vec.begin() + vec.size() / 2;
+    std::nth_element(vec.begin(), median_it , vec.end());
+    auto median = *median_it;
+    return median;
+}
+
+float StarSolver::eigen_stddev(Eigen::VectorXf vec) {
+    /* Standard Deviation calculation avoid NaN contributions */
+    return std::sqrt((vec.array() - vec.mean()).square().sum() / (vec.size()-1));
+}
+
 
 void StarSolver::get_gauss_centroids()
 {
@@ -42,38 +40,75 @@ void StarSolver::get_gauss_centroids()
     
     cv::Mat temp;
     cv::medianBlur(cur_img, temp, 5);
-    cv::Mat flat_image = cur_img - temp;
+    cv::Mat flat_image;
+    temp.copyTo(flat_image);
 
-    
-    // From image, choose num_rand_pixels random pixels that are at least num_edge_pixels away from the edge
-    int num_edge_pixels = 5;
-    int num_rand_pixels = 2000;
+    /* randomly sample part of image, that are at least num_edge_pixels away from the edge */
     int num_pixels = (width - num_edge_pixels) * (height - num_edge_pixels);
-    int num_choise = std::min(num_pixels, 2000);
+    assert(num_pixels > num_flat_pixels);
+    std::sample(boxed_iterator{num_edge_pixels}, boxed_iterator{width}, std::back_inserter(flat_col_samples), num_flat_pixels, rng);
+    std::sample(boxed_iterator{num_edge_pixels}, boxed_iterator{height}, std::back_inserter(flat_row_samples), num_flat_pixels, rng);
+    std::shuffle(flat_row_samples.begin(), flat_row_samples.end(), rng);
+    std::shuffle(flat_col_samples.begin(), flat_col_samples.end(), rng);
+    Eigen::VectorXf diffs(num_flat_pixels);
 
-    std::vector<int> sample_rows;
-    std::vector<int> sample_cols;
-    std::sample(boxed_iterator{num_edge_pixels}, boxed_iterator{width}, std::back_inserter(sample_cols), num_choise, rng);
-    std::sample(boxed_iterator{num_edge_pixels}, boxed_iterator{height}, std::back_inserter(sample_rows), num_choise, rng);
-    std::shuffle(sample_rows.begin(), sample_rows.end(), rng);
-    std::shuffle(sample_cols.begin(), sample_cols.end(), rng);
+    for (int ii = 0; ii < num_flat_pixels; ii++) {
+        auto row = flat_row_samples[ii];
+        auto col = flat_col_samples[ii];
+        float diff = flat_image.at<uchar>(row + 5, col + 5) - flat_image.at<uchar>(row, col);
+        diffs[ii] = diff;
 
-    std::cout << "Sampled rows: " << std::endl;
-    for (auto i: sample_rows) {
-        std::cout << i << ", ";
+#ifdef DEBUG_FLATTEN_IMAGE
+        std::cout << "Sampled col: " << row << ", row: " << col;
+        std::cout << "  Pixel + 5: " << static_cast<int>(flat_image.at<uchar>(row + 5, col + 5));
+        std::cout << "  Pixel: " << static_cast<int>(flat_image.at<uchar>(row, col));
+        std::cout << "  Diff =  " << diffs[ii] << std::endl;
+#endif
+
     }
 
-    std::cout << "Sampled cols: " << std::endl;
-    for (auto i: sample_cols) {
-        std::cout << i << ", ";
+    /* Identify outliers to remove for random sample by thresholding the residual median standard deviation */
+    float median = eigen_median(diffs);
+    Eigen::VectorXf median_diffs(num_flat_pixels);
+    Eigen::VectorXf median_sigma(num_flat_pixels);
+    ArrayXb inliers = ArrayXb::Constant(num_flat_pixels, false);
+
+    median_diffs = diffs.array() - median;
+    median_diffs = Eigen::abs(median_diffs.array());
+
+    // TODO : Make Eigen median that doesn't suck (sort)
+    float median_diff = 0;
+    float mean_diff = median_diffs.mean();
+
+    // Don't divide by zero (TODO: Check if mean is zero)
+    if (std::abs(median_diff) > std::numeric_limits<float>::epsilon()) {
+        median_sigma = 1.4826 * median_diffs / median_diff;
+    }
+    else {
+        median_sigma = median_diffs / mean_diff;
     }
 
-    // std::vector<float> diffs;
-    // for (auto i: indicies(sample_rows)) {
-    //     unsigned int row = sample_rows[i];
-    //     unsigned int col = sample_cols[i];
-    //     diffs.push_back(flat_image.at<float>(row + 5, col + 5) - flat_image.at<float>(row, col));
-    // }
+    inliers = (median_sigma.array() <= sigma_cutoff).select()
+    (R.array() < s).select(P,Q);  // (R < s ? P : Q)
+    Eigen::ArrayXf inlier_diffs = diffs(inliers);
+    flat_stddev = eigen_stddev(inlier_diffs);
+
+#ifdef DEBUG_FLATTEN_IMAGE
+    for (int ii = 0; ii < num_flat_pixels; ii++) {
+        std::cout << "Index: " << ii << 
+            "   Inlier: " << inliers[ii] << 
+            "  Diff: " << diffs[ii] << 
+            "  Median: " << median << 
+            "  Mean: " << mean_diff << 
+            "  Median Diffs: " << median_diffs[ii] << 
+            "  Median Diff: " << median_diff << 
+            "  Median Sigma: " << median_sigma[ii] << std::endl;
+    }
+    std::cout << "Number Inliers: " << inlier_diffs.size() << std::endl;
+    std::cout << "Inliers Mean: " << inlier_diffs.mean() << std::endl;
+    std::cout << "Flattened Image Stddev: " << flat_stddev << std::endl;
+#endif
+
 
 }
 
@@ -118,16 +153,7 @@ void StarSolver::load_catalog()
     H5::H5File hf_file(catalog_file, H5F_ACC_RDONLY);
     H5::DataSet ds_cat = hf_file.openDataSet("/catalog");
     H5::DataSpace dspace = ds_cat.getSpace();
-    // H5T_class_t type_class = ds_cat.getTypeClass();
-    hsize_t dims[2];
-    // hsize_t rank = dspace.getSimpleExtentDims(dims, NULL); 
-
-    hsize_t dimsm[1];
-    dimsm[0] = dims[0];
-    H5::DataSpace memspace(1, dimsm);
-
-    std::vector<float> data;
-    data.resize(dims[0]);
+    // TODO: Access catalog hdf5 data
 }
 
 void StarSolver::compute_vectors(float fov)
@@ -307,10 +333,12 @@ void StarSolver::findContours() {
 }
 
 void StarSolver::computeMoments() {
-    float area, m20, m2_xx, m2_yy, major, minor;
+    float area;
+    //float m20, m2_xx, m2_yy, major, minor;
+
     cv::Moments moment;
     // compute moments of the contours and save off ones that meet criteria
-    for (int ii = 0; ii < contours.size(); ii++) {
+    for (long unsigned int ii = 0; ii < contours.size(); ii++) {
         area = cv::contourArea(contours[ii]);
 
         if (area < min_spot_area || area > max_spot_area)
