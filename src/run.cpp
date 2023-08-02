@@ -4,6 +4,8 @@
 #include <iostream>
 #include <experimental/filesystem>
 
+#define SKIP_CATALOG_CREATE
+
 namespace fs = std::experimental::filesystem;
 
 bool create_out_directory(fs::path dir_name)
@@ -60,8 +62,10 @@ int main(int argc, char **argv)
         return 1;
     }
 
+#ifndef SKIP_CATALOG_CREATE
     StarCatalogGenerator catalog(hipparcos_file, p_cat_out_file);
     catalog.run_pipeline();
+#endif
 
     StarSolver solver(max_contours, max_points_per_contour, output_path);
     solver.load_image(test_image);

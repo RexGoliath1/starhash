@@ -52,7 +52,8 @@ class StarSolver {
         void findContours();
         void computeMoments();
         float eigen_median(Eigen::VectorXf vec);
-        float eigen_stddev(Eigen::VectorXf vec);
+        float get_stddev(Eigen::VectorXf vec);
+        float get_stddev_cutoff(Eigen::VectorXf vec, float sigma_cutoff);
         
 
         // Image parameters
@@ -67,9 +68,12 @@ class StarSolver {
         cv::Mat sigma_buffer;
         cv::Mat kernel;
 
+        // GIANT Image parameters
+        cv::Mat flat_image;
+
         // Flat Image Parameters
         int num_edge_pixels = 5;
-        int num_flat_pixels = 3000; // 2000
+        int num_flat_pixels = 20; // 2000
         float sigma_cutoff = 4.0f;
         std::vector<int> flat_row_samples;
         std::vector<int> flat_col_samples;

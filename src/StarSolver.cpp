@@ -8,7 +8,7 @@
 #include "iterators.hpp"
 #include "eigen_mods.hpp"
 
-#define DEBUG_FLATTEN_IMAGE
+// #define DEBUG_FLATTEN_IMAGE
 
 
 // SBG Ongoing TODOs
@@ -24,9 +24,16 @@ float StarSolver::eigen_median(Eigen::VectorXf vec) {
     return median;
 }
 
-float StarSolver::eigen_stddev(Eigen::VectorXf vec) {
-    /* Standard Deviation calculation avoid NaN contributions */
-    return std::sqrt((vec.array() - vec.mean()).square().sum() / (vec.size()-1));
+float StarSolver::get_stddev(Eigen::VectorXf vec) {
+    return std::sqrt((vec.array() - vec.mean()).square().sum()/(vec.size()));
+}
+
+float StarSolver::get_stddev_cutoff(Eigen::VectorXf vec, float sigma_cutoff) {
+    /* Standard Deviation calculation with sigma cutoff */
+    auto inliers = vec.array() <= sigma_cutoff;
+    auto r = (vec.array() - vec.mean()) * inliers.cast<float>();
+    auto var = r.cwiseProduct(r).sum() / inliers.cast<float>().sum();
+    return std::sqrt(var);
 }
 
 
@@ -38,10 +45,12 @@ void StarSolver::get_gauss_centroids()
         cv::GaussianBlur(cur_img, cur_img, cv::Size(3, 3), 0);
     }
     
-    cv::Mat temp;
-    cv::medianBlur(cur_img, temp, 5);
-    cv::Mat flat_image;
-    temp.copyTo(flat_image);
+    // Convert gray to fp32 and subtract med blur
+    // TODO: I think this is still broken for the median or the image is actually flat.
+    cv::Mat cur_img_fp32, mb_img_fp32;
+    cur_img.convertTo(cur_img_fp32, CV_32FC1);
+    cv::medianBlur(cur_img_fp32, mb_img_fp32, 5);
+    flat_image = cur_img_fp32 - mb_img_fp32;
 
     /* randomly sample part of image, that are at least num_edge_pixels away from the edge */
     int num_pixels = (width - num_edge_pixels) * (height - num_edge_pixels);
@@ -71,13 +80,11 @@ void StarSolver::get_gauss_centroids()
     float median = eigen_median(diffs);
     Eigen::VectorXf median_diffs(num_flat_pixels);
     Eigen::VectorXf median_sigma(num_flat_pixels);
-    ArrayXb inliers = ArrayXb::Constant(num_flat_pixels, false);
 
     median_diffs = diffs.array() - median;
     median_diffs = Eigen::abs(median_diffs.array());
 
-    // TODO : Make Eigen median that doesn't suck (sort)
-    float median_diff = 0;
+    float median_diff = eigen_median(median_diffs);
     float mean_diff = median_diffs.mean();
 
     // Don't divide by zero (TODO: Check if mean is zero)
@@ -88,12 +95,12 @@ void StarSolver::get_gauss_centroids()
         median_sigma = median_diffs / mean_diff;
     }
 
-    inliers = (median_sigma.array() <= sigma_cutoff).select()
-    (R.array() < s).select(P,Q);  // (R < s ? P : Q)
-    Eigen::ArrayXf inlier_diffs = diffs(inliers);
-    flat_stddev = eigen_stddev(inlier_diffs);
+    // Compute std deviation excluding outliers
+    flat_stddev = get_stddev_cutoff(median_sigma, sigma_cutoff);
 
 #ifdef DEBUG_FLATTEN_IMAGE
+    auto inliers = median_sigma.array() < sigma_cutoff;
+    float stddev_norm = get_stddev(median_sigma);
     for (int ii = 0; ii < num_flat_pixels; ii++) {
         std::cout << "Index: " << ii << 
             "   Inlier: " << inliers[ii] << 
@@ -104,9 +111,10 @@ void StarSolver::get_gauss_centroids()
             "  Median Diff: " << median_diff << 
             "  Median Sigma: " << median_sigma[ii] << std::endl;
     }
-    std::cout << "Number Inliers: " << inlier_diffs.size() << std::endl;
-    std::cout << "Inliers Mean: " << inlier_diffs.mean() << std::endl;
+
+    std::cout << "Number Inliers: " << inliers.cast<float>().sum() << std::endl;
     std::cout << "Flattened Image Stddev: " << flat_stddev << std::endl;
+    std::cout << "Flattened Image Stddev with outliers: " << stddev_norm << std::endl;
 #endif
 
 
