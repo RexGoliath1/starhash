@@ -112,18 +112,6 @@ RUN cd ~/eigen && \
 RUN cd ~/ && \
 	rm -rf ~/eigen 
 
-RUN wget https://github.com/libigl/libigl/archive/refs/tags/v2.4.0.zip && \
-	unzip v2.4.0.zip && \
-	mv libigl-2.4.0 libigl && \
-	rm v2.4.0.zip
-	cd ~/libigl && \
-	mkdir build && \
-	cd build && \
-	cmake .. && \
-	make && \
-	make install && \
-	ldconfig
-
 RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.8.0.zip && \
 	wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/4.8.0.zip && \
 	unzip opencv.zip && \
