@@ -70,6 +70,8 @@ class StarSolver {
 
         // GIANT Image parameters
         cv::Mat flat_image;
+        cv::Mat snr;
+        cv::Mat poi_pixel;
 
         // Flat Image Parameters
         int num_edge_pixels = 5;
@@ -79,6 +81,8 @@ class StarSolver {
         std::vector<int> flat_col_samples;
         double flat_stddev;
 
+        // POI Parameters
+        double poi_threshold = 8.0;
 
         // Gaussian centroiding parameters
         bool denoise = true;

@@ -117,6 +117,11 @@ void StarSolver::get_gauss_centroids()
     std::cout << "Flattened Image Stddev with outliers: " << stddev_norm << std::endl;
 #endif
 
+    // Start point of interest ID
+    cv::Mat poi_pixel_u8;
+    snr = flat_image / flat_stddev;
+    poi_pixel = snr > poi_threshold;
+    poi_pixel.convertTo(poi_pixel_u8, CV_8UC1);
 
 }
 
