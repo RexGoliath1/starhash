@@ -4,10 +4,12 @@
 #include <algorithm>
 #include <iostream>
 #include <iterator>
+#include <opencv2/imgproc.hpp>
 #include <random>
 #include <unordered_set>
 
 // #define DEBUG_FLATTEN_IMAGE
+// #define DEBUG_POI_PIXEL
 
 // SBG Ongoing TODOs
 // 1. ROI Mode
@@ -35,6 +37,22 @@ float StarSolver::get_stddev_cutoff(Eigen::VectorXf vec, float sigma_cutoff) {
   auto r = (vec.array() - vec.mean()) * inliers.cast<float>();
   auto var = r.cwiseProduct(r).sum() / inliers.cast<float>().sum();
   return std::sqrt(var);
+}
+
+cv::Mat StarSolver::get_blob_roi(cv::Mat img, cv::Mat stats, int index) {
+
+  cv::Range x_blob =
+      cv::Range(stats.at<int>(1, index),
+                stats.at<int>(1, index) + stats.at<int>(3, index));
+
+  cv::Range y_blob =
+      cv::Range(stats.at<int>(0, index),
+                stats.at<int>(0, index) + stats.at<int>(2, index));
+
+  std::cout << "X: " << x_blob << std::endl;
+  std::cout << "Y: " << y_blob << std::endl;
+
+  return img(x_blob, y_blob);
 }
 
 void StarSolver::get_gauss_centroids() {
@@ -122,10 +140,46 @@ void StarSolver::get_gauss_centroids() {
 #endif
 
   // Start point of interest ID
-  cv::Mat poi_pixel_u8;
+  cv::Mat poi_pixel_u8, poi_roi;
+  cv::Mat label, blob, centroid;
+  cv::Mat labels, stats, centroids; // Connect components types
   snr = flat_image / flat_stddev;
   poi_pixel = snr > poi_threshold;
   poi_pixel.convertTo(poi_pixel_u8, CV_8UC1);
+
+  cv::connectedComponentsWithStats(poi_pixel_u8, labels, stats, centroids);
+
+#ifdef DEBUG_POI_PIXEL
+  std::cout << "Centroids: " << centroids.rows << " " << centroids.cols
+            << std::endl;
+  std::cout << "All blobs: " << stats.rows << std::endl;
+#endif
+  for (int test = 0; test < 10; test++) {
+    for (size_t ii = 0; ii < stats.rows; ii++) {
+      if (stats.at<int>(BLOB_SIZE_INDEX, ii) < 10) {
+        continue;
+      }
+      poi_roi = get_blob_roi(flat_image, stats, ii);
+
+      // Find max indicies
+      // cv::Mat reshaped = poi_roi.reshape(1, poi_roi.rows * poi_roi.cols);
+      // cv::Mat argmax_row_matrix;
+      // cv::reduceArgMax(reshaped, argmax_row_matrix, 0);
+      // cv::Mat argmax_image_shape = argmax_row_matrix.reshape(1,
+      // poi_roi.rows); std::cout << "No idea: " << argmax_image_shape.rows << "
+      // "
+      //           << argmax_image_shape.cols << std::endl;
+
+#ifdef DEBUG_POI_PIXEL
+      std::cout << "Blob " << ii << ": [";
+
+      for (size_t jj = 0; jj < stats.cols; jj++) {
+        std::cout << stats.at<int>(jj, ii) << ", ";
+      }
+      std::cout << "]" << std::endl;
+#endif
+    }
+  }
 }
 
 void StarSolver::sub_darkframe() { cur_img = cur_img - dark_frame; }

@@ -3,6 +3,7 @@
 
 #include "H5Cpp.h"
 #include <Eigen/Dense>
+#include <cstdio>
 #include <filesystem>
 #include <math.h>
 #include <opencv2/opencv.hpp>
@@ -17,6 +18,7 @@ namespace fs = std::filesystem;
 
 #define MAX_CONTOURS 100
 #define MAX_POINTS_PER_CONTOUR 1000
+#define BLOB_SIZE_INDEX 4 // connected components index
 
 static const fs::path default_output_path =
     fs::current_path() / ".." / "results";
@@ -49,6 +51,7 @@ public:
   void sub_darkframe();
   double get_median(cv::Mat input, int n);
   void get_gauss_centroids();
+  cv::Mat get_blob_roi(cv::Mat img, cv::Mat stats, int index);
 
   void findContours();
   void computeMoments();

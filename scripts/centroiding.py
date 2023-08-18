@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import os
 import numpy as np
-amport cv2
+import cv2
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 img_path = os.path.dirname(dir_path)
@@ -179,11 +179,11 @@ for ind, center in enumerate(poi_subs):
     # if col_check and row_check:
     if cols.size >= 0.5 * (2 * centroid_size + 1)**2:
         sampled_image = gray[rows, cols].astype(np.float64)
-        print(f"Attempting fit: {ind}")
         x0, y0 = gaussian_fit(cols, rows, sampled_image)
         # x0, y0 = psf.centroid
 
         if (x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any()):
+            print(f"No fit: {ind}")
             continue
         else:
             if plot2:
