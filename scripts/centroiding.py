@@ -107,7 +107,7 @@ def centroiding_pipeline(image_path, args):
     blob_candidate = np.zeros((blob_candidates, 1))
 
     # loop through the pixel level points of interest
-    for ind, center in enumerate(poi_subs):
+    for ind, center in enumerate(tqdm(poi_subs)):
         fig_name = os.path.join(args.output_path, f"blob_{ind}.png")
         column_array = np.arange(center[0] - args.centroid_size, center[0] + args.centroid_size + 1)
 
@@ -169,6 +169,7 @@ def centroiding_pipeline(image_path, args):
                 #plt.show()
                 plt.savefig(fig_name)
                 plt.clf()
+                plt.close(fig)
                 if args.display_gauss_centroids:
                     psf_img = cv2.circle(psf_img, (int(x0), int(y0)), **gauss_kwargs)
 
@@ -210,7 +211,7 @@ def gaussian_fit(x, y, z):
     x = np.array(x).ravel()
     y = np.array(y).ravel()
     z = np.array(z).ravel()
-    #z += 1e-10
+    z += 1
 
     # form the Jacobian matrix we are fitting to a model of the form
     coefficients = np.vstack(
@@ -276,5 +277,5 @@ if __name__ == "__main__":
     assert (os.path.exists(args.input_path))
     assert (os.path.exists(args.output_path))
 
-    for image_path in iglob(os.path.join(args.input_path, "*.png")):
+    for image_path in iglob(os.path.join(args.input_path, "*8115.png")):
         centroiding_pipeline(image_path, args)

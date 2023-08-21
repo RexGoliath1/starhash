@@ -72,7 +72,7 @@ class Stellarium():
             print(response.status_code)
         else:
             pass # TODO: Turn back on in some form
-            print(f"Input jnow: {jnow_str} ; View jnow: {response.json().get('jNow')}, View j2000: {response.json().get('j2000')}")
+            print(f"View jnow: (ra, dec) = ({self.ra}, {self.dec}); [x,y,z] = {response.json().get('jNow')}")
 
     def get_actions(self):
         # Get a list of available action IDs:
@@ -266,15 +266,17 @@ class Stellarium():
     def run_scene(self):
         """ Set view to ra/dec """
 
-        if not hasattr(self, "dec"):
+        if not hasattr(self, "init_dec"):
             self.dec = 0
+        if not hasattr(self, "init_ra"):
+            self.ra = 0
         
         for step in range(-self.step_size, self.step_size):
             sleep(self.delay_sec)
-            dec = self.dec - np.pi / 2.0 * (step / self.step_size)
-            ra = 0
+            self.dec = self.init_dec - np.pi / 2.0 * (step / self.step_size)
+            self.ra = self.init_ra
 
-            jnow = [math.cos(dec) * math.cos(ra), math.cos(dec) * math.sin(ra), math.sin(dec)]
+            jnow = [math.cos(self.dec) * math.cos(self.ra), math.cos(self.dec) * math.sin(self.ra), math.sin(self.dec)]
             jnow = np.array(jnow)
             jnow_str = np.array2string(jnow, separator=',')
             self.get_date()
