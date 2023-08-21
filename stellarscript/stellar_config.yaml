@@ -1,57 +1,71 @@
 # Stellarium Camera Settings
-fov: 44.2
-focal_length: 0.025
-aperture: 0.0125
+fov: 30.0 # 44.2
+focal_length: 0.025 # 0.025
+aperture: 0.0125 # 0.0125
 
 # Stellarium Time Settings
 jday: 2451545.0
 timerate: 0.0
 
 # Stellarium Location Settings
-latitude: 90.0
+latitude: 0.0 # 90.0
 longitude: 0.0
-altitude: 0.0
+altitude: 1000.0
 dec: 0
 ra: 0
 
-
-delay_sec: 0.0001
-step_size: 10000
+delay_sec: 0.01
+step_size: 1000
 
 # Stellarium API URLs
 url_main: "http://localhost:8090/api/"
 url_status: "main/status"
 url_view: "main/view"
+url_view_skyculture: "view/skyculturedescription/"
+url_projection: "view/listprojection"
 url_fov: "main/fov"
 url_time: "main/time"
 url_actions: "stelaction/list"
-url_do_action: 'stelaction/do'
-url_prop: 'stelproperty/list'
-url_location: 'api/location'
+url_do_action: "stelaction/do"
+url_prop: "stelproperty/list"
+url_prop_set: "stelproperty/set"
+url_location: "api/location"
+url_simbad: "simbad/lookup"
+url_objecttypes: "objects/listobjecttypes"
+url_listobjectsbytype: "objects/listobjectsbytype"
+url_objectinfo: "objects/info"
 
 disabled_properties: [
-  "actionShow_Atmosphere",
-  "actionShow_Ground",
-  "actionShow_Fog",
-  "actionShow_Gridlines",
-  "actionShow_Cardinal_Points",
-  "actionShow_Intercardinal_Points",
-  "actionShow_LandscapeLabels",
-  "actionShow_LandscapeIllumination",
-  "actionShow_MeteorShowers_labels",
-  "actionShow_MeteorShowers",
-  "actionShow_MilkyWay",
-  # "actionShow_Nebulas",
-  "actionShow_Night_Mode",
-  "actionShow_Oculars_GUI",
-  "actionShow_Skyculture_NativePlanetNames",
-  "actionShow_Planets_Labels",
-  "actionShow_Planets_Pointers",
-  # "actionShow_Planets",
-  # "actionShow_Remote_Control",
-  "actionShow_Satellite_Hints",
-  "actionShow_Stars_Labels",
-  "actionShow_ZodiacalLight",
-  "actionToggle_GuiHidden_Global",
-  # "actionShow_DSO_Textures"
-]
+    "actionShow_Atmosphere",
+    "actionShow_Ground",
+    "actionShow_Fog",
+    "actionShow_Gridlines",
+    "actionShow_Cardinal_Points",
+    "actionShow_Intercardinal_Points",
+    "actionShow_LandscapeLabels",
+    "actionShow_LandscapeIllumination",
+    "actionShow_MeteorShowers_labels",
+    "actionShow_Night_Mode",
+    "actionShow_Oculars_GUI",
+    "actionShow_Skyculture_NativePlanetNames",
+    "actionShow_Planets_Labels",
+    "actionShow_Planets_Pointers",
+    "actionShow_Satellite_Hints",
+    "actionShow_Stars_Labels",
+    "actionToggle_GuiHidden_Global",
+    "actionShow_Hips_Surveys",
+    "actionShow_Planets_Trails",
+    "actionShow_Planets_Orbits",
+    "actionShow_DSO_Textures",
+    "actionSet_Full_Screen_Global",
+    # Things that may need to be configurable
+    "actionShow_MilkyWay",
+    "actionShow_MeteorShowers",
+    #"actionShow_Planets",
+    "actionShow_Nebulas",
+    "actionShow_ZodiacalLight",
+    "StelSkyDrawer.flagDrawBigStarHalo",
+  ]
+
+enabled_properties:
+  ["StelMovementMgr.equatorialMount", "StelSkyDrawer.flagStarMagnitudeLimit"]

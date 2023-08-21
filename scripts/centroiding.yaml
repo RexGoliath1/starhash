@@ -1,0 +1,10 @@
+denoise: true
+flatten: true
+display_blob_centroids: true
+display_gauss_centroids: true
+num_blobs: 5
+snr_threshold: 8
+poi_max_size: 50
+poi_min_size: 2
+reject_saturation: true
+centroid_size: 2
