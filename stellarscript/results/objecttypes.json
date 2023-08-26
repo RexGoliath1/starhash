@@ -1,0 +1,462 @@
+[
+    {
+        "key": "AsterismMgr",
+        "name": "Asterisms",
+        "name_i18n": "Asterisms"
+    },
+    {
+        "key": "ConstellationMgr",
+        "name": "Constellations",
+        "name_i18n": "Constellations"
+    },
+    {
+        "key": "MeteorShowers",
+        "name": "Meteor Showers",
+        "name_i18n": "Meteor Showers"
+    },
+    {
+        "key": "NebulaMgr",
+        "name": "Deep-sky objects",
+        "name_i18n": "Deep-sky objects"
+    },
+    {
+        "key": "NebulaMgr:0",
+        "name": "Bright galaxies",
+        "name_i18n": "Bright galaxies"
+    },
+    {
+        "key": "NebulaMgr:1",
+        "name": "Active galaxies",
+        "name_i18n": "Active galaxies"
+    },
+    {
+        "key": "NebulaMgr:10",
+        "name": "Nebulae",
+        "name_i18n": "Nebulae"
+    },
+    {
+        "key": "NebulaMgr:100",
+        "name": "Messier Catalogue",
+        "name_i18n": "Messier Catalogue"
+    },
+    {
+        "key": "NebulaMgr:101",
+        "name": "Caldwell Catalogue",
+        "name_i18n": "Caldwell Catalogue"
+    },
+    {
+        "key": "NebulaMgr:102",
+        "name": "Barnard Catalogue",
+        "name_i18n": "Barnard Catalogue"
+    },
+    {
+        "key": "NebulaMgr:103",
+        "name": "Sharpless Catalogue",
+        "name_i18n": "Sharpless Catalogue"
+    },
+    {
+        "key": "NebulaMgr:104",
+        "name": "van den Bergh Catalogue",
+        "name_i18n": "van den Bergh Catalogue"
+    },
+    {
+        "key": "NebulaMgr:105",
+        "name": "The Catalogue of Rodgers, Campbell, and Whiteoak",
+        "name_i18n": "The Catalogue of Rodgers, Campbell, and Whiteoak"
+    },
+    {
+        "key": "NebulaMgr:106",
+        "name": "Collinder Catalogue",
+        "name_i18n": "Collinder Catalogue"
+    },
+    {
+        "key": "NebulaMgr:107",
+        "name": "Melotte Catalogue",
+        "name_i18n": "Melotte Catalogue"
+    },
+    {
+        "key": "NebulaMgr:108",
+        "name": "New General Catalogue",
+        "name_i18n": "New General Catalogue"
+    },
+    {
+        "key": "NebulaMgr:109",
+        "name": "Index Catalogue",
+        "name_i18n": "Index Catalogue"
+    },
+    {
+        "key": "NebulaMgr:11",
+        "name": "Planetary nebulae",
+        "name_i18n": "Planetary nebulae"
+    },
+    {
+        "key": "NebulaMgr:110",
+        "name": "Lynds' Catalogue of Bright Nebulae",
+        "name_i18n": "Lynds' Catalogue of Bright Nebulae"
+    },
+    {
+        "key": "NebulaMgr:111",
+        "name": "Lynds' Catalogue of Dark Nebulae",
+        "name_i18n": "Lynds' Catalogue of Dark Nebulae"
+    },
+    {
+        "key": "NebulaMgr:114",
+        "name": "Cederblad Catalog",
+        "name_i18n": "Cederblad Catalog"
+    },
+    {
+        "key": "NebulaMgr:115",
+        "name": "The Catalogue of Peculiar Galaxies",
+        "name_i18n": "The Catalogue of Peculiar Galaxies"
+    },
+    {
+        "key": "NebulaMgr:116",
+        "name": "The Catalogue of Interacting Galaxies",
+        "name_i18n": "The Catalogue of Interacting Galaxies"
+    },
+    {
+        "key": "NebulaMgr:117",
+        "name": "The Catalogue of Galactic Planetary Nebulae",
+        "name_i18n": "The Catalogue of Galactic Planetary Nebulae"
+    },
+    {
+        "key": "NebulaMgr:118",
+        "name": "The Strasbourg-ESO Catalogue of Galactic Planetary Nebulae",
+        "name_i18n": "The Strasbourg-ESO Catalogue of Galactic Planetary Nebulae"
+    },
+    {
+        "key": "NebulaMgr:119",
+        "name": "A catalogue of Galactic supernova remnants",
+        "name_i18n": "A catalogue of Galactic supernova remnants"
+    },
+    {
+        "key": "NebulaMgr:12",
+        "name": "Dark nebulae",
+        "name_i18n": "Dark nebulae"
+    },
+    {
+        "key": "NebulaMgr:120",
+        "name": "A Catalog of Rich Clusters of Galaxies",
+        "name_i18n": "A Catalog of Rich Clusters of Galaxies"
+    },
+    {
+        "key": "NebulaMgr:121",
+        "name": "Hickson Compact Group",
+        "name_i18n": "Hickson Compact Group"
+    },
+    {
+        "key": "NebulaMgr:122",
+        "name": "ESO/Uppsala Survey of the ESO(B) Atlas",
+        "name_i18n": "ESO/Uppsala Survey of the ESO(B) Atlas"
+    },
+    {
+        "key": "NebulaMgr:123",
+        "name": "Catalogue of southern stars embedded in nebulosity",
+        "name_i18n": "Catalogue of southern stars embedded in nebulosity"
+    },
+    {
+        "key": "NebulaMgr:124",
+        "name": "Catalogue and distances of optically visible H II regions",
+        "name_i18n": "Catalogue and distances of optically visible H II regions"
+    },
+    {
+        "key": "NebulaMgr:125",
+        "name": "Trumpler Catalogue",
+        "name_i18n": "Trumpler Catalogue"
+    },
+    {
+        "key": "NebulaMgr:126",
+        "name": "Stock Catalogue",
+        "name_i18n": "Stock Catalogue"
+    },
+    {
+        "key": "NebulaMgr:127",
+        "name": "Ruprecht Catalogue",
+        "name_i18n": "Ruprecht Catalogue"
+    },
+    {
+        "key": "NebulaMgr:128",
+        "name": "van den Bergh-Hagen Catalogue",
+        "name_i18n": "van den Bergh-Hagen Catalogue"
+    },
+    {
+        "key": "NebulaMgr:13",
+        "name": "Reflection nebulae",
+        "name_i18n": "Reflection nebulae"
+    },
+    {
+        "key": "NebulaMgr:14",
+        "name": "Bipolar nebulae",
+        "name_i18n": "Bipolar nebulae"
+    },
+    {
+        "key": "NebulaMgr:15",
+        "name": "Emission nebulae",
+        "name_i18n": "Emission nebulae"
+    },
+    {
+        "key": "NebulaMgr:150",
+        "name": "Dwarf galaxies",
+        "name_i18n": "Dwarf galaxies"
+    },
+    {
+        "key": "NebulaMgr:151",
+        "name": "Herschel 400 Catalogue",
+        "name_i18n": "Herschel 400 Catalogue"
+    },
+    {
+        "key": "NebulaMgr:152",
+        "name": "Jack Bennett's deep sky catalogue",
+        "name_i18n": "Jack Bennett's deep sky catalogue"
+    },
+    {
+        "key": "NebulaMgr:153",
+        "name": "James Dunlop's southern deep sky catalogue",
+        "name_i18n": "James Dunlop's southern deep sky catalogue"
+    },
+    {
+        "key": "NebulaMgr:16",
+        "name": "Clusters associated with nebulosity",
+        "name_i18n": "Clusters associated with nebulosity"
+    },
+    {
+        "key": "NebulaMgr:17",
+        "name": "HII regions",
+        "name_i18n": "HII regions"
+    },
+    {
+        "key": "NebulaMgr:18",
+        "name": "Supernova remnants",
+        "name_i18n": "Supernova remnants"
+    },
+    {
+        "key": "NebulaMgr:19",
+        "name": "Interstellar matter",
+        "name_i18n": "Interstellar matter"
+    },
+    {
+        "key": "NebulaMgr:2",
+        "name": "Radio galaxies",
+        "name_i18n": "Radio galaxies"
+    },
+    {
+        "key": "NebulaMgr:20",
+        "name": "Emission objects",
+        "name_i18n": "Emission objects"
+    },
+    {
+        "key": "NebulaMgr:21",
+        "name": "BL Lac objects",
+        "name_i18n": "BL Lac objects"
+    },
+    {
+        "key": "NebulaMgr:22",
+        "name": "Blazars",
+        "name_i18n": "Blazars"
+    },
+    {
+        "key": "NebulaMgr:23",
+        "name": "Molecular Clouds",
+        "name_i18n": "Molecular Clouds"
+    },
+    {
+        "key": "NebulaMgr:24",
+        "name": "Young Stellar Objects",
+        "name_i18n": "Young Stellar Objects"
+    },
+    {
+        "key": "NebulaMgr:25",
+        "name": "Possible Quasars",
+        "name_i18n": "Possible Quasars"
+    },
+    {
+        "key": "NebulaMgr:26",
+        "name": "Possible Planetary Nebulae",
+        "name_i18n": "Possible Planetary Nebulae"
+    },
+    {
+        "key": "NebulaMgr:27",
+        "name": "Protoplanetary Nebulae",
+        "name_i18n": "Protoplanetary Nebulae"
+    },
+    {
+        "key": "NebulaMgr:29",
+        "name": "Symbiotic stars",
+        "name_i18n": "Symbiotic stars"
+    },
+    {
+        "key": "NebulaMgr:3",
+        "name": "Interacting galaxies",
+        "name_i18n": "Interacting galaxies"
+    },
+    {
+        "key": "NebulaMgr:30",
+        "name": "Emission-line stars",
+        "name_i18n": "Emission-line stars"
+    },
+    {
+        "key": "NebulaMgr:31",
+        "name": "Supernova candidates",
+        "name_i18n": "Supernova candidates"
+    },
+    {
+        "key": "NebulaMgr:32",
+        "name": "Supernova remnant candidates",
+        "name_i18n": "Supernova remnant candidates"
+    },
+    {
+        "key": "NebulaMgr:33",
+        "name": "Clusters of galaxies",
+        "name_i18n": "Clusters of galaxies"
+    },
+    {
+        "key": "NebulaMgr:35",
+        "name": "Regions of the sky",
+        "name_i18n": "Regions of the sky"
+    },
+    {
+        "key": "NebulaMgr:4",
+        "name": "Bright quasars",
+        "name_i18n": "Bright quasars"
+    },
+    {
+        "key": "NebulaMgr:5",
+        "name": "Star clusters",
+        "name_i18n": "Star clusters"
+    },
+    {
+        "key": "NebulaMgr:6",
+        "name": "Open star clusters",
+        "name_i18n": "Open star clusters"
+    },
+    {
+        "key": "NebulaMgr:7",
+        "name": "Globular star clusters",
+        "name_i18n": "Globular star clusters"
+    },
+    {
+        "key": "NebulaMgr:8",
+        "name": "Stellar associations",
+        "name_i18n": "Stellar associations"
+    },
+    {
+        "key": "Novae",
+        "name": "Bright Novae",
+        "name_i18n": "Bright Novae"
+    },
+    {
+        "key": "Satellites",
+        "name": "Satellites",
+        "name_i18n": "Satellites"
+    },
+    {
+        "key": "SolarSystem",
+        "name": "Solar System",
+        "name_i18n": "Solar System"
+    },
+    {
+        "key": "SolarSystem:artificial",
+        "name": "Artificial objects",
+        "name_i18n": "Artificial objects"
+    },
+    {
+        "key": "SolarSystem:asteroid",
+        "name": "Asteroids",
+        "name_i18n": "Asteroids"
+    },
+    {
+        "key": "SolarSystem:comet",
+        "name": "Comets",
+        "name_i18n": "Comets"
+    },
+    {
+        "key": "SolarSystem:cubewano",
+        "name": "Cubewanos",
+        "name_i18n": "Cubewanos"
+    },
+    {
+        "key": "SolarSystem:dwarf planet",
+        "name": "Dwarf planets",
+        "name_i18n": "Dwarf planets"
+    },
+    {
+        "key": "SolarSystem:interstellar object",
+        "name": "Interstellar objects",
+        "name_i18n": "Interstellar objects"
+    },
+    {
+        "key": "SolarSystem:moon",
+        "name": "Moons",
+        "name_i18n": "Moons"
+    },
+    {
+        "key": "SolarSystem:planet",
+        "name": "Planets",
+        "name_i18n": "Planets"
+    },
+    {
+        "key": "SolarSystem:plutino",
+        "name": "Plutinos",
+        "name_i18n": "Plutinos"
+    },
+    {
+        "key": "SolarSystem:scattered disc object",
+        "name": "Scattered disc objects",
+        "name_i18n": "Scattered disc objects"
+    },
+    {
+        "key": "SolarSystem:sednoid",
+        "name": "Sednoids",
+        "name_i18n": "Sednoids"
+    },
+    {
+        "key": "StarMgr",
+        "name": "Stars",
+        "name_i18n": "Stars"
+    },
+    {
+        "key": "StarMgr:0",
+        "name": "Interesting double stars",
+        "name_i18n": "Interesting double stars"
+    },
+    {
+        "key": "StarMgr:1",
+        "name": "Interesting variable stars",
+        "name_i18n": "Interesting variable stars"
+    },
+    {
+        "key": "StarMgr:2",
+        "name": "Bright double stars",
+        "name_i18n": "Bright double stars"
+    },
+    {
+        "key": "StarMgr:3",
+        "name": "Bright variable stars",
+        "name_i18n": "Bright variable stars"
+    },
+    {
+        "key": "StarMgr:4",
+        "name": "Bright stars with high proper motion",
+        "name_i18n": "Bright stars with high proper motion"
+    },
+    {
+        "key": "StarMgr:5",
+        "name": "Variable stars: Algol-type eclipsing systems",
+        "name_i18n": "Variable stars: Algol-type eclipsing systems"
+    },
+    {
+        "key": "StarMgr:6",
+        "name": "Variable stars: the classical cepheids",
+        "name_i18n": "Variable stars: the classical cepheids"
+    },
+    {
+        "key": "StarMgr:7",
+        "name": "Bright carbon stars",
+        "name_i18n": "Bright carbon stars"
+    },
+    {
+        "key": "StarMgr:8",
+        "name": "Bright barium stars",
+        "name_i18n": "Bright barium stars"
+    }
+]

@@ -1,0 +1,6066 @@
+{
+    "AsterismMgr.asterismLineThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "AsterismMgr.fontSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 38,
+        "typeString": "float",
+        "value": 14,
+        "variantType": "float"
+    },
+    "AsterismMgr.isolateAsterismSelected": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "AsterismMgr.linesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "AsterismMgr.linesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "AsterismMgr.namesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "AsterismMgr.namesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "AsterismMgr.rayHelperThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "AsterismMgr.rayHelpersColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "AsterismMgr.rayHelpersDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ConstellationMgr.artDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ConstellationMgr.artFadeDuration": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 38,
+        "typeString": "float",
+        "value": 1.5,
+        "variantType": "float"
+    },
+    "ConstellationMgr.artIntensity": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 38,
+        "typeString": "float",
+        "value": 0.44999998807907104,
+        "variantType": "float"
+    },
+    "ConstellationMgr.boundariesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.3, 0.1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "ConstellationMgr.boundariesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ConstellationMgr.constellationBoundariesThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "ConstellationMgr.constellationDisplayStyle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "ConstellationMgr::ConstellationDisplayStyle",
+        "value": "constellationsTranslated",
+        "variantType": "ConstellationMgr::ConstellationDisplayStyle"
+    },
+    "ConstellationMgr.constellationLineThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "ConstellationMgr.fontSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 38,
+        "typeString": "float",
+        "value": 15,
+        "variantType": "float"
+    },
+    "ConstellationMgr.isolateSelected": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ConstellationMgr.linesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.2, 0.6]",
+        "variantType": "Vector3<float>"
+    },
+    "ConstellationMgr.linesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ConstellationMgr.namesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.4, 0.6, 0.9]",
+        "variantType": "Vector3<float>"
+    },
+    "ConstellationMgr.namesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Exoplanets.flagDisplayMode": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Exoplanets.flagHabitableMode": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Exoplanets.flagShowExoplanetsDesignations": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Exoplanets.flagShowExoplanetsNumbers": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Exoplanets.flagTimelineMode": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Exoplanets.habitableColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.5, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "Exoplanets.markerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.4, 0.9, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "Exoplanets.showExoplanets": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.antisolarPointColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.9, 0.3, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.antisolarPointDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.apexPointsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.8, 0.2, 0.3]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.apexPointsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.azimuthalGridColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 0.3, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.azimuthalGridDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.celestialJ2000PolesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.2, 0.6]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.celestialJ2000PolesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.celestialPolesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.3, 0.5, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.celestialPolesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.circumpolarCirclesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.3, 0.5, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.circumpolarCirclesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.colureLinesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.colureLinesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.colurePartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.colurePartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.currentVerticalLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.currentVerticalLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.currentVerticalPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.currentVerticalPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticGridColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.6, 0.3, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.eclipticGridDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticJ2000GridColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.4, 0.1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.eclipticJ2000GridDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticJ2000LineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.eclipticJ2000LineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticJ2000PartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticJ2000PartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticJ2000PolesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.eclipticJ2000PolesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.9, 0.6, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.eclipticLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.eclipticPolesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.9, 0.6, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.eclipticPolesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equatorGridColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.3, 0.8]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.equatorGridDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equatorJ2000GridColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 0.1, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.equatorJ2000GridDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equatorJ2000LineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.2, 0.6]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.equatorJ2000LineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equatorJ2000PartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equatorJ2000PartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equatorLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.3, 0.5, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.equatorLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equatorPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equatorPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equinoxJ2000PointsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.equinoxJ2000PointsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.equinoxPointsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.9, 0.6, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.equinoxPointsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.fixedEquatorGridColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.fixedEquatorGridDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.fixedEquatorLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.fixedEquatorLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.fixedEquatorPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.fixedEquatorPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.galacticCenterColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.galacticCenterDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.galacticEquatorLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.3, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.galacticEquatorLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.galacticEquatorPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.galacticEquatorPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.galacticGridColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.3, 0.2, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.galacticGridDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.galacticPolesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.3, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.galacticPolesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.gridlinesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.horizonLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.6, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.horizonLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.horizonPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.horizonPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.invariablePlaneLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.invariablePlaneLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.lineThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 38,
+        "typeString": "float",
+        "value": 1,
+        "variantType": "float"
+    },
+    "GridLinesMgr.longitudeLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.6, 0.2, 0.4]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.longitudeLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.longitudePartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.longitudePartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.meridianLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.6, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.meridianLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.meridianPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.meridianPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.partThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 38,
+        "typeString": "float",
+        "value": 1,
+        "variantType": "float"
+    },
+    "GridLinesMgr.penumbraCircleColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.penumbraCircleDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.precessionCirclesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.9, 0.6, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.precessionCirclesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.precessionPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.precessionPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.primeVerticalLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.5, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.primeVerticalLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.primeVerticalPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.primeVerticalPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.quadratureLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.quadratureLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.solarEquatorLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.solarEquatorLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.solarEquatorPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.solarEquatorPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.solsticeJ2000PointsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.solsticeJ2000PointsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.solsticePointsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.9, 0.6, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.solsticePointsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.supergalacticEquatorLineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.4, 0.4, 0.4]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.supergalacticEquatorLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.supergalacticEquatorPartsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.supergalacticEquatorPartsLabeled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.supergalacticGridColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.supergalacticGridDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.supergalacticPolesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.4, 0.4, 0.4]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.supergalacticPolesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.umbraCenterPointDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.umbraCircleColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.umbraCircleDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "GridLinesMgr.zenithNadirColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.6, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "GridLinesMgr.zenithNadirDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "HipsMgr.flagShow": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "HipsMgr.loaded": {
+        "canNotify": true,
+        "isWritable": false,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "HipsMgr.state": {
+        "canNotify": true,
+        "isWritable": false,
+        "typeEnum": 65536,
+        "typeString": "HipsMgr::State",
+        "value": "Created",
+        "variantType": "HipsMgr::State"
+    },
+    "HipsMgr.surveys": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "QList<QSharedPointer<HipsSurvey>>",
+        "value": null,
+        "variantType": "QList<QSharedPointer<HipsSurvey>>"
+    },
+    "LandscapeMgr.allLandscapeNames": {
+        "canNotify": false,
+        "isWritable": false,
+        "typeEnum": 11,
+        "typeString": "QStringList",
+        "value": [
+            "Garching",
+            "Geneva",
+            "Grossmugl",
+            "Guereins",
+            "Hurricane",
+            "Jupiter",
+            "Mars",
+            "Moon",
+            "Neptune",
+            "Ocean",
+            "Saturn",
+            "Sun",
+            "Trees",
+            "Uranus",
+            "Zero Horizon"
+        ],
+        "variantType": "QStringList"
+    },
+    "LandscapeMgr.atmosphereDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.atmosphereEclipseSimulationQuality": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "LandscapeMgr.atmosphereModel": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "preetham",
+        "variantType": "QString"
+    },
+    "LandscapeMgr.atmosphereModelPath": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "/Users/stevengonciar/Documents/stellarium/build/Stellarium.app/Contents/Resources/atmosphere/default",
+        "variantType": "QString"
+    },
+    "LandscapeMgr.atmosphereNoScatter": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.atmosphereShowMySkyStatusText": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "",
+        "variantType": "QString"
+    },
+    "LandscapeMgr.atmosphereShowMySkyStoppedWithError": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.cardinalPointsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.8, 0.2, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "LandscapeMgr.cardinalPointsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.currentLandscapeHtmlDescription": {
+        "canNotify": true,
+        "isWritable": false,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "<h2>Gu\u00e9reins</h2>\n<p>Gu\u00e9reins is a small French village in the Valley of the Sa\u00f4ne river, 50 km North of Lyon. In the west stand the small mountains of the \"Beaujolais\" where the famous wine is produced. It is also the town where Stellarium was born :)\n\n<p><b>Author</b>: Fabien Ch\u00e9reau<br /><b>Location</b>: +46\u00b06'31\", +4\u00b046'49.00\", 83 m, Earth<br />",
+        "variantType": "QString"
+    },
+    "LandscapeMgr.currentLandscapeID": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "guereins",
+        "variantType": "QString"
+    },
+    "LandscapeMgr.currentLandscapeName": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "Guereins",
+        "variantType": "QString"
+    },
+    "LandscapeMgr.defaultAtmosphereModelPath": {
+        "canNotify": false,
+        "isWritable": false,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "/Users/stevengonciar/Downloads/Stellarium.app/Contents/Resources/atmosphere/default",
+        "variantType": "QString"
+    },
+    "LandscapeMgr.defaultLandscapeID": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "guereins",
+        "variantType": "QString"
+    },
+    "LandscapeMgr.defaultMinimalBrightness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.1,
+        "variantType": "double"
+    },
+    "LandscapeMgr.flagAtmosphereMultipleScattering": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagAtmosphereSingleScattering": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagAtmosphereZeroOrderScattering": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagEnvironmentAutoEnabling": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagLandscapeAutoSelection": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagLandscapeSetsLocation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagLandscapeSetsMinimalBrightness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagLandscapeUseMinimalBrightness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagPolyLineDisplayedOnly": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.flagUseLightPollutionFromDatabase": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.fogDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.illuminationDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.labelsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.landscapeDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.ordinal16WRPointsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.ordinalPointsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "LandscapeMgr.polyLineThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "MainView.cursorTimeout": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 10,
+        "variantType": "double"
+    },
+    "MainView.customScreenshotHeight": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 768,
+        "variantType": "int"
+    },
+    "MainView.customScreenshotWidth": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1024,
+        "variantType": "int"
+    },
+    "MainView.flagCursorTimeout": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "MainView.flagInvertScreenShotColors": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "MainView.flagOverwriteScreenshots": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "MainView.flagScreenshotDateFileName": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "MainView.flagUseCustomScreenshotSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "MainView.fullScreen": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "MainView.screenShotFileMask": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "yyyyMMdd-hhmmssz",
+        "variantType": "QString"
+    },
+    "MainView.screenShotFormat": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "png",
+        "variantType": "QString"
+    },
+    "MainView.screenshotDpi": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 72,
+        "variantType": "int"
+    },
+    "MainView.skyBackgroundColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 0, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "MeteorShowers.colorARC": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.94, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "MeteorShowers.colorARG": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 1, 0.94]",
+        "variantType": "Vector3<float>"
+    },
+    "MeteorShowers.colorIR": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "MeteorShowers.enableLabels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "MeteorShowers.enablePlugin": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "MilkyWay.color": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "MilkyWay.flagMilkyWayDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "MilkyWay.intensity": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1,
+        "variantType": "double"
+    },
+    "MilkyWay.saturation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1,
+        "variantType": "double"
+    },
+    "NebulaMgr.activeGalaxiesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.5, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.bipolarNebulaeColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.blLacObjectsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.blazarsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.catalogFilters": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 536870919,
+        "variantType": "int"
+    },
+    "NebulaMgr.circlesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.7, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.clusterWithNebulosityColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.clustersColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.darkNebulaeColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.3, 0.3, 0.3]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.emissionLineStarsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.7, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.emissionNebulaeColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.emissionObjectsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.7, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.flagAdditionalNamesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "NebulaMgr.flagDesignationLabels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.flagHintDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.flagOutlinesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.flagSurfaceBrightnessArcsecUsage": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.flagSurfaceBrightnessShortNotationUsage": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.flagSurfaceBrightnessUsage": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.flagTypeFiltersUsage": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.flagUseSizeLimits": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.galaxiesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.galaxyClustersColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.8, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.globularClustersColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.hintsAmount": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 3,
+        "variantType": "double"
+    },
+    "NebulaMgr.hintsProportional": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NebulaMgr.hydrogenRegionsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.interactingGalaxiesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.5, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.interstellarMatterColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.labelsAmount": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 3,
+        "variantType": "double"
+    },
+    "NebulaMgr.labelsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.6, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.maxSizeLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 600,
+        "variantType": "double"
+    },
+    "NebulaMgr.minSizeLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1,
+        "variantType": "double"
+    },
+    "NebulaMgr.molecularCloudsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.nebulaeColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.openClustersColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.planetaryNebulaeColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.possiblePlanetaryNebulaeColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.possibleQuasarsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.protoplanetaryNebulaeColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.quasarsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.radioGalaxiesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.3, 0.3, 0.3]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.reflectionNebulaeColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.regionsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.7, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.starCloudsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.starsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.7, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.stellarAssociationsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.supernovaCandidatesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.supernovaRemnantCandidatesColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.supernovaRemnantsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.symbioticStarsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.7, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NebulaMgr.typeFilters": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 4095,
+        "variantType": "int"
+    },
+    "NebulaMgr.youngStellarObjectsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.7, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "NomenclatureMgr.flagHideLocalNomenclature": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "NomenclatureMgr.flagShowNomenclature": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NomenclatureMgr.flagShowTerminatorZoneOnly": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NomenclatureMgr.nomenclatureColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.1, 1, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "NomenclatureMgr.specialNomenclatureOnlyDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "NomenclatureMgr.terminatorMaxAltitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 40,
+        "variantType": "int"
+    },
+    "NomenclatureMgr.terminatorMinAltitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": -5,
+        "variantType": "int"
+    },
+    "ObsListDialog.flagUseFov": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ObsListDialog.flagUseJD": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ObsListDialog.flagUseLandscape": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ObsListDialog.flagUseLocation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.arrowButtonScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 150,
+        "variantType": "int"
+    },
+    "Oculars.ccdCropOverlayHSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 250,
+        "variantType": "int"
+    },
+    "Oculars.ccdCropOverlayVSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 250,
+        "variantType": "int"
+    },
+    "Oculars.enableCCD": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.enableCrosshairs": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.enableOcular": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.enableTelrad": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagAlignCrosshair": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagAutoLimitMagnitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Oculars.flagAutosetMountForCCD": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagDMSDegrees": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Oculars.flagGuiPanelEnabled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagHideGridsLines": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Oculars.flagHorizontalCoordinates": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagInitDirectionUsage": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagInitFOVUsage": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagMaxExposureTimeForCCD": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagRequireSelection": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Oculars.flagScaleImageCircle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Oculars.flagScalingFOVForCCD": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Oculars.flagScalingFOVForTelrad": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Oculars.flagSemiTransparency": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagShowCardinals": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagShowCcdCropOverlay": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagShowCcdCropOverlayPixelGrid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagShowContour": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagShowFocuserOverlay": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagShowOcularsButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagShowResolutionCriteria": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagUseLargeFocuserOverlay": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.flagUseMediumFocuserOverlay": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Oculars.flagUseSmallFocuserOverlay": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Oculars.focuserColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 0.67, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "Oculars.guiPanelFontSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 12,
+        "variantType": "int"
+    },
+    "Oculars.lineColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.77, 0.14, 0.16]",
+        "variantType": "Vector3<float>"
+    },
+    "Oculars.selectedCCDIndex": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 0,
+        "variantType": "int"
+    },
+    "Oculars.selectedCCDPrismPositionAngle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0,
+        "variantType": "double"
+    },
+    "Oculars.selectedCCDRotationAngle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0,
+        "variantType": "double"
+    },
+    "Oculars.selectedLensIndex": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": -1,
+        "variantType": "int"
+    },
+    "Oculars.selectedOcularIndex": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 15,
+        "variantType": "int"
+    },
+    "Oculars.selectedTelescopeIndex": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 17,
+        "variantType": "int"
+    },
+    "Oculars.telradFOV": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector4<float>",
+        "value": "[0.5, 2, 4, 0]",
+        "variantType": "Vector4<float>"
+    },
+    "Oculars.textColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.8, 0.48, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "Oculars.transparencyMask": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 85,
+        "variantType": "int"
+    },
+    "RemoteControl.autoStart": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "RemoteControl.enableCors": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "RemoteControl.enabled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "RemoteControl.usePassword": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.autoAddEnabled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Satellites.autoRemoveEnabled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Satellites.flagCFApogee": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagCFEccentricity": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagCFInclination": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagCFKnownStdMagnitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagCFPerigee": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagCFPeriod": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagCFRCS": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagColoredInvisible": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Satellites.flagHideInvisible": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagHintsVisible": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Satellites.flagIconicMode": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagLabelsVisible": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagOrbitLines": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagPenumbraVisible": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagUmbraAtFixedDistance": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagUmbraVisible": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagVFAltitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.flagVFMagnitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Satellites.invisibleSatelliteColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.2, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "Satellites.labelFontSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 10,
+        "variantType": "int"
+    },
+    "Satellites.maxCFApogee": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 55000,
+        "variantType": "double"
+    },
+    "Satellites.maxCFEccentricity": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.9,
+        "variantType": "double"
+    },
+    "Satellites.maxCFInclination": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 180,
+        "variantType": "double"
+    },
+    "Satellites.maxCFPerigee": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1500,
+        "variantType": "double"
+    },
+    "Satellites.maxCFPeriod": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 150,
+        "variantType": "double"
+    },
+    "Satellites.maxCFRCS": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 100,
+        "variantType": "double"
+    },
+    "Satellites.maxVFAltitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1500,
+        "variantType": "double"
+    },
+    "Satellites.maxVFMagnitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -8,
+        "variantType": "double"
+    },
+    "Satellites.minCFApogee": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 20000,
+        "variantType": "double"
+    },
+    "Satellites.minCFEccentricity": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.3,
+        "variantType": "double"
+    },
+    "Satellites.minCFInclination": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 120,
+        "variantType": "double"
+    },
+    "Satellites.minCFPerigee": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 200,
+        "variantType": "double"
+    },
+    "Satellites.minCFPeriod": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0,
+        "variantType": "double"
+    },
+    "Satellites.minCFRCS": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.1,
+        "variantType": "double"
+    },
+    "Satellites.minVFAltitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 200,
+        "variantType": "double"
+    },
+    "Satellites.minVFMagnitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 8,
+        "variantType": "double"
+    },
+    "Satellites.orbitLineFadeSegments": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 5,
+        "variantType": "int"
+    },
+    "Satellites.orbitLineSegmentDuration": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 20,
+        "variantType": "int"
+    },
+    "Satellites.orbitLineSegments": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 90,
+        "variantType": "int"
+    },
+    "Satellites.orbitLineThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "Satellites.penumbraColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "Satellites.tleEpochAgeDays": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 30,
+        "variantType": "int"
+    },
+    "Satellites.transitSatelliteColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 0, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "Satellites.umbraColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "Satellites.umbraDistance": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1000,
+        "variantType": "double"
+    },
+    "Satellites.updateFrequencyHours": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 72,
+        "variantType": "int"
+    },
+    "Satellites.updatesEnabled": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SearchDialog.simbadCount": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 3,
+        "variantType": "int"
+    },
+    "SearchDialog.simbadDist": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 30,
+        "variantType": "int"
+    },
+    "SearchDialog.simbadGetDims": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SearchDialog.simbadGetIds": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SearchDialog.simbadGetMorpho": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SearchDialog.simbadGetSpec": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SearchDialog.simbadGetTypes": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SearchDialog.useSimbad": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Skylight.AYc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -1.063,
+        "variantType": "double"
+    },
+    "Skylight.AYt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.2787,
+        "variantType": "double"
+    },
+    "Skylight.Axc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.1703,
+        "variantType": "double"
+    },
+    "Skylight.Axt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0148,
+        "variantType": "double"
+    },
+    "Skylight.Ayc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.2498,
+        "variantType": "double"
+    },
+    "Skylight.Ayt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0131,
+        "variantType": "double"
+    },
+    "Skylight.BYc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.4275,
+        "variantType": "double"
+    },
+    "Skylight.BYt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.3554,
+        "variantType": "double"
+    },
+    "Skylight.Bxc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.0011,
+        "variantType": "double"
+    },
+    "Skylight.Bxt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0664,
+        "variantType": "double"
+    },
+    "Skylight.Byc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.0092,
+        "variantType": "double"
+    },
+    "Skylight.Byt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0951,
+        "variantType": "double"
+    },
+    "Skylight.CYc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 6.3251,
+        "variantType": "double"
+    },
+    "Skylight.CYt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0227,
+        "variantType": "double"
+    },
+    "Skylight.Cxc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.2127,
+        "variantType": "double"
+    },
+    "Skylight.Cxt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0005,
+        "variantType": "double"
+    },
+    "Skylight.Cyc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.2404,
+        "variantType": "double"
+    },
+    "Skylight.Cyt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0082,
+        "variantType": "double"
+    },
+    "Skylight.DYc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -2.5771,
+        "variantType": "double"
+    },
+    "Skylight.DYt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.1206,
+        "variantType": "double"
+    },
+    "Skylight.Dxc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.8992,
+        "variantType": "double"
+    },
+    "Skylight.Dxt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0641,
+        "variantType": "double"
+    },
+    "Skylight.Dyc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -1.0539,
+        "variantType": "double"
+    },
+    "Skylight.Dyt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0438,
+        "variantType": "double"
+    },
+    "Skylight.EYc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.3703,
+        "variantType": "double"
+    },
+    "Skylight.EYt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.067,
+        "variantType": "double"
+    },
+    "Skylight.Exc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.0453,
+        "variantType": "double"
+    },
+    "Skylight.Ext": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0035,
+        "variantType": "double"
+    },
+    "Skylight.Eyc": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.0531,
+        "variantType": "double"
+    },
+    "Skylight.Eyt": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0109,
+        "variantType": "double"
+    },
+    "Skylight.T": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 5,
+        "variantType": "double"
+    },
+    "Skylight.flagGuiPublic": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "Skylight.flagSchaefer": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "Skylight.zX11": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.00216,
+        "variantType": "double"
+    },
+    "Skylight.zX12": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.00375,
+        "variantType": "double"
+    },
+    "Skylight.zX13": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.00209,
+        "variantType": "double"
+    },
+    "Skylight.zX21": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.02903,
+        "variantType": "double"
+    },
+    "Skylight.zX22": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.06377,
+        "variantType": "double"
+    },
+    "Skylight.zX23": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.03202,
+        "variantType": "double"
+    },
+    "Skylight.zX24": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.00394,
+        "variantType": "double"
+    },
+    "Skylight.zX31": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.10169,
+        "variantType": "double"
+    },
+    "Skylight.zX32": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.21196,
+        "variantType": "double"
+    },
+    "Skylight.zX33": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.06052,
+        "variantType": "double"
+    },
+    "Skylight.zX34": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.25886,
+        "variantType": "double"
+    },
+    "Skylight.zY11": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.00275,
+        "variantType": "double"
+    },
+    "Skylight.zY12": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.0061,
+        "variantType": "double"
+    },
+    "Skylight.zY13": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.00317,
+        "variantType": "double"
+    },
+    "Skylight.zY21": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.04214,
+        "variantType": "double"
+    },
+    "Skylight.zY22": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.0897,
+        "variantType": "double"
+    },
+    "Skylight.zY23": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.04153,
+        "variantType": "double"
+    },
+    "Skylight.zY24": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.00516,
+        "variantType": "double"
+    },
+    "Skylight.zY31": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.14535,
+        "variantType": "double"
+    },
+    "Skylight.zY32": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -0.26756,
+        "variantType": "double"
+    },
+    "Skylight.zY33": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.0667,
+        "variantType": "double"
+    },
+    "Skylight.zY34": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.26688,
+        "variantType": "double"
+    },
+    "SolarSystem.apparentMagnitudeAlgorithmOnEarth": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "Mallama2018",
+        "variantType": "QString"
+    },
+    "SolarSystem.cometsOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.8, 0.8]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.cubewanosOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.5, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.dwarfPlanetsOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.5, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.earthOrbitColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 0, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.earthShadowEnlargementDanjon": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisAlwaysOn": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisDataLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "SolarSystem.ephemerisDataStep": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "SolarSystem.ephemerisDatesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisGenericMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.ephemerisHorizontalCoordinates": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisJupiterMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.3, 1, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.ephemerisLineDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisLineThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "SolarSystem.ephemerisMagnitudesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisMarkersDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisMarsMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.ephemerisMercuryMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.ephemerisSaturnMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 1, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.ephemerisScaleMarkersDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisSecondaryMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.7, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.ephemerisSelectedMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.7, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.ephemerisSkippedData": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisSkippedMarkers": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisSmartDates": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.ephemerisVenusMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.flagDrawMoonHalo": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagDrawSunHalo": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagHints": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagIsolatedOrbits": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagIsolatedTrails": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagLightTravelTime": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagMinorBodyScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagMoonScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagNativePlanetNames": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagOrbits": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagPermanentOrbits": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagPermanentSolarCorona": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagPlanetScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagPlanetsOrbitsOnly": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagPointer": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagShowObjSelfShadows": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagSunScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.flagUseObjModels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.grsDrift": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 15,
+        "variantType": "double"
+    },
+    "SolarSystem.grsJD": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 2456901.5,
+        "variantType": "double"
+    },
+    "SolarSystem.grsLongitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 216,
+        "variantType": "int"
+    },
+    "SolarSystem.interstellarOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.6, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.jupiterOrbitColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.6, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.labelsAmount": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 3,
+        "variantType": "double"
+    },
+    "SolarSystem.labelsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.labelsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.majorPlanetsOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.marsOrbitColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.8, 0.4, 0.1]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.maxTrailPoints": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 5000,
+        "variantType": "int"
+    },
+    "SolarSystem.maxTrailTimeExtent": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "SolarSystem.mercuryOrbitColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.minorBodyScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 10,
+        "variantType": "double"
+    },
+    "SolarSystem.minorPlanetsOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.5, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.moonScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 4,
+        "variantType": "double"
+    },
+    "SolarSystem.moonsOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.neptuneOrbitColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 0.3, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.numberIsolatedTrails": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "SolarSystem.oortCloudObjectsOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.5, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.orbitColorStyle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "one_color",
+        "variantType": "QString"
+    },
+    "SolarSystem.orbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.2, 0.2]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.orbitsThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "SolarSystem.planetScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 150,
+        "variantType": "double"
+    },
+    "SolarSystem.planetsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "SolarSystem.plutinosOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.5, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.pointerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.3, 0.3]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.saturnOrbitColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.8, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.scatteredDiskObjectsOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.5, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.sednoidsOrbitsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.7, 0.5, 0.5]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.sunScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 4,
+        "variantType": "double"
+    },
+    "SolarSystem.trailsColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 0.7, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.trailsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SolarSystem.trailsThickness": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 1,
+        "variantType": "int"
+    },
+    "SolarSystem.uranusOrbitColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 0.7, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "SolarSystem.venusOrbitColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.9, 0.9, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "SpecialMarkersMgr.compassMarksColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "SpecialMarkersMgr.compassMarksDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SpecialMarkersMgr.fovCenterMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "SpecialMarkersMgr.fovCenterMarkerDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SpecialMarkersMgr.fovCircularMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "SpecialMarkersMgr.fovCircularMarkerDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SpecialMarkersMgr.fovCircularMarkerSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1,
+        "variantType": "double"
+    },
+    "SpecialMarkersMgr.fovRectangularMarkerColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0.5, 0.5, 0.7]",
+        "variantType": "Vector3<float>"
+    },
+    "SpecialMarkersMgr.fovRectangularMarkerDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "SpecialMarkersMgr.fovRectangularMarkerHeight": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 3,
+        "variantType": "double"
+    },
+    "SpecialMarkersMgr.fovRectangularMarkerRotationAngle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0,
+        "variantType": "double"
+    },
+    "SpecialMarkersMgr.fovRectangularMarkerWidth": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 4,
+        "variantType": "double"
+    },
+    "SpecificTimeMgr.twilightAltitude": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": -6,
+        "variantType": "double"
+    },
+    "SporadicMeteorMgr.zhr": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 10,
+        "variantType": "int"
+    },
+    "StarMgr.flagAdditionalNamesDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StarMgr.flagDblStarsDesignation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StarMgr.flagDesignationLabels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StarMgr.flagHIPDesignation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StarMgr.flagLabelsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StarMgr.flagStarsDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StarMgr.flagVarStarsDesignation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StarMgr.labelsAmount": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 3,
+        "variantType": "double"
+    },
+    "StelApp.daylightInfoColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[0, 0, 0]",
+        "variantType": "Vector3<float>"
+    },
+    "StelApp.flagOverwriteInfoColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelApp.flagShowDecimalDegrees": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelApp.flagUseAzimuthFromSouth": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelApp.flagUseCCSDesignation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelApp.flagUseFormattingOutput": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelApp.guiFontSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 13,
+        "variantType": "int"
+    },
+    "StelApp.nightMode": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelApp.overwriteInfoColor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "StelApp.screenFontSize": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 2,
+        "typeString": "int",
+        "value": 13,
+        "variantType": "int"
+    },
+    "StelApp.version": {
+        "canNotify": false,
+        "isWritable": false,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "1.22.5",
+        "variantType": "QString"
+    },
+    "StelCore.aberrationFactor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1,
+        "variantType": "double"
+    },
+    "StelCore.currentProjectionNameI18n": {
+        "canNotify": true,
+        "isWritable": false,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "Stereographic",
+        "variantType": "QString"
+    },
+    "StelCore.currentProjectionType": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "StelCore::ProjectionType",
+        "value": "ProjectionStereographic",
+        "variantType": "StelCore::ProjectionType"
+    },
+    "StelCore.currentProjectionTypeKey": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "ProjectionStereographic",
+        "variantType": "QString"
+    },
+    "StelCore.currentTimeZone": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "America/Chicago",
+        "variantType": "QString"
+    },
+    "StelCore.ditheringMode": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "DitheringMode",
+        "value": null,
+        "variantType": "DitheringMode"
+    },
+    "StelCore.flagGravityLabels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelCore.flagUseAberration": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelCore.flagUseCTZ": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelCore.flagUseDST": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelCore.flagUseNutation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelCore.flagUseTopocentricCoordinates": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelCore.flipHorz": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelCore.flipVert": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelGui.autoHideHorizontalButtonBar": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.autoHideVerticalButtonBar": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagEnableFocusOnDaySpinner": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowAsterismLabelsButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowAsterismLinesButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowCardinalButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowCompassButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowConstellationBoundariesButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowDSSButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowEclipticGridButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowFlipButtons": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowFullscreenButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowGalacticGridButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowGotoSelectedObjectButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowHiPSButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowICRSGridButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowNebulaBackgroundButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowNightmodeButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowObsListButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagShowQuitButton": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagUseButtonsBackground": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelGui.flagUseKineticScrolling": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelGui.visible": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.equatorialMount": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.flagAutoZoomOutResetsDirection": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.flagEnableMouseNavigation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.flagEnableMouseZooming": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.flagEnableMoveKeys": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.flagEnableZoomKeys": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.flagIndicationMountMode": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.tracking": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelMovementMgr.userMaxFov": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 360,
+        "variantType": "double"
+    },
+    "StelMovementMgr.viewportHorizontalOffsetTarget": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0,
+        "variantType": "double"
+    },
+    "StelMovementMgr.viewportVerticalOffsetTarget": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0,
+        "variantType": "double"
+    },
+    "StelSkyCultureMgr.currentSkyCultureID": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "modern",
+        "variantType": "QString"
+    },
+    "StelSkyCultureMgr.defaultSkyCultureID": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 10,
+        "typeString": "QString",
+        "value": "modern",
+        "variantType": "QString"
+    },
+    "StelSkyDrawer.absoluteStarScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.atmospherePressure": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1013,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.atmosphereTemperature": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 15,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.customNebulaMagLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 8.5,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.customPlanetMagLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 6.5,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.customStarMagLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 6.5,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.daylightLabelThreshold": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 250,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.extinctionCoefficient": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.12999999523162842,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.flagDrawBigStarHalo": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagDrawSunAfterAtmosphere": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagEarlySunHalo": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagLuminanceAdaptation": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagNebulaMagnitudeLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagPlanetMagnitudeLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagStarMagnitudeLimit": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagStarSpiky": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagStarTwinkle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.flagTfromK": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "StelSkyDrawer.lightPollutionLuminance": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.00014343767543323338,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.relativeStarScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.turbidity": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 5,
+        "variantType": "double"
+    },
+    "StelSkyDrawer.twinkleAmount": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.2,
+        "variantType": "double"
+    },
+    "StelSkyLayerMgr.flagShow": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelToneReproducer.displayAdaptationLuminance": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 50,
+        "variantType": "double"
+    },
+    "StelToneReproducer.displayGamma": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 2.2221999168395996,
+        "variantType": "double"
+    },
+    "StelToneReproducer.flagSRGB": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelToneReproducer.flagUseTmGamma": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "StelToneReproducer.inputScale": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 0.9981854557991028,
+        "variantType": "double"
+    },
+    "StelToneReproducer.maxDisplayLuminance": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 100,
+        "variantType": "double"
+    },
+    "StelToneReproducer.worldAdaptationLuminance": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 4.256097316741943,
+        "variantType": "double"
+    },
+    "ToastMgr.surveyDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "ZodiacalLight.color": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 65536,
+        "typeString": "Vector3<float>",
+        "value": "[1, 1, 1]",
+        "variantType": "Vector3<float>"
+    },
+    "ZodiacalLight.flagZodiacalLightDisplayed": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "ZodiacalLight.intensity": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 6,
+        "typeString": "double",
+        "value": 1,
+        "variantType": "double"
+    },
+    "actionAutoHideHorizontalButtonBar": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionAutoHideVerticalButtonBar": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionGoto_Selected_Object": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionHorizontal_Flip": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionSet_Full_Screen_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionSet_Nebula_TypeFilterUsage": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionSet_Tracking": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Antisolar_Point": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Apex_Points": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Asterism_Labels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Asterism_Lines": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_AstroCalc_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Atmosphere": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Azimuthal_Grid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Cardinal_Points": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Celestial_J2000_Poles": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Celestial_Poles": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Circumpolar_Circles": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Colure_Lines": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Compass_Marks": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Configuration_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Constellation_Art": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Constellation_Boundaries": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Constellation_Isolated": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Constellation_Labels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Constellation_Lines": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Current_Vertical_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_DSO_Textures": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_DateTime_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Ecliptic_Grid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Ecliptic_J2000_Grid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Ecliptic_J2000_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Ecliptic_J2000_Poles": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Ecliptic_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Ecliptic_Poles": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Equator_J2000_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Equator_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Equatorial_Grid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Equatorial_J2000_Grid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Equinox_J2000_Points": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Equinox_Points": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Exoplanets": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Exoplanets_ConfigDialog": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_FOV_Center_Marker": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_FOV_Circular_Marker": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_FOV_Rectangular_Marker": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Fixed_Equator_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Fixed_Equatorial_Grid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Fog": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Galactic_Center": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Galactic_Equator_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Galactic_Grid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Galactic_Poles": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Gridlines": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Ground": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Help_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Hips_Surveys": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Horizon_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Intercardinal_Points": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Invariable_Plane_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_LandscapeIllumination": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_LandscapeLabels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_LightPollutionFromDatabase": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Location_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Longitude_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Meridian_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_MeteorShowers": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_MeteorShowers_config_dialog": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_MeteorShowers_labels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_MeteorShowers_search_dialog": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_MilkyWay": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Nebulas": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Night_Mode": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Novae_ConfigDialog": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_ObsList_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Ocular_Crosshairs": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Oculars": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Oculars_GUI": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Oculars_dialog": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Penumbra_Circle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_EnlargeMinor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_EnlargeMoon": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_EnlargePlanets": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_EnlargeSun": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_Hints": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_Labels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_Nomenclature": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_Nomenclature_SpecialPoints_Only": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_Orbits": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_Pointers": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Planets_Trails": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Precession_Circles": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Prime_Vertical_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Quadrature_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Ray_Helpers": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Remote_Control": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Remote_Control_dialog": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Satellite_ConfigDialog_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Satellite_Hints": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Satellite_Labels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_ScriptConsole_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Search_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Secondary_Intercardinal_Points": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Sensor": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Shortcuts_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_SkyView_Window_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Skyculture_NativePlanetNames": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Solar_Equator_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Solstice_J2000_Points": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Solstice_Points": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Stars": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Stars_Labels": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionShow_Supergalactic_Equator_Line": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Supergalactic_Grid": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Supergalactic_Poles": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Telrad": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Toast_Survey": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Umbra_Center_Point": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Umbra_Circle": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_Zenith_Nadir": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionShow_ZodiacalLight": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionSwitch_Equatorial_Mount": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    },
+    "actionToggle_GuiHidden_Global": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": true,
+        "variantType": "bool"
+    },
+    "actionVertical_Flip": {
+        "canNotify": true,
+        "isWritable": true,
+        "typeEnum": 1,
+        "typeString": "bool",
+        "value": false,
+        "variantType": "bool"
+    }
+}

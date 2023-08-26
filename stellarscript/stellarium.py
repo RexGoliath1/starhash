@@ -20,6 +20,7 @@ os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(STAR_OUTPUT_DIRECTORY, exist_ok=True)
 DEFAULT_JSON_OUTPUT= os.path.join(OUTPUT_DIRECTORY, "temp.json")
 OUTPUT_HIPPARCOS = False
+RECACHE_HIPPARCOS = False
 
 np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.8f}'.format})
 
@@ -28,7 +29,29 @@ stellarium_path = r"/Users/stevengonciar/Downloads/Stellarium.app/Contents/MacOS
 
 class Stellarium():
     def __init__(self, config):
-        # Read in configuration and initialize Stellarium
+        self.dec_start = 0
+        self.dec_end = 0
+        self.ra_start = 0
+        self.ra_end = 0
+        self.num_steps = 0
+        self.url_main = ""
+        self.url_status = ""
+        self.url_do_action = ""
+        self.url_prop = ""
+        self.url_prop_set = ""
+        self.url_fov = ""
+        self.url_time = ""
+        self.url_listobjectsbytype = ""
+        self.url_objecttypes = ""
+        self.url_objectinfo = ""
+        self.url_view_skyculture = ""
+        self.delay_sec = 0
+        self.aperture = 0
+        self.focal_length = 0
+        self.width = 0
+        self.height = 0
+
+        # Read in configuration and initialize Stellarium class
         with open(config, 'r') as file:
             settings = yaml.safe_load(file)
             for k, v in settings.items():
@@ -36,6 +59,8 @@ class Stellarium():
 
         self.proc_stellarium = subprocess.Popen([stellarium_path], stdout=subprocess.PIPE, shell=True)
 
+        # Once Stellarium starts, attempt to query server
+        response = None
         for _ in range(20):
             try:
                 response = requests.get(self.url_main + self.url_status) 
@@ -72,7 +97,9 @@ class Stellarium():
             print(response.status_code)
         else:
             pass # TODO: Turn back on in some form
-            print(f"View jnow: (ra, dec) = ({self.ra}, {self.dec}); [x,y,z] = {response.json().get('jNow')}")
+            print(f"View jnow: (ra, dec) = ({self.ra}, {self.dec});")
+            print(f"    [x,y,z] = {response.json().get('jNow')}")
+            print(f"    jnow_str = {jnow_str}")
 
     def get_actions(self):
         # Get a list of available action IDs:
@@ -152,17 +179,25 @@ class Stellarium():
         return response.status_code
 
 
-    def get_all_hip_stars(self):
+    def cache_hip_stars(self):
         for ii in range(1, 118218 + 1):
-            stel.get_objectinfo(obj_name=f"HIP {ii}")
+            stel.cache_objectinfo(obj_name=f"HIP {ii}")
 
 
-    def get_objectinfo(self, obj_name="HIP 56572", obj_format="json"):
-        # Get a list of available action IDs:
+    def cache_objectinfo(self, obj_name="HIP 56572", obj_format="json"):
+        """ Cache stellarium object info """
+
+        # Check if already cached or regenerate requested
+        file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}.json")
+
+        if RECACHE_HIPPARCOS:
+            pass
+        elif os.path.exists(file_path):
+            return True
+
         gdict = {'name': obj_name, 'format': obj_format}
         response = requests.get(self.url_main + self.url_objectinfo, data = gdict)
 
-        file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}.json")
         if response.ok:
             with open(file_path, 'w') as fp:    
                 json.dump(response.json(), fp, indent=4)
@@ -223,7 +258,8 @@ class Stellarium():
         self.set_property('StelCore.currentProjectionType', 'ProjectionPerspective')
 
         # Set minimum magnitude based on camera. Approximate, reference GIANT for validation sim
-        magnitude_limit = 7.5 + 5 * np.log(100 * self.aperture)
+        magnitude_limit = 7.0 + 5 * np.log(100 * self.aperture)
+        # magnitude_limit = 2.0
         self.set_property("StelSkyDrawer.customStarMagLimit", f"{magnitude_limit:.1f}")
         self.set_property("StelSkyDrawer.customPlanetMagLimit", f"{magnitude_limit:.1f}")
         self.set_property("StelSkyDrawer.customNebulaMagLimit", f"{magnitude_limit:.1f}")
@@ -232,21 +268,15 @@ class Stellarium():
     def set_property(self, prop, value):
         """ Set Stellarium property value """
         gdict = {'id': prop, 'value': value}
-        
         response = requests.get(self.url_main + self.url_prop, data = gdict)
 
         if response.ok: 
-            # TODO: Figure out what to do for comparing current value...
-            prop_value = response.json().get(prop).get('value')
-            #if(prop_value):
-
             response = requests.post(self.url_main + self.url_prop_set, data = gdict)
-            # response = requests.post(self.url_main + self.url_do_action, data = gdict)
             if not response.ok:
                 print(response.status_code)
             else:
                 response = requests.get(self.url_main + self.url_prop, data = gdict)
-                print(f"This Response: {response.text}")
+                print(f"Property Set {prop} Failed: {response.text}")
         else:
             print(response.status_code)
 
@@ -262,23 +292,73 @@ class Stellarium():
         """ Stop the stellarium app """
         self.proc_stellarium.kill()
 
+    def j2000_to_xyz(self, ra, dec):
+        """ Convert RA/DEC to Celestial Sphere coordinates """
+        # https://stellarium.org/doc/head/remoteControlApi.html#rcMainServiceViewGet
+        return np.array([math.cos(dec) * math.cos(ra), math.cos(dec) * math.sin(ra), math.sin(dec)])
+
+
+    def get_extrinsic(self):
+        """ Get Intrinsic + Extrinsic Transformation matrix """
+        fx = self.focal_length
+        fy = self.focal_length
+
+        K = np.array([
+            [fx,    0.0,    self.width/2.0],
+            [0.0,   fy,     self.height/2.0]
+            [0.0,   0.0,    1.0]
+        ])
+
+        # Assuming equatorial mount reduces roll to zero ...
+        rotx = np.array([
+            [1.0, 0.0, 0.0],
+            [0.0, np.cos(0.0), np.sin(0.0)],
+            [0.0, np.sin(0.0), np.cos(0.0)]
+        ])
+
+        roty = np.array([
+            [np.cos(self.dec), 0.0, -np.sin(self.dec)],
+            [0.0, 1.0, 0.0],
+            [np.sin(self.ra), 0.0, np.cos(self.ra)]
+        ])
+
+        rotz = np.array([
+            [np.cos(self.ra),   -np.sin(self.ra),   0.0],
+            [np.sin(self.ra),   np.cos(self.ra),    0.0],
+            [0.0,               0.0,                1.0]
+        ])
+
+        R = rotx * roty * rotz
+
+        # https://stellarium.org/doc/head/remoteControlApi.html#rcMainServiceViewGet
+        T = self.j2000_to_xyz(self.ra, self.dec)
+
+        P = np.block([
+            [R, T.transpose()],
+            [0.0, 0.0, 0.0, 1.0]
+        ])
+
 
     def run_scene(self):
         """ Set view to ra/dec """
 
-        if not hasattr(self, "init_dec"):
-            self.dec = 0
-        if not hasattr(self, "init_ra"):
-            self.ra = 0
-        
-        for step in range(-self.step_size, self.step_size):
-            sleep(self.delay_sec)
-            self.dec = self.init_dec - np.pi / 2.0 * (step / self.step_size)
-            self.ra = self.init_ra
+        dec = np.linspace(self.dec_start, self.dec_end, self.num_steps)
+        ra = np.linspace(self.ra_start, self.ra_end, self.num_steps)
 
-            jnow = [math.cos(self.dec) * math.cos(self.ra), math.cos(self.dec) * math.sin(self.ra), math.sin(self.dec)]
-            jnow = np.array(jnow)
+        freq = 50
+        for ii in range(0, self.num_steps):
+            # Neccessary for rendering 
+            sleep(self.delay_sec) 
+
+            self.dec = dec[ii]
+            self.ra = ra[ii]
+            jnow = self.j2000_to_xyz(self.ra, self.dec)
             jnow_str = np.array2string(jnow, separator=',')
+
+
+            magnitude_limit = 7.0 + 6.0 * np.sin(np.pi * (ii / freq))
+            self.set_property("StelSkyDrawer.customStarMagLimit", f"{magnitude_limit:.1f}")
+
             self.get_date()
             stel.set_boresight(jnow_str=jnow_str)
             self.get_screenshot()
@@ -296,7 +376,7 @@ if __name__ == "__main__":
     stel.get_objecttypes()
     stel.get_listobjectsbytype()
     if OUTPUT_HIPPARCOS:
-        stel.get_all_hip_stars()
+        stel.cache_hip_stars()
 
     stel.set_date()
     stel.get_date()

@@ -2,6 +2,8 @@
 fov: 30.0 # 44.2
 focal_length: 0.025 # 0.025
 aperture: 0.0125 # 0.0125
+width: 1024
+height: 1024
 
 # Stellarium Time Settings
 jday: 2451545.0
@@ -11,12 +13,29 @@ timerate: 0.0
 latitude: 0.0 # 90.0
 longitude: 0.0
 altitude: 1000.0
-# Fix terrible variable names
-init_dec: 0
-init_ra: 0
+
+# Starting and ending RA and DEC
+
+# Point
+dec_start: 0.0
+ra_start: 0.0
+dec_end: 0.0
+ra_end: 0.0
+
+# Slew Right
+# dec_start: 0.0
+# ra_start: -1.5707963267948966
+# dec_end: 0.0
+# ra_end: 1.5707963267948966
+
+# Slew Up
+# dec_start: -1.5707963267948966
+# ra_start: 0.0
+# dec_end: 1.5707963267948966
+# ra_end: 0.0
 
 delay_sec: 0.01
-step_size: 1000
+num_steps: 10000
 
 # Stellarium API URLs
 url_main: "http://localhost:8090/api/"
@@ -62,11 +81,36 @@ disabled_properties: [
     # Things that may need to be configurable
     "actionShow_MilkyWay",
     "actionShow_MeteorShowers",
-    #"actionShow_Planets",
+    "actionShow_Planets",
     "actionShow_Nebulas",
     "actionShow_ZodiacalLight",
     "StelSkyDrawer.flagDrawBigStarHalo",
+    "StelSkyDrawer.flagStarTwinkle",
   ]
 
 enabled_properties:
-  ["StelMovementMgr.equatorialMount", "StelSkyDrawer.flagStarMagnitudeLimit"]
+  [
+    "StelMovementMgr.equatorialMount",
+    "StelSkyDrawer.flagStarMagnitudeLimit",
+    "StelSkyDrawer.flagPlanetMagnitudeLimit",
+    "StelSkyDrawer.flagNebulaMagnitudeLimit",
+  ]
+# Some Settings that may be interesting
+# "MainView.skyBackgroundColor"
+# "MainView.screenshotDpi"
+#    "MainView.screenShotFormat": {
+#    "MainView.screenShotFileMask": {
+#    "MainView.flagUseCustomScreenshotSize": {
+#    "MainView.flagScreenshotDateFileName": {
+#    "MainView.customScreenshotWidth": {
+#    "MainView.customScreenshotHeight": {
+#    "ObsListDialog.flagUseFov": {
+#    "Oculars.enableCCD": {
+#    "Oculars.enableOcular": {
+#    "Oculars.flagAutoLimitMagnitude": {
+#    "Oculars.flagAutosetMountForCCD": {
+#    "Oculars.flagInitFOVUsage": {
+#    "Oculars.flagMaxExposureTimeForCCD": {
+#    "Oculars.selectedCCDRotationAngle": {
+#    "Oculars.selectedLensIndex": {
+#    "Oculars.selectedOcularIndex": {
