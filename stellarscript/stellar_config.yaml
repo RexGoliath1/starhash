@@ -1,9 +1,30 @@
+# Description: This file contains various stellarium settings used for controlling the simulation
+#   1. Fix Time 
+#       - Set time to J2000
+#       - Set time rate to 0
+#       - Advance time to 2451545.
+#       - Stars will be fixed in their positions
+#   2. Rotate camera on equatorial mount 
+#       - Rotation only about Y and Z 
+#       - Pitch and Yaw, no roll
+#   3. Set fov
+#       - Calculate Intrinsic
+#       - Calculate Extrinsic at every frame
+#       - Calculate all star pixel positions in camera frame (X/Y Pixel)
+#       - Check if in frame using bounds)
+#
+# Note: By not advancing time, all stars retain their positions
+#   By caching RA and DEC, we can quickly look up camera pixel positions
+#
+
+
 # Stellarium Camera Settings
 fov: 30.0 # 44.2
-focal_length: 0.025 # 0.025
+fx: 1406.7084387607667  # Pixels (Assuming HFOV = 40, width = 1024)
+fy: 1433.107510106449   # Pixels (Assuming VFOV = 30, height = 768)
 aperture: 0.0125 # 0.0125
 width: 1024
-height: 1024
+height: 768
 
 # Stellarium Time Settings
 jday: 2451545.0
@@ -17,16 +38,16 @@ altitude: 1000.0
 # Starting and ending RA and DEC
 
 # Point
-dec_start: 0.0
-ra_start: 0.0
-dec_end: 0.0
-ra_end: 0.0
+#dec_start: 0.0
+#ra_start: 0.0
+#dec_end: 0.0
+#ra_end: 0.0
 
 # Slew Right
-# dec_start: 0.0
-# ra_start: -1.5707963267948966
-# dec_end: 0.0
-# ra_end: 1.5707963267948966
+dec_start: 0.0
+ra_start: -1.5707963267948966
+dec_end: 0.0
+ra_end: 1.5707963267948966
 
 # Slew Up
 # dec_start: -1.5707963267948966
@@ -35,7 +56,7 @@ ra_end: 0.0
 # ra_end: 0.0
 
 delay_sec: 0.01
-num_steps: 10000
+num_steps: 1000
 
 # Stellarium API URLs
 url_main: "http://localhost:8090/api/"
@@ -86,31 +107,29 @@ disabled_properties: [
     "actionShow_ZodiacalLight",
     "StelSkyDrawer.flagDrawBigStarHalo",
     "StelSkyDrawer.flagStarTwinkle",
-  ]
+]
 
-enabled_properties:
-  [
+enabled_properties: [
     "StelMovementMgr.equatorialMount",
     "StelSkyDrawer.flagStarMagnitudeLimit",
     "StelSkyDrawer.flagPlanetMagnitudeLimit",
     "StelSkyDrawer.flagNebulaMagnitudeLimit",
   ]
-# Some Settings that may be interesting
-# "MainView.skyBackgroundColor"
-# "MainView.screenshotDpi"
-#    "MainView.screenShotFormat": {
-#    "MainView.screenShotFileMask": {
-#    "MainView.flagUseCustomScreenshotSize": {
-#    "MainView.flagScreenshotDateFileName": {
-#    "MainView.customScreenshotWidth": {
-#    "MainView.customScreenshotHeight": {
-#    "ObsListDialog.flagUseFov": {
-#    "Oculars.enableCCD": {
-#    "Oculars.enableOcular": {
-#    "Oculars.flagAutoLimitMagnitude": {
-#    "Oculars.flagAutosetMountForCCD": {
-#    "Oculars.flagInitFOVUsage": {
-#    "Oculars.flagMaxExposureTimeForCCD": {
-#    "Oculars.selectedCCDRotationAngle": {
-#    "Oculars.selectedLensIndex": {
-#    "Oculars.selectedOcularIndex": {
+
+
+# # Some Settings that may be interesting
+# # "MainView.skyBackgroundColor"
+# # "MainView.screenshotDpi"
+# #    "MainView.screenShotFormat": {
+# #    "MainView.screenShotFileMask": {
+# #    "MainView.flagScreenshotDateFileName": {
+# #    "ObsListDialog.flagUseFov": {
+# #    "Oculars.enableCCD": {
+# #    "Oculars.enableOcular": {
+# #    "Oculars.flagAutoLimitMagnitude": {
+# #    "Oculars.flagAutosetMountForCCD": {
+# #    "Oculars.flagInitFOVUsage": {
+# #    "Oculars.flagMaxExposureTimeForCCD": {
+# #    "Oculars.selectedCCDRotationAngle": {
+# #    "Oculars.selectedLensIndex": {
+# #    "Oculars.selectedOcularIndex": {

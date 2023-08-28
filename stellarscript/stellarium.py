@@ -6,21 +6,31 @@ import yaml
 import math
 import numpy as np
 import json
+from scipy.spatial.transform import Rotation
+from tqdm import tqdm
 
 # Ongoing TODOs
 # StelSkyDrawer.twinkleAmount
-# Output Frame data somewhere
-# Disable fullscreen and set resolution appropriately
 
+# Various output directories
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
 OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results")
-STAR_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "stars")
+STAR_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, ".stars")
 os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(STAR_OUTPUT_DIRECTORY, exist_ok=True)
 DEFAULT_JSON_OUTPUT= os.path.join(OUTPUT_DIRECTORY, "temp.json")
-OUTPUT_HIPPARCOS = False
-RECACHE_HIPPARCOS = False
+
+# Enable both to output Hipparcos positions. Only needed once if using the same time
+NUM_HIP_STARS = 118218
+HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
+CACHE_HIPPARCOS = False 
+RECACHE_HIPPARCOS = False 
+
+# Debug variables
+TQDM_SILENCE = True
+
+DEC2RAD = np.pi / 180.0
 
 np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.8f}'.format})
 
@@ -29,6 +39,8 @@ stellarium_path = r"/Users/stevengonciar/Downloads/Stellarium.app/Contents/MacOS
 
 class Stellarium():
     def __init__(self, config):
+        self.debug_stel = 0
+        self.jnow = 0
         self.dec_start = 0
         self.dec_end = 0
         self.ra_start = 0
@@ -45,11 +57,27 @@ class Stellarium():
         self.url_objecttypes = ""
         self.url_objectinfo = ""
         self.url_view_skyculture = ""
+        self.url_location = ""
+        self.url_actions = ""
+        self.url_view = ""
+        self.url_projection = ""
+        self.url_simbad = ""
         self.delay_sec = 0
         self.aperture = 0
-        self.focal_length = 0
+        self.fx = 0
+        self.fy = 0
         self.width = 0
         self.height = 0
+        self.altitude = 0
+        self.latitude = 0
+        self.longitude = 0
+        self.disabled_properties = []
+        self.enabled_properties = []
+        self.timerate = 0
+        self.jday = 0
+        self.R = 0
+        self.E = 0
+        self.K = 0
 
         # Read in configuration and initialize Stellarium class
         with open(config, 'r') as file:
@@ -88,7 +116,6 @@ class Stellarium():
     def set_boresight(self, jnow_str):
         assert isinstance(jnow_str, str)
         param_view = {'jNow': jnow_str}
-        #param_view = {'altAz': jnow_str}
         response = requests.post(self.url_main + self.url_view, data = param_view)
         if not response.ok:
             print(response.status_code)
@@ -112,7 +139,7 @@ class Stellarium():
 
 
     def get_property(self):
-        # Get a list of available action IDs:
+        """ TODO Debugging: Get a list of available properties """
         response = requests.get(self.url_main + self.url_prop)
         file_path = os.path.join(OUTPUT_DIRECTORY, "properties.json")
         with open(file_path, 'w') as fp:    
@@ -121,7 +148,7 @@ class Stellarium():
 
 
     def get_view(self):
-        # Get a list of available action IDs:
+        """ TODO Debugging: Get a list of available actions """
         response = requests.get(self.url_main + self.url_view)
         file_path = os.path.join(OUTPUT_DIRECTORY, "view.json")
         with open(file_path, 'w') as fp:    
@@ -130,7 +157,7 @@ class Stellarium():
 
 
     def get_view_skyculture(self):
-        # Get a list of available action IDs:
+        """ TODO Debugging: Get a list of available sky cultures """
         response = requests.get(self.url_main + self.url_view_skyculture)
         file_path = os.path.join(OUTPUT_DIRECTORY, "url_view_skyculture.html")
         with open(file_path, 'w') as fp:    
@@ -139,7 +166,7 @@ class Stellarium():
 
 
     def get_projection(self):
-        # Get a list of available action IDs:
+        """ Debugging: Get a list of available projections """
         response = requests.get(self.url_main + self.url_projection)
         file_path = os.path.join(OUTPUT_DIRECTORY, "projections.json")
         with open(file_path, 'w') as fp:    
@@ -148,7 +175,7 @@ class Stellarium():
 
 
     def get_simbad(self):
-        # Get a list of available action IDs:
+        """ TODO: Debugging: Get a list of available simbad Types """
         response = requests.get(self.url_main + self.url_simbad)
         file_path = os.path.join(OUTPUT_DIRECTORY, "simbad.json")
         if response.ok:
@@ -157,8 +184,8 @@ class Stellarium():
         return response.status_code
 
 
-    def get_objecttypes(self):
-        # Get a list of available action IDs:
+    def get_obj_types(self):
+        """ Debugging: Get a list of available object types """
         response = requests.get(self.url_main + self.url_objecttypes)
         file_path = os.path.join(OUTPUT_DIRECTORY, "objecttypes.json")
         if response.ok:
@@ -166,7 +193,9 @@ class Stellarium():
                 json.dump(response.json(), fp, indent=4)
         return response.status_code
 
-    def get_listobjectsbytype(self, type="StarMgr"):
+
+    def get_obj_list(self, type="StarMgr"):
+        """ Debugging: Get a list of available objects by type """
         # Get a list of available action IDs:
         gdict = {'type': type}
         response = requests.get(self.url_main + self.url_listobjectsbytype, data = gdict)
@@ -179,29 +208,71 @@ class Stellarium():
         return response.status_code
 
 
+    def get_star_positions(self):
+        """ Get star position in camera using the Intrinsic + Extrinsic Transformation matrix """
+
+        coords = []
+
+        # For all stars, get jNow and convert to pixel postion
+        for obj_name in tqdm(iterable=HIP_NAMES, desc="Getting Star Positions", disable=TQDM_SILENCE):
+
+            # First, check if file is available, otherwise query
+            file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}_{self.jday}.json")
+            if os.path.exists(file_path):
+                with open(file_path) as fp:
+                    data = json.load(fp)
+            else:
+                data = self.get_obj_info(obj_name=obj_name)
+
+            if data is None:
+                continue
+
+            (ra, dec) = (data["ra"] * DEC2RAD, data["dec"] * DEC2RAD)
+            [x, y, z] = self.j2000_to_xyz(ra, dec)
+            x_w = np.array([[x, y, z, 1]])
+            # h_pixel = np.dot(self.K, np.dot(self.E, x_w))
+            x_c = np.matmul(self.E, x_w.T)
+            x_p = np.matmul(self.K, x_c)
+            uv = (x_p / x_p[2][0])[:-1]
+
+            # For extra debug only
+            #if abs(self.ra - ra) < 0.01 and abs(self.dec - dec) < 0.01:
+            #    print("Should be pretty close  ....")
+
+            # For debugging, print out stars within frame
+            if 0 <= uv[0] <= self.width and 0 <= uv[1] <= self.height:
+                print(f"{obj_name}: IN FRAME @ ({uv})")
+                coords.append(uv)
+
+        return coords
+
+
     def cache_hip_stars(self):
-        for ii in range(1, 118218 + 1):
-            stel.cache_objectinfo(obj_name=f"HIP {ii}")
+        """ Cache the available Hipparcos star locations in simulation """
+        if not CACHE_HIPPARCOS:
+            return
+
+        for obj_name in tqdm(iterable=HIP_NAMES, desc="Caching Hipparcos Star Info", disable=TQDM_SILENCE):
+            stel.get_obj_info(obj_name=obj_name, output=True)
 
 
-    def cache_objectinfo(self, obj_name="HIP 56572", obj_format="json"):
-        """ Cache stellarium object info """
+    def get_obj_info(self, obj_name="HIP 56572", output=False):
+        """ Return and cache stellarium object info """
+        file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}_{self.jday}.json")
 
-        # Check if already cached or regenerate requested
-        file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}.json")
 
-        if RECACHE_HIPPARCOS:
-            pass
-        elif os.path.exists(file_path):
-            return True
-
-        gdict = {'name': obj_name, 'format': obj_format}
+        gdict = {'name': obj_name, 'format': "json"}
         response = requests.get(self.url_main + self.url_objectinfo, data = gdict)
 
-        if response.ok:
+        if not response.ok:
+            print(f"{obj_name}: {response.text}")
+            return None
+
+        if output and (RECACHE_HIPPARCOS or not os.path.exists(file_path)):
             with open(file_path, 'w') as fp:    
                 json.dump(response.json(), fp, indent=4)
-        return response.status_code
+
+        return response.json()
 
 
     def set_date(self):
@@ -235,6 +306,7 @@ class Stellarium():
 
 
     def get_date(self):
+        """ Get Simulation Date """
         response = requests.get(self.url_main + self.url_status) 
 
         if response.ok:
@@ -258,11 +330,14 @@ class Stellarium():
         self.set_property('StelCore.currentProjectionType', 'ProjectionPerspective')
 
         # Set minimum magnitude based on camera. Approximate, reference GIANT for validation sim
-        magnitude_limit = 7.0 + 5 * np.log(100 * self.aperture)
-        # magnitude_limit = 2.0
+        magnitude_limit = 7.0 + 5 * np.log10(100 * self.aperture)
         self.set_property("StelSkyDrawer.customStarMagLimit", f"{magnitude_limit:.1f}")
         self.set_property("StelSkyDrawer.customPlanetMagLimit", f"{magnitude_limit:.1f}")
         self.set_property("StelSkyDrawer.customNebulaMagLimit", f"{magnitude_limit:.1f}")
+
+        # Set Absolute + Relative Star Scale for display
+        self.set_property("StelSkyDrawer.absoluteStarScale", f"{0.25}")
+        self.set_property("StelSkyDrawer.relativeStarScale", f"{0.5}")
 
 
     def set_property(self, prop, value):
@@ -273,10 +348,7 @@ class Stellarium():
         if response.ok: 
             response = requests.post(self.url_main + self.url_prop_set, data = gdict)
             if not response.ok:
-                print(response.status_code)
-            else:
-                response = requests.get(self.url_main + self.url_prop, data = gdict)
-                print(f"Property Set {prop} Failed: {response.text}")
+                print(f"Property Set {prop} Failed: {response.status_code}")
         else:
             print(response.status_code)
 
@@ -297,90 +369,92 @@ class Stellarium():
         # https://stellarium.org/doc/head/remoteControlApi.html#rcMainServiceViewGet
         return np.array([math.cos(dec) * math.cos(ra), math.cos(dec) * math.sin(ra), math.sin(dec)])
 
+    def get_intrinsic(self):
+        """ Get Intrinsic Matrix """
+        # Not sure if this is correct, would have to figure out Ocular plugin
+        # Does match output of Astrometry
+        fx = self.fx
+        fy = self.fy
+        cx = self.width / 2.0
+        cy = self.height / 2.0
 
-    def get_extrinsic(self):
-        """ Get Intrinsic + Extrinsic Transformation matrix """
-        fx = self.focal_length
-        fy = self.focal_length
-
-        K = np.array([
-            [fx,    0.0,    self.width/2.0],
-            [0.0,   fy,     self.height/2.0]
+        self.K = np.array([
+            [fx,    0.0,    cx],
+            [0.0,   fy,     cy],
             [0.0,   0.0,    1.0]
         ])
 
+    def get_extrinsic(self):
+        """ Get Intrinsic + Extrinsic Transformation matrix """
         # Assuming equatorial mount reduces roll to zero ...
-        rotx = np.array([
-            [1.0, 0.0, 0.0],
-            [0.0, np.cos(0.0), np.sin(0.0)],
-            [0.0, np.sin(0.0), np.cos(0.0)]
-        ])
+        r_j2000_to_bore = Rotation.from_euler('ZYX', [self.ra, self.dec, 0.0], degrees=False)
+        r_bore_to_camera = Rotation.from_euler('ZYX', [-90.0, 0.0, -90.0], degrees=True)
+        r = r_j2000_to_bore * r_bore_to_camera
+        #self.R = np.matmul(r_j2000_to_bore.as_matrix(), r_bore_to_camera.as_matrix())
+        self.R = r.as_matrix()
+        t = np.array([[0, 0, 0]])
+        #self.R = np.linalg.inv(self.R)
+        self.E = np.concatenate((self.R, t.T), axis=1)
 
-        roty = np.array([
-            [np.cos(self.dec), 0.0, -np.sin(self.dec)],
-            [0.0, 1.0, 0.0],
-            [np.sin(self.ra), 0.0, np.cos(self.ra)]
-        ])
 
-        rotz = np.array([
-            [np.cos(self.ra),   -np.sin(self.ra),   0.0],
-            [np.sin(self.ra),   np.cos(self.ra),    0.0],
-            [0.0,               0.0,                1.0]
-        ])
-
-        R = rotx * roty * rotz
-
-        # https://stellarium.org/doc/head/remoteControlApi.html#rcMainServiceViewGet
-        T = self.j2000_to_xyz(self.ra, self.dec)
-
-        P = np.block([
-            [R, T.transpose()],
-            [0.0, 0.0, 0.0, 1.0]
-        ])
+    def run_debug(self):
+        """ Run debugging to output jsons of various parameters """
+        self.get_actions()
+        self.get_property()
+        self.get_view()
+        self.get_view_skyculture()
+        self.get_simbad()
+        self.get_obj_types()
+        self.get_obj_list()
+        self.get_date()
 
 
     def run_scene(self):
         """ Set view to ra/dec """
 
+        # Here are a few debugging functions for outputting Stellarium configurable params
+        if self.debug_stel:
+            self.run_debug()
+        
+        # First, configure a few of view parameters based on input YAML
+        self.set_date()
+        self.set_view_props()
+        self.set_fov()
+
+        # Get the camera intrisincs for later projection
+        self.get_intrinsic()
+
+        # Cache star positions if they're not available for current date
+        self.cache_hip_stars()
+
+
+        # Now, loop through requested RA/DEC. This is the center of the boresight on EQ mount.
+        # TODO: Check: EQ Mount aligned with earth rotation, thus no roll and dec/ra corresponds to pitch/yaw
+        # Meaning, if we know RA/DEC we can get RPY -> Extrinsic Matrix -> Star pixel positions
         dec = np.linspace(self.dec_start, self.dec_end, self.num_steps)
         ra = np.linspace(self.ra_start, self.ra_end, self.num_steps)
 
-        freq = 50
         for ii in range(0, self.num_steps):
-            # Neccessary for rendering 
-            sleep(self.delay_sec) 
+            # Wait, neccessary for rendering
+            sleep(self.delay_sec)
 
             self.dec = dec[ii]
             self.ra = ra[ii]
-            jnow = self.j2000_to_xyz(self.ra, self.dec)
-            jnow_str = np.array2string(jnow, separator=',')
+            self.jnow = self.j2000_to_xyz(self.ra, self.dec)
+            jnow_str = np.array2string(self.jnow, separator=',')
 
-
-            magnitude_limit = 7.0 + 6.0 * np.sin(np.pi * (ii / freq))
-            self.set_property("StelSkyDrawer.customStarMagLimit", f"{magnitude_limit:.1f}")
-
-            self.get_date()
             stel.set_boresight(jnow_str=jnow_str)
+            stel.get_extrinsic()
+            coords = stel.get_star_positions()
+
+            # This script outputs pictures in local user folder. 
+            # afaik this folder is not configurable through API.
             self.get_screenshot()
 
 if __name__ == "__main__":
     config_file = "stellar_config.yaml"
     stel = Stellarium(config_file)
-    stel.get_actions()
-    stel.get_property()
-    stel.get_view()
-    stel.get_view_skyculture()
-    stel.get_simbad()
 
-    # TODO Group together better
-    stel.get_objecttypes()
-    stel.get_listobjectsbytype()
-    if OUTPUT_HIPPARCOS:
-        stel.cache_hip_stars()
 
-    stel.set_date()
-    stel.get_date()
-    stel.set_view_props()
-    stel.set_fov()
     stel.run_scene()
     stel.stop_process()
