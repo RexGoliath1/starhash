@@ -19,9 +19,7 @@
 
 
 # Stellarium Camera Settings
-fov: 30.0 # 44.2
-fx: 1406.7084387607667  # Pixels (Assuming HFOV = 40, width = 1024)
-fy: 1433.107510106449   # Pixels (Assuming VFOV = 30, height = 768)
+fov: 4.0 # 44.2
 aperture: 0.0125 # 0.0125
 width: 1024
 height: 768
@@ -38,16 +36,16 @@ altitude: 1000.0
 # Starting and ending RA and DEC
 
 # Point
-#dec_start: 0.0
-#ra_start: 0.0
-#dec_end: 0.0
-#ra_end: 0.0
+dec_start: 0.0
+ra_start: 0.0
+dec_end: 0.0
+ra_end: 0.0
 
 # Slew Right
-dec_start: 0.0
-ra_start: -1.5707963267948966
-dec_end: 0.0
-ra_end: 1.5707963267948966
+#dec_start: 0.0
+#ra_start: -1.5707963267948966
+#dec_end: 0.0
+#ra_end: 1.5707963267948966
 
 # Slew Up
 # dec_start: -1.5707963267948966

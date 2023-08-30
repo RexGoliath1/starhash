@@ -16,19 +16,21 @@ from tqdm import tqdm
 # Various output directories
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
-OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results")
-STAR_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, ".stars")
-IMAGE_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "images", time.strftime("%Y%m%d-%H%M%S"))
+OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results", time.strftime("%Y%m%d-%H%M%S"))
+STAR_OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results", ".stars")
+IMAGE_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "images")
+POSITION_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "img_coords")
 os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(STAR_OUTPUT_DIRECTORY, exist_ok=True)
-POSITION_JSON_OUTPUT= os.path.join(OUTPUT_DIRECTORY, "positions.json")
+os.makedirs(IMAGE_OUTPUT_DIRECTORY, exist_ok=True)
+os.makedirs(POSITION_OUTPUT_DIRECTORY, exist_ok=True)
 
 # Enable both to output Hipparcos positions. Only needed once if using the same time
 NUM_HIP_STARS = 118218
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
 CACHE_HIPPARCOS = False
 RECACHE_HIPPARCOS = False
-OUTPUT_POSITIONS = False 
+OUTPUT_POSITIONS = True
 
 # Debug variables
 TQDM_SILENCE = True
@@ -39,9 +41,9 @@ np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.8f}'.format})
 
 # Put the Stellarium Application exec here
 if platform == "linux":
-    stellarium_path = r"/Users/stevengonciar/Downloads/Stellarium.app/Contents/MacOS/stellarium"
-elif platform == "darwin":
     stellarium_path = r"/home/parallels/git/stellarium/build/src/stellarium"
+elif platform == "darwin":
+    stellarium_path = r"/Users/stevengonciar/Downloads/Stellarium.app/Contents/MacOS/stellarium"
 else:
     raise Exception("Only for my linux and mac")
 
@@ -252,7 +254,7 @@ class Stellarium():
             # For debugging, print out stars within frame
             if 0 <= uv[0] <= self.width and 0 <= uv[1] <= self.height:
                 print(f"{obj_name}: IN FRAME @ ({uv})")
-                coords[obj_name] = uv
+                coords[obj_name] = uv.tolist()
 
         return coords
 
@@ -346,8 +348,8 @@ class Stellarium():
         self.set_property("StelSkyDrawer.customNebulaMagLimit", f"{magnitude_limit:.1f}")
 
         # Set Absolute + Relative Star Scale for display
-        self.set_property("StelSkyDrawer.absoluteStarScale", f"{0.25}")
-        self.set_property("StelSkyDrawer.relativeStarScale", f"{0.5}")
+        #self.set_property("StelSkyDrawer.absoluteStarScale", f"{0.25}")
+        #self.set_property("StelSkyDrawer.relativeStarScale", f"{0.5}")
 
 
     def set_property(self, prop, value):
@@ -383,8 +385,10 @@ class Stellarium():
         """ Get Intrinsic Matrix """
         # Not sure if this is correct, would have to figure out Ocular plugin
         # Does match output of Astrometry
-        fx = self.fx
-        fy = self.fy
+        
+        ar = 4/3 # TODO: Can't seem to set this along with image size
+        fx = (self.width / 2) / np.tan(DEC2RAD * ar * self.fov / 2)
+        fy = (self.height / 2) / np.tan(DEC2RAD * self.fov / 2)
         cx = self.width / 2.0
         cy = self.height / 2.0
 
@@ -446,8 +450,6 @@ class Stellarium():
         all_coords = {}
 
         for ii in range(0, self.num_steps):
-            # Wait, neccessary for rendering
-            time.sleep(self.delay_sec)
 
             self.dec = dec[ii]
             self.ra = ra[ii]
@@ -455,19 +457,20 @@ class Stellarium():
             jnow_str = np.array2string(self.jnow, separator=',')
 
             stel.set_boresight(jnow_str=jnow_str)
+            # Wait, neccessary for rendering
+            time.sleep(self.delay_sec)
+
             stel.get_extrinsic()
             if OUTPUT_POSITIONS:
-                coords = stel.get_star_positions()
-                if not coords is None:
-                    all_coords[f'{ii}'] = coords
+                coords = self.get_star_positions()
+                coords_file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"{ii}.json")
+                with open(coords_file, 'w') as fp:    
+                    json.dump(coords, fp, indent=4)
 
             # This script outputs pictures in local user folder. 
             # afaik this folder is not configurable through API.
             self.get_screenshot()
 
-        if OUTPUT_POSITIONS:
-            with open(POSITION_JSON_OUTPUT, 'a') as fp:    
-                json.dump(coords, fp, indent=4)
 
 if __name__ == "__main__":
     config_file = "stellar_config.yaml"
