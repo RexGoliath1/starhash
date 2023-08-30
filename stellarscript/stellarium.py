@@ -26,7 +26,7 @@ os.makedirs(IMAGE_OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(POSITION_OUTPUT_DIRECTORY, exist_ok=True)
 
 # Enable both to output Hipparcos positions. Only needed once if using the same time
-NUM_HIP_STARS = 118218
+NUM_HIP_STARS = 118322
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
 CACHE_HIPPARCOS = False
 RECACHE_HIPPARCOS = False
