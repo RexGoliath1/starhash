@@ -1,7 +1,8 @@
+from sys import platform
 import os
 import requests
 import subprocess
-from time import sleep
+import time
 import yaml
 import math
 import numpy as np
@@ -17,15 +18,17 @@ CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
 OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results")
 STAR_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, ".stars")
+IMAGE_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "images", time.strftime("%Y%m%d-%H%M%S"))
 os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(STAR_OUTPUT_DIRECTORY, exist_ok=True)
-DEFAULT_JSON_OUTPUT= os.path.join(OUTPUT_DIRECTORY, "temp.json")
+POSITION_JSON_OUTPUT= os.path.join(OUTPUT_DIRECTORY, "positions.json")
 
 # Enable both to output Hipparcos positions. Only needed once if using the same time
 NUM_HIP_STARS = 118218
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
-CACHE_HIPPARCOS = False 
-RECACHE_HIPPARCOS = False 
+CACHE_HIPPARCOS = False
+RECACHE_HIPPARCOS = False
+OUTPUT_POSITIONS = False 
 
 # Debug variables
 TQDM_SILENCE = True
@@ -35,7 +38,14 @@ DEC2RAD = np.pi / 180.0
 np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.8f}'.format})
 
 # Put the Stellarium Application exec here
-stellarium_path = r"/Users/stevengonciar/Downloads/Stellarium.app/Contents/MacOS/stellarium"
+if platform == "linux":
+    stellarium_path = r"/Users/stevengonciar/Downloads/Stellarium.app/Contents/MacOS/stellarium"
+elif platform == "darwin":
+    stellarium_path = r"/home/parallels/git/stellarium/build/src/stellarium"
+else:
+    raise Exception("Only for my linux and mac")
+
+stellarium_args = f' --screenshot-dir "{IMAGE_OUTPUT_DIRECTORY}"'
 
 class Stellarium():
     def __init__(self, config):
@@ -85,7 +95,7 @@ class Stellarium():
             for k, v in settings.items():
                 setattr(self, k, v)
 
-        self.proc_stellarium = subprocess.Popen([stellarium_path], stdout=subprocess.PIPE, shell=True)
+        self.proc_stellarium = subprocess.Popen([stellarium_path + stellarium_args], stdout=subprocess.PIPE, shell=True)
 
         # Once Stellarium starts, attempt to query server
         response = None
@@ -94,7 +104,7 @@ class Stellarium():
                 response = requests.get(self.url_main + self.url_status) 
                 break
             except:
-                sleep(1)
+                time.sleep(1)
 
         if response is None:
             raise Exception(f"No response from Stellarium server {self.url_main + self.url_status}")
@@ -211,7 +221,7 @@ class Stellarium():
     def get_star_positions(self):
         """ Get star position in camera using the Intrinsic + Extrinsic Transformation matrix """
 
-        coords = []
+        coords = {}
 
         # For all stars, get jNow and convert to pixel postion
         for obj_name in tqdm(iterable=HIP_NAMES, desc="Getting Star Positions", disable=TQDM_SILENCE):
@@ -242,7 +252,7 @@ class Stellarium():
             # For debugging, print out stars within frame
             if 0 <= uv[0] <= self.width and 0 <= uv[1] <= self.height:
                 print(f"{obj_name}: IN FRAME @ ({uv})")
-                coords.append(uv)
+                coords[obj_name] = uv
 
         return coords
 
@@ -433,10 +443,11 @@ class Stellarium():
         # Meaning, if we know RA/DEC we can get RPY -> Extrinsic Matrix -> Star pixel positions
         dec = np.linspace(self.dec_start, self.dec_end, self.num_steps)
         ra = np.linspace(self.ra_start, self.ra_end, self.num_steps)
+        all_coords = {}
 
         for ii in range(0, self.num_steps):
             # Wait, neccessary for rendering
-            sleep(self.delay_sec)
+            time.sleep(self.delay_sec)
 
             self.dec = dec[ii]
             self.ra = ra[ii]
@@ -445,11 +456,18 @@ class Stellarium():
 
             stel.set_boresight(jnow_str=jnow_str)
             stel.get_extrinsic()
-            coords = stel.get_star_positions()
+            if OUTPUT_POSITIONS:
+                coords = stel.get_star_positions()
+                if not coords is None:
+                    all_coords[f'{ii}'] = coords
 
             # This script outputs pictures in local user folder. 
             # afaik this folder is not configurable through API.
             self.get_screenshot()
+
+        if OUTPUT_POSITIONS:
+            with open(POSITION_JSON_OUTPUT, 'a') as fp:    
+                json.dump(coords, fp, indent=4)
 
 if __name__ == "__main__":
     config_file = "stellar_config.yaml"
