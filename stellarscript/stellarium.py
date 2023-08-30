@@ -90,6 +90,10 @@ class Stellarium():
         self.R = 0
         self.E = 0
         self.K = 0
+        # For debug
+        self.r_j2000_to_bore = None
+        self.r_bore_to_camera = None
+        self.r = None
 
         # Read in configuration and initialize Stellarium class
         with open(config, 'r') as file:
@@ -242,7 +246,6 @@ class Stellarium():
             (ra, dec) = (data["ra"] * DEC2RAD, data["dec"] * DEC2RAD)
             [x, y, z] = self.j2000_to_xyz(ra, dec)
             x_w = np.array([[x, y, z, 1]])
-            # h_pixel = np.dot(self.K, np.dot(self.E, x_w))
             x_c = np.matmul(self.E, x_w.T)
             x_p = np.matmul(self.K, x_c)
             uv = (x_p / x_p[2][0])[:-1]
@@ -401,11 +404,12 @@ class Stellarium():
     def get_extrinsic(self):
         """ Get Intrinsic + Extrinsic Transformation matrix """
         # Assuming equatorial mount reduces roll to zero ...
-        r_j2000_to_bore = Rotation.from_euler('ZYX', [self.ra, self.dec, 0.0], degrees=False)
-        r_bore_to_camera = Rotation.from_euler('ZYX', [-90.0, 0.0, -90.0], degrees=True)
-        r = r_j2000_to_bore * r_bore_to_camera
+        self.r_j2000_to_bore = Rotation.from_euler('zyx', [self.ra, self.dec, 0.0], degrees=False)
+        #self.r_bore_to_camera = Rotation.from_euler('zyx', [-90.0, 0.0, -90.0], degrees=True)
+        self.r_bore_to_camera = Rotation.from_euler('zyx', [90.0, 0.0, 90.0], degrees=True)
+        self.r = self.r_j2000_to_bore * self.r_bore_to_camera
         #self.R = np.matmul(r_j2000_to_bore.as_matrix(), r_bore_to_camera.as_matrix())
-        self.R = r.as_matrix()
+        self.R = self.r.as_matrix()
         t = np.array([[0, 0, 0]])
         #self.R = np.linalg.inv(self.R)
         self.E = np.concatenate((self.R, t.T), axis=1)

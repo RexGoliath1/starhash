@@ -90,9 +90,9 @@ disabled_properties: [
     "actionShow_Planets_Labels",
     "actionShow_Planets_Pointers",
     "actionShow_Satellite_Hints",
-    "actionShow_Stars_Labels",
-    "actionToggle_GuiHidden_Global",
-    "actionShow_Hips_Surveys",
+    #"actionShow_Stars_Labels",
+    #"actionToggle_GuiHidden_Global",
+    #"actionShow_Hips_Surveys",
     "actionShow_Planets_Trails",
     "actionShow_Planets_Orbits",
     "actionShow_DSO_Textures",
@@ -103,15 +103,18 @@ disabled_properties: [
     "actionShow_Planets",
     "actionShow_Nebulas",
     "actionShow_ZodiacalLight",
-    "StelSkyDrawer.flagDrawBigStarHalo",
-    "StelSkyDrawer.flagStarTwinkle",
+    #"StelSkyDrawer.flagDrawBigStarHalo",
+    #"StelSkyDrawer.flagStarTwinkle",
 ]
 
 enabled_properties: [
     "StelMovementMgr.equatorialMount",
-    "StelSkyDrawer.flagStarMagnitudeLimit",
+# "StelSkyDrawer.flagStarMagnitudeLimit",
     "StelSkyDrawer.flagPlanetMagnitudeLimit",
     "StelSkyDrawer.flagNebulaMagnitudeLimit",
+# Temporary Debugging Actions
+#"actionShow_Stars_Labels",
+    "actionShow_Gridlines",
   ]
 
 
