@@ -31,6 +31,7 @@ HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
 CACHE_HIPPARCOS = False
 RECACHE_HIPPARCOS = False
 OUTPUT_POSITIONS = True
+FILTER_VARIABLE_STARS = False
 
 # Debug variables
 TQDM_SILENCE = True
@@ -242,6 +243,9 @@ class Stellarium():
 
             if data is None:
                 continue
+
+            if FILTER_VARIABLE_STARS and not data["variable-star"] == "no":
+                continue # pulsating, variable, rotating, eclipsing-binary, eruptive, cataclysmic
 
             (ra, dec) = (data["ra"] * DEC2RAD, data["dec"] * DEC2RAD)
             [x, y, z] = self.j2000_to_xyz(ra, dec)
