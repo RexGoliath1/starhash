@@ -9,6 +9,7 @@ import numpy as np
 import json
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
+import itertools
 
 # Ongoing TODOs
 # StelSkyDrawer.twinkleAmount
@@ -28,7 +29,7 @@ os.makedirs(POSITION_OUTPUT_DIRECTORY, exist_ok=True)
 # Enable both to output Hipparcos positions. Only needed once if using the same time
 NUM_HIP_STARS = 118322
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
-CACHE_HIPPARCOS = False
+CACHE_HIPPARCOS = True
 RECACHE_HIPPARCOS = False
 OUTPUT_POSITIONS = True
 FILTER_VARIABLE_STARS = False
@@ -253,6 +254,7 @@ class Stellarium():
             x_c = np.matmul(self.E, x_w.T)
             x_p = np.matmul(self.K, x_c)
             uv = (x_p / x_p[2][0])[:-1]
+            uv = list(itertools.chain(*uv))
 
             # For extra debug only
             #if abs(self.ra - ra) < 0.01 and abs(self.dec - dec) < 0.01:
@@ -261,7 +263,7 @@ class Stellarium():
             # For debugging, print out stars within frame
             if 0 <= uv[0] <= self.width and 0 <= uv[1] <= self.height:
                 print(f"{obj_name}: IN FRAME @ ({uv})")
-                coords[obj_name] = uv.tolist()
+                coords[obj_name] = uv
 
         return coords
 
@@ -336,7 +338,7 @@ class Stellarium():
 
     def set_view_props(self):
         """ Remove various non-stars and phenomenon not viewable by camera """
-        # Turn off all markers / 
+        # Turn off all markers /
         for prop in self.disabled_properties:
             print(f"Turning off {prop}")
             self.set_property(prop, "false")
@@ -358,6 +360,10 @@ class Stellarium():
         #self.set_property("StelSkyDrawer.absoluteStarScale", f"{0.25}")
         #self.set_property("StelSkyDrawer.relativeStarScale", f"{0.5}")
 
+        # Set screen shot custom width (this might not be right, may need to actually adjust screen. fuck)
+        self.set_property("MainView.customScreenshotHeight", f"{int(self.height)}")
+        self.set_property("MainView.customScreenshotWidth", f"{int(self.width)}")
+
 
     def set_property(self, prop, value):
         """ Set Stellarium property value """
@@ -366,8 +372,8 @@ class Stellarium():
 
         if response.ok: 
             response = requests.post(self.url_main + self.url_prop_set, data = gdict)
-            if not response.ok:
-                print(f"Property Set {prop} Failed: {response.status_code}")
+            if not response.ok or ("error: unknown property" in response.text):
+                print(f"Property Set {prop} Failed: {response.status_code} Text: {response.text}")
         else:
             print(response.status_code)
 
@@ -473,7 +479,8 @@ class Stellarium():
                 coords = self.get_star_positions()
                 coords_file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"{ii}.json")
                 with open(coords_file, 'w') as fp:    
-                    json.dump(coords, fp, indent=4)
+                    #yaml.dump(coords, fp)
+                    json.dump(coords, fp)
 
             # This script outputs pictures in local user folder. 
             # afaik this folder is not configurable through API.

@@ -8,15 +8,17 @@ from glob import iglob
 import re
 
 # Text settings
-FONT_ENABLED = True
+FONT_ENABLED = False
 window_name = 'Image'
 font = cv2.FONT_HERSHEY_SIMPLEX
 fontScale = .5
 color = (255, 0, 0)
 thickness = 1
 pattern = r'stellarium-(\d+)\.png'
+radius_scale_factor = 3/768
+thick_scale_factor = 1/768
 
-### Get Most recent folder for plotting
+### Get datefolder for plotting
 results_folder = os.path.join(os.path.dirname(__file__), 'results')
 default_date = datetime.strptime('20181110-105531', "%Y%m%d-%H%M%S")
 most_recent = default_date
@@ -43,9 +45,6 @@ outputdir = os.path.join(basedir, "overlay_images")
 os.makedirs(outputdir, exist_ok=True)
 
 ### Plot everything and output
-
-
-
 for image in iglob(os.path.join(image_dir, "stellarium*.png")):
     image_name = os.path.basename(image)
     output_file = os.path.join(outputdir, image_name)
@@ -65,12 +64,16 @@ for image in iglob(os.path.join(image_dir, "stellarium*.png")):
 
     for star in positions.keys():
         pos = positions[star].astype(np.int32)
-        postup = (pos[0][0], pos[1][0])
-        cv2.circle(img=img, center=postup, radius=3, color=(255, 0, 0), thickness=1)
+        postup = (pos[0], pos[1])
+        radius_size = int(radius_scale_factor * img.shape[0])
+        thick_size = int(thick_scale_factor * img.shape[0])
+        cv2.circle(img=img, center=postup, radius=radius_size, color=(255, 0, 0), thickness=thick_size)
         if FONT_ENABLED:
             img = cv2.putText(img, star, postup, font, fontScale, color, thickness, cv2.LINE_AA)
 
-    plt.figure(dpi=150)
+    #plt.figure(dpi=150)
+    #plt.figure(dpi=150)
+    plt.figure(figsize=(img.shape[1] / 100, img.shape[0] / 100), dpi=100)  # Adjust dpi as needed
     plt.imshow(img)
     plt.title(f"Star Field with {len(positions.keys())} HIP Stars")
-    plt.savefig(os.path.join(outputdir, image_name))
+    plt.savefig(os.path.join(outputdir, image_name), bbox_inches='tight')
