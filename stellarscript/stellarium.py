@@ -21,17 +21,22 @@ OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results", time.strftime("%Y%
 STAR_OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results", ".stars")
 IMAGE_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "images")
 POSITION_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "img_coords")
+RA_DEC_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "ra_dec")
 os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(STAR_OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(IMAGE_OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(POSITION_OUTPUT_DIRECTORY, exist_ok=True)
+os.makedirs(RA_DEC_OUTPUT_DIRECTORY, exist_ok=True)
 
 # Enable both to output Hipparcos positions. Only needed once if using the same time
 NUM_HIP_STARS = 118322
+# TODO: Remove stars that don't exist
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
-CACHE_HIPPARCOS = True
+CACHE_HIPPARCOS = False
 RECACHE_HIPPARCOS = False
+# For each frame / J2000 Boresight location, output star locations
 OUTPUT_POSITIONS = True
+OUTPUT_RA_DEC = True
 FILTER_VARIABLE_STARS = False
 
 # Debug variables
@@ -230,6 +235,7 @@ class Stellarium():
         """ Get star position in camera using the Intrinsic + Extrinsic Transformation matrix """
 
         coords = {}
+        magnitude_limit = 7.0 + 5 * np.log10(100 * self.aperture)
 
         # For all stars, get jNow and convert to pixel postion
         for obj_name in tqdm(iterable=HIP_NAMES, desc="Getting Star Positions", disable=TQDM_SILENCE):
@@ -245,7 +251,11 @@ class Stellarium():
             if data is None:
                 continue
 
-            if FILTER_VARIABLE_STARS and not data["variable-star"] == "no":
+            # If the star is lower in magnitude than requested, ignore it
+            if data["vmag"] > magnitude_limit:
+                continue
+
+            if FILTER_VARIABLE_STARS and data["variable-star"] != "no":
                 continue # pulsating, variable, rotating, eclipsing-binary, eruptive, cataclysmic
 
             (ra, dec) = (data["ra"] * DEC2RAD, data["dec"] * DEC2RAD)
@@ -265,6 +275,7 @@ class Stellarium():
                 print(f"{obj_name}: IN FRAME @ ({uv})")
                 coords[obj_name] = uv
 
+
         return coords
 
 
@@ -281,6 +292,11 @@ class Stellarium():
         """ Return and cache stellarium object info """
         file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}_{self.jday}.json")
 
+        # Check if file exists first, then load it in
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                objinfo = yaml.safe_load(file)
+                return objinfo
 
         gdict = {'name': obj_name, 'format': "json"}
         response = requests.get(self.url_main + self.url_objectinfo, data = gdict)
@@ -289,7 +305,7 @@ class Stellarium():
             print(f"{obj_name}: {response.text}")
             return None
 
-        if output and (RECACHE_HIPPARCOS or not os.path.exists(file_path)):
+        if output and RECACHE_HIPPARCOS:
             with open(file_path, 'w') as fp:    
                 json.dump(response.json(), fp, indent=4)
 
@@ -475,12 +491,18 @@ class Stellarium():
             time.sleep(self.delay_sec)
 
             stel.get_extrinsic()
+
             if OUTPUT_POSITIONS:
                 coords = self.get_star_positions()
                 coords_file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"{ii}.json")
                 with open(coords_file, 'w') as fp:    
-                    #yaml.dump(coords, fp)
                     json.dump(coords, fp)
+            
+            if OUTPUT_RA_DEC:
+                # Output RA/DEC for validation
+                ra_dec_file = os.path.join(RA_DEC_OUTPUT_DIRECTORY, f"{ii}_ra_dec.json")
+                with open(ra_dec_file, 'w') as fp:    
+                    json.dump({"ra": self.ra, "dec": self.dec}, fp)
 
             # This script outputs pictures in local user folder. 
             # afaik this folder is not configurable through API.
@@ -488,7 +510,7 @@ class Stellarium():
 
 
 if __name__ == "__main__":
-    config_file = "stellar_config.yaml"
+    config_file = "stellarscript/stellar_config.yaml"
     stel = Stellarium(config_file)
 
 

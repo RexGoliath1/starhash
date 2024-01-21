@@ -6,9 +6,11 @@ import numpy as np
 from datetime import datetime
 from glob import iglob
 import re
+from astropy import units as u
+from astropy.coordinates import SkyCoord
 
 # Text settings
-FONT_ENABLED = False
+FONT_ENABLED = True
 window_name = 'Image'
 font = cv2.FONT_HERSHEY_SIMPLEX
 fontScale = .5
@@ -41,6 +43,7 @@ mr_folder = most_recent.strftime("%Y%m%d-%H%M%S")
 basedir = os.path.join(results_folder, mr_folder)
 image_dir = os.path.join(basedir, "images")
 coords_dir = os.path.join(basedir, "img_coords")
+ra_dec_dir = os.path.join(basedir, "ra_dec")
 outputdir = os.path.join(basedir, "overlay_images")
 os.makedirs(outputdir, exist_ok=True)
 
@@ -61,6 +64,12 @@ for image in iglob(os.path.join(image_dir, "stellarium*.png")):
     with open(file, 'r') as fp:
         jl = json.load(fp)
         positions = {k: np.array(v) for k, v in jl.items()}
+    
+    file = os.path.join(ra_dec_dir, f"{number - 1}_ra_dec.json")
+    with open(file, 'r') as fp:
+        jl = json.load(fp)
+        coord = SkyCoord(ra=jl["ra"]*u.radian, dec=jl["dec"]*u.radian, frame='icrs')
+        coord_hms_dms = coord.to_string('hmsdms', precision=3, pad=True, alwayssign=True)
 
     for star in positions.keys():
         pos = positions[star].astype(np.int32)
@@ -75,5 +84,5 @@ for image in iglob(os.path.join(image_dir, "stellarium*.png")):
     #plt.figure(dpi=150)
     plt.figure(figsize=(img.shape[1] / 100, img.shape[0] / 100), dpi=100)  # Adjust dpi as needed
     plt.imshow(img)
-    plt.title(f"Star Field with {len(positions.keys())} HIP Stars")
+    plt.title(f"Star Field at: {coord_hms_dms} with {len(positions.keys())} HIP Stars")
     plt.savefig(os.path.join(outputdir, image_name), bbox_inches='tight')
