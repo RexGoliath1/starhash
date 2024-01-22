@@ -10,6 +10,8 @@ import json
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 import itertools
+import pandas as pd
+import sqlite3
 
 # Ongoing TODOs
 # StelSkyDrawer.twinkleAmount
@@ -38,6 +40,62 @@ RECACHE_HIPPARCOS = False
 OUTPUT_POSITIONS = True
 OUTPUT_RA_DEC = True
 FILTER_VARIABLE_STARS = False
+
+COLS_TO_CONVERT = {
+    'above-horizon': 'bool',
+    'absolute-mag': 'float',
+    'airmass': 'float',
+    'altitude': 'float',
+    'altitude-geometric': 'float',
+    'ambientInt': 'float',
+    'ambientLum': 'float',
+    'appSidTm': 'str',  # Time as string
+    'azimuth': 'float',
+    'azimuth-geometric': 'float',
+    'bV': 'float',
+    'dec': 'float',
+    'decJ2000': 'float',
+    'distance-ly': 'float',
+    'elat': 'float',
+    'elatJ2000': 'float',
+    'elong': 'float',
+    'elongJ2000': 'float',
+    'found': 'bool',
+    'glat': 'float',
+    'glong': 'float',
+    'hourAngle-dd': 'float',
+    'hourAngle-hms': 'str',  # Time as string
+    'iauConstellation': 'str',
+    'localized-name': 'str',
+    'meanSidTm': 'str',  # Time as string
+    'name': 'str',
+    'object-type': 'str',
+    'parallax': 'float',
+    'ra': 'float',
+    'raJ2000': 'float',
+    'rise': 'str',  # Time as string
+    'rise-dhr': 'float',
+    'set': 'str',  # Time as string
+    'set-dhr': 'float',
+    'sglat': 'float',
+    'sglong': 'float',
+    'size': 'int',
+    'size-dd': 'float',
+    'size-deg': 'str',  # Angle as string
+    'size-dms': 'str',  # Angle as string
+    'spectral-class': 'str',
+    'star-type': 'str',
+    'transit': 'str',  # Time as string
+    'transit-dhr': 'float',
+    'type': 'str',
+    'variable-star': 'str',
+    'vmag': 'float',
+    'vmage': 'float',
+    'wds-position-angle': 'int',
+    'wds-separation': 'float',
+    'wds-year': 'int',
+    'period': 'float'  # Assuming period is numeric; change if it's a different format
+}
 
 # Debug variables
 TQDM_SILENCE = True
@@ -83,6 +141,7 @@ class Stellarium():
         self.url_simbad = ""
         self.delay_sec = 0
         self.aperture = 0
+        self.star_info = {}
         self.fx = 0
         self.fy = 0
         self.width = 0
@@ -279,38 +338,74 @@ class Stellarium():
         return coords
 
 
-    def cache_hip_stars(self):
-        """ Cache the available Hipparcos star locations in simulation """
-        if not CACHE_HIPPARCOS:
-            return
+    def load_star_info(self):
+        """ Load star info from cache or create cache """
+        file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{self.jday}.db")
 
-        for obj_name in tqdm(iterable=HIP_NAMES, desc="Caching Hipparcos Star Info", disable=TQDM_SILENCE):
-            stel.get_obj_info(obj_name=obj_name, output=True)
+        # First, if we are recaching, delete the file
+        if RECACHE_HIPPARCOS:
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
+        if os.path.exists(file_path):
+            # Connect to SQLite database
+            conn = sqlite3.connect(file_path)
+            # SQL query to select all data from the 'stars' table
+            query = "SELECT * FROM stars"
+            # Execute the query and load the result into a DataFrame
+            df = pd.read_sql_query(query, conn)
+            df.set_index('index', inplace=True)
+            self.star_info = df.to_dict(orient='index')
+        else:
+            for obj_name in tqdm(iterable=HIP_NAMES, desc="Caching Hipparcos Star Info", disable=TQDM_SILENCE):
+                self.get_obj_info(obj_name=obj_name, output=True)
+            # Rewrite the entire file again (JSON is terrible)
+            df = pd.DataFrame(self.star_info)
+            df = df.transpose()
+            for column, dtype in COLS_TO_CONVERT.items():
+                if dtype == 'float':
+                    df[column] = pd.to_numeric(df[column], errors='coerce')
+                elif dtype == 'int':
+                    df[column] = pd.to_numeric(df[column], errors='coerce').astype('Int64')  # 'Int64' (capital I) to handle NaN
+                elif dtype == 'bool':
+                    df[column] = df[column].astype(bool)
+                elif dtype == 'str':
+                    df[column] = df[column].astype(str)
+            # Connect to SQLite database
+            conn = sqlite3.connect(file_path)
+            # Write the DataFrame to SQLite table 'stars'
+            df.to_sql('stars', conn, if_exists='replace', index=True)
+
+        # Close the connection
+        conn.close()
 
     def get_obj_info(self, obj_name="HIP 56572", output=False):
         """ Return and cache stellarium object info """
-        file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}_{self.jday}.json")
 
-        # Check if file exists first, then load it in
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
-                objinfo = yaml.safe_load(file)
-                return objinfo
+        # Check if star_info contains the object
+        if obj_name in self.star_info.keys():
+            objinfo = self.star_info[obj_name]
 
+            # Do this to avoid querying server again
+            if objinfo == "Not Found":
+                objinfo = None
+            return objinfo
+        
+        # Query the server for the object info
         gdict = {'name': obj_name, 'format': "json"}
         response = requests.get(self.url_main + self.url_objectinfo, data = gdict)
 
-        if not response.ok:
+        if response.ok:
+            # Append to the star info dictionary
+            star_dict = {obj_name: response.json()}
+            self.star_info.update(star_dict)
+            return response.json()
+        else:
+            if response.text == "object name not found":
+                star_dict = {obj_name: "Not Found"}                
+                self.star_info.update(star_dict)
             print(f"{obj_name}: {response.text}")
             return None
-
-        if output and RECACHE_HIPPARCOS:
-            with open(file_path, 'w') as fp:    
-                json.dump(response.json(), fp, indent=4)
-
-        return response.json()
-
 
     def set_date(self):
         """ Set time and timestep"""
@@ -462,35 +557,30 @@ class Stellarium():
         
         # First, configure a few of view parameters based on input YAML
         self.set_date()
+        self.load_star_info()
         self.set_view_props()
         self.set_fov()
 
         # Get the camera intrisincs for later projection
         self.get_intrinsic()
 
-        # Cache star positions if they're not available for current date
-        self.cache_hip_stars()
-
-
         # Now, loop through requested RA/DEC. This is the center of the boresight on EQ mount.
         # TODO: Check: EQ Mount aligned with earth rotation, thus no roll and dec/ra corresponds to pitch/yaw
         # Meaning, if we know RA/DEC we can get RPY -> Extrinsic Matrix -> Star pixel positions
         dec = np.linspace(self.dec_start, self.dec_end, self.num_steps)
         ra = np.linspace(self.ra_start, self.ra_end, self.num_steps)
-        all_coords = {}
 
         for ii in range(0, self.num_steps):
-
             self.dec = dec[ii]
             self.ra = ra[ii]
             self.jnow = self.j2000_to_xyz(self.ra, self.dec)
             jnow_str = np.array2string(self.jnow, separator=',')
 
-            stel.set_boresight(jnow_str=jnow_str)
+            self.set_boresight(jnow_str=jnow_str)
             # Wait, neccessary for rendering
             time.sleep(self.delay_sec)
 
-            stel.get_extrinsic()
+            self.get_extrinsic()
 
             if OUTPUT_POSITIONS:
                 coords = self.get_star_positions()
