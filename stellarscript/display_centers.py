@@ -17,7 +17,8 @@ fontScale = .5
 color = (255, 0, 0)
 thickness = 1
 pattern = r'stellarium-(\d+)\.png'
-radius_scale_factor = 3/768
+# radius_scale_factor = 3/768
+radius_scale_factor = 8/768
 thick_scale_factor = 1/768
 
 ### Get datefolder for plotting

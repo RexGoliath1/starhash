@@ -324,6 +324,9 @@ class Stellarium():
             uv = (x_p / x_p[2][0])[:-1]
             uv = list(itertools.chain(*uv))
 
+            if x_p[2][0] < 0:
+                continue
+
             # For extra debug only
             #if abs(self.ra - ra) < 0.01 and abs(self.dec - dec) < 0.01:
             #    print("Should be pretty close  ....")
@@ -467,8 +470,8 @@ class Stellarium():
         self.set_property("StelSkyDrawer.customNebulaMagLimit", f"{magnitude_limit:.1f}")
 
         # Set Absolute + Relative Star Scale for display
-        #self.set_property("StelSkyDrawer.absoluteStarScale", f"{0.25}")
-        #self.set_property("StelSkyDrawer.relativeStarScale", f"{0.5}")
+        # self.set_property("StelSkyDrawer.absoluteStarScale", f"{1.25}")
+        # self.set_property("StelSkyDrawer.relativeStarScale", f"{0.5}")
 
         # Set screen shot custom width (this might not be right, may need to actually adjust screen. fuck)
         self.set_property("MainView.customScreenshotHeight", f"{int(self.height)}")

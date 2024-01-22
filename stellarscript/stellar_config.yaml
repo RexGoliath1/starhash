@@ -20,9 +20,8 @@
 
 # Stellarium Camera Settings
 fov: 4.0 # 44.2
-#aperture: 0.250 # 0.0125
-aperture: 0.0125
-# aperture: 2000.0 # 0.0125
+#aperture: 0.0125
+aperture: 1.0 # 0.0125
 # width: 6480
 # height: 4860
 width: 1024
@@ -50,7 +49,7 @@ altitude: 1000.0
 
 # Slew Right
 dec_start: 0.0
-# ra_start: -1.5707963267948966
+#ra_start: -1.5707963267948966
 ra_start: 0.0
 dec_end: 0.0
 ra_end: 1.5707963267948966
