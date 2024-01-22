@@ -25,10 +25,10 @@ aperture: 0.0125
 # aperture: 2000.0 # 0.0125
 # width: 6480
 # height: 4860
-# width: 1024
-# height: 768
-width: 2048
-height: 1536
+width: 1024
+height: 768
+#width: 2048
+#height: 1536
 
 # Stellarium Time Settings
 #jday: 2481445.0

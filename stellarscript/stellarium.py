@@ -99,8 +99,7 @@ COLS_TO_CONVERT = {
 
 # Debug variables
 TQDM_SILENCE = True
-
-DEC2RAD = np.pi / 180.0
+DEG2RAD = np.pi / 180.0
 
 np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.8f}'.format})
 
@@ -317,7 +316,7 @@ class Stellarium():
             if FILTER_VARIABLE_STARS and data["variable-star"] != "no":
                 continue # pulsating, variable, rotating, eclipsing-binary, eruptive, cataclysmic
 
-            (ra, dec) = (data["ra"] * DEC2RAD, data["dec"] * DEC2RAD)
+            (ra, dec) = (data["ra"] * DEG2RAD, data["dec"] * DEG2RAD)
             [x, y, z] = self.j2000_to_xyz(ra, dec)
             x_w = np.array([[x, y, z, 1]])
             x_c = np.matmul(self.E, x_w.T)
@@ -503,7 +502,7 @@ class Stellarium():
     def j2000_to_xyz(self, ra, dec):
         """ Convert RA/DEC to Celestial Sphere coordinates """
         # https://stellarium.org/doc/head/remoteControlApi.html#rcMainServiceViewGet
-        return np.array([math.cos(dec) * math.cos(ra), math.cos(dec) * math.sin(ra), math.sin(dec)])
+        return np.array([np.cos(dec) * np.cos(ra), np.cos(dec) * np.sin(ra), np.sin(dec)])
 
     def get_intrinsic(self):
         """ Get Intrinsic Matrix """
@@ -511,8 +510,8 @@ class Stellarium():
         # Does match output of Astrometry
         
         ar = 4/3 # TODO: Can't seem to set this along with image size
-        fx = (self.width / 2) / np.tan(DEC2RAD * ar * self.fov / 2)
-        fy = (self.height / 2) / np.tan(DEC2RAD * self.fov / 2)
+        fx = (self.width / 2) / np.tan(DEG2RAD * ar * self.fov / 2)
+        fy = (self.height / 2) / np.tan(DEG2RAD * self.fov / 2)
         cx = self.width / 2.0
         cy = self.height / 2.0
 
@@ -525,10 +524,11 @@ class Stellarium():
     def get_extrinsic(self):
         """ Get Intrinsic + Extrinsic Transformation matrix """
         # Assuming equatorial mount reduces roll to zero ...
-        self.r_j2000_to_bore = Rotation.from_euler('zyx', [self.ra, self.dec, 0.0], degrees=False)
+        self.r_j2000_to_bore = Rotation.from_euler('ZYX', [-self.ra, self.dec, 0.0], degrees=False)
         #self.r_bore_to_camera = Rotation.from_euler('zyx', [-90.0, 0.0, -90.0], degrees=True)
         self.r_bore_to_camera = Rotation.from_euler('zyx', [90.0, 0.0, 90.0], degrees=True)
-        self.r = self.r_j2000_to_bore * self.r_bore_to_camera
+        #self.r = self.r_j2000_to_bore * self.r_bore_to_camera
+        self.r =  self.r_bore_to_camera * self.r_j2000_to_bore
         #self.R = np.matmul(r_j2000_to_bore.as_matrix(), r_bore_to_camera.as_matrix())
         self.R = self.r.as_matrix()
         t = np.array([[0, 0, 0]])
