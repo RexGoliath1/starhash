@@ -630,6 +630,7 @@ void StarCatalogGenerator::generate_output_catalog()
 
     output_hdf5(output_catalog_file, "star_table", star_table, true);
     output_hdf5(output_catalog_file, "pattern_catalog", pattern_catalog);
+    output_hdf5(output_catalog_file, "input_catalog_data", input_catalog_data);
 
 #ifdef DEBUG_PATTERN_CATALOG 
     fs::path debug_catalog = output_catalog_file.parent_path() / "pattern_catalog.csv";
