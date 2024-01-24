@@ -14,8 +14,8 @@
 
 build/*
 inputs/*
-results/**/
-stellarscript/results/**/
+results/**/*
+stellarscript/results/**/*
 **/.DS_Store
 **/package-lock.json
 

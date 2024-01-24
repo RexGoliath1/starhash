@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <iostream>
 
-#define SKIP_CATALOG_CREATE
+// #define SKIP_CATALOG_CREATE
 
 namespace fs = std::filesystem;
 

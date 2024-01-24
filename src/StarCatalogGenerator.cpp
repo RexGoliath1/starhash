@@ -300,6 +300,7 @@ void StarCatalogGenerator::filter_star_separation()
     star_table = proper_motion_data(verification_stars, Eigen::all);
     std::cout << "Found " << star_table.rows() << " verification stars for catalog." << std::endl;
     std::cout << "Found " << pattern_stars.size() << " pattern stars for catalog." << std::endl;
+    // Create HIP Array here from verifcation stars
 }
 
 void StarCatalogGenerator::get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int> &nearby_stars) 
@@ -622,71 +623,17 @@ void StarCatalogGenerator::generate_output_catalog()
         }
     }
 
-    // Save everthing off to HDF5
-    // Need both pattern catalog and star table for real time operation
-
-    fs::path output = fs::current_path() / default_catalog_path;
-    H5::H5File hf_file(output.string(), H5F_ACC_TRUNC);
-
-    std::cout << "Saving off catalog." << std::endl;
-    hsize_t dim[2];
-    dim[0] = pattern_catalog.rows();
-    dim[1] = pattern_catalog.cols();
-    int pc_cols = (int)dim[1];
-    int pc_rows = (int)dim[0];
-    int **data_arr = new int*[pc_cols];
-    for (size_t i = 0; (int)i < pc_cols; i++) {
-        data_arr[i] = new int[pc_rows];
-    }
-   
-    for (int jj = 0; jj < pc_cols; jj++)
-    {
-        for (int ii = 0; ii < pc_rows; ii++)
-        {
-            data_arr[jj][ii] = pattern_catalog(ii, jj);
-        }
-    }
-    H5::DataSpace pc_ds(2, dim);
-
-    H5::DataSet pc_dataset = hf_file.createDataSet("pattern_catalog", H5::PredType::NATIVE_INT, pc_ds);
-    pc_dataset.write(data_arr, H5::PredType::NATIVE_INT);
-
-    std::cout << "Saving off star table." << std::endl;
-    hsize_t st_dim[2];
-    st_dim[0] = star_table.rows();
-    st_dim[1] = star_table.cols();
-    int st_cols = (int)st_dim[1];
-    int st_rows = (int)st_dim[0];
-    double **st_data_arr = new double*[st_cols];
-    for (size_t i = 0; (int)i < st_cols; i++) {
-        st_data_arr[i] = new double[st_rows];
-    }
-   
-    for (int jj = 0; jj < st_cols; jj++)
-    {
-        for (int ii = 0; ii < st_rows; ii++)
-        {
-            st_data_arr[jj][ii] = star_table(ii, jj);
-        }
+    // Check if the directory exists and create it if not
+    if (!fs::exists(output_catalog_file.parent_path())) {
+        fs::create_directories(output_catalog_file.parent_path());
     }
 
-    H5::DataSpace st_ds(2, st_dim);
-
-    H5::DataSet st_dataset = hf_file.createDataSet("star_table", H5::PredType::NATIVE_DOUBLE, st_ds);
-
-    for (size_t i = pc_cols; i > 0; ) {
-        delete[] data_arr[--i];
-    }
-    delete[] data_arr;
-
-    for (size_t i = st_cols; i > 0; ) {
-        delete[] st_data_arr[--i];
-    }
-    delete[] st_data_arr;
+    output_hdf5(output_catalog_file, "star_table", star_table, true);
+    output_hdf5(output_catalog_file, "pattern_catalog", pattern_catalog);
 
 #ifdef DEBUG_PATTERN_CATALOG 
-    fs::path debug_catalog = output / "pattern_catalog.csv";
-    write_to_csv(pattern_catalog, debug_catalog);
+    fs::path debug_catalog = output_catalog_file.parent_path() / "pattern_catalog.csv";
+    write_to_csv(debug_catalog, pattern_catalog);
 #endif
 
 }

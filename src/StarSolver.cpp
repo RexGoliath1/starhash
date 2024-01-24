@@ -155,7 +155,7 @@ void StarSolver::get_gauss_centroids() {
   std::cout << "All blobs: " << stats.rows << std::endl;
 #endif
   for (int test = 0; test < 10; test++) {
-    for (size_t ii = 0; ii < stats.rows; ii++) {
+    for (int ii = 0; ii < stats.rows; ii++) {
       if (stats.at<int>(BLOB_SIZE_INDEX, ii) < 10) {
         continue;
       }

@@ -21,8 +21,10 @@
 #include <sys/stat.h>
 #include <unordered_map>
 #include <vector>
+#include <type_traits>
 
 #include "eigen_mods.hpp"
+#include "Utilities.hpp"
 
 // Some macro defines to debug various functions before valgrid setup
 // #define DEBUG_HIP
@@ -33,11 +35,6 @@
 // #define DEBUG_PATTERN_CATALOG
 
 namespace fs = std::filesystem;
-
-static const fs::path default_hipparcos_path =
-    "/../data/hipparcos.tsv"; // Default relative path
-static const fs::path
-    default_catalog_path("/../results/output.h5"); // Default relative path
 
 const unsigned int hip_rows = 117955;
 const unsigned int hip_cols = 10;
@@ -85,6 +82,10 @@ public:
   void run_pipeline();
 
 private:
+  fs::path app_path = get_executable_path();
+  fs::path default_hipparcos_path = app_path / "../data/hipparcos.tsv";
+  fs::path default_catalog_path = app_path / "../results/output.h5";
+
   fs::path input_catalog_file;
   fs::path output_catalog_file;
   Eigen::MatrixXd input_catalog_data;
@@ -100,7 +101,7 @@ private:
   CoarseSkyMap coarse_sky_map;
   Eigen::ArrayXd edges;
 
-  bool regenerate_catalog = false;
+  bool regenerate_catalog = true;
 
   // TODO: Load dynamically through some kind of configuration
   const unsigned int pattern_size = 4;
@@ -197,6 +198,71 @@ private:
   int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins,
                    const unsigned int catalog_length);
   void generate_output_catalog();
+
+  template <typename Derived>
+  void output_hdf5(std::string filepath, std::string dataset, const Eigen::MatrixBase<Derived>& matrix, bool truncate = false) {
+
+      // Decide if overwritting or appending
+      H5::H5File h5_file;
+      if (truncate) {
+        h5_file = H5::H5File(filepath.c_str(), H5F_ACC_TRUNC);
+      } else {
+        h5_file = H5::H5File(filepath.c_str(), H5F_ACC_RDWR);
+      }
+
+      hsize_t dim[2];
+      dim[0] = matrix.rows();
+      dim[1] = matrix.cols();
+      
+      // Determine the data type
+      H5::DataType datatype;
+      if (std::is_same<typename Derived::Scalar, int>::value) {
+          datatype = H5::PredType::NATIVE_INT;
+      } else if (std::is_same<typename Derived::Scalar, double>::value) {
+          datatype = H5::PredType::NATIVE_DOUBLE;
+      } else {
+          // Handle other types or throw an error
+      }
+      
+      // Create the data array
+      auto arr = new typename Derived::Scalar*[dim[0]];
+      for (hsize_t i = 0; i < dim[0]; i++) {
+          arr[i] = new typename Derived::Scalar[dim[1]];
+      }
+      
+      // Copy the data into the array
+      for (hsize_t j = 0; j < dim[1]; j++) {
+          for (hsize_t i = 0; i < dim[0]; i++) {
+              arr[i][j] = matrix(i, j);
+          }
+      }
+
+      if (h5_file.getId() < 0) {
+        // The file is not open or not valid.
+        throw std::runtime_error("Unable to open HDF5 file.");
+      }
+      
+      H5::DataSpace ds(2, dim);
+      H5::DataSet pc_dataset = h5_file.createDataSet(dataset.c_str(), datatype, ds);
+
+      if (!pc_dataset.getId()) {
+        // The dataset was not created successfully.
+        throw std::runtime_error("Unable to create HDF5 dataset.");
+      }
+
+      pc_dataset.write(&arr[0][0], datatype);
+
+      // Free the allocated memory
+      for (hsize_t i = 0; i < dim[0]; i++) {
+          delete[] arr[i];
+      }
+      delete[] arr;
+
+      // for (size_t i = pc_cols; i > 0; ) {
+      //     delete[] data_arr[--i];
+      // }
+      // delete[] data_arr;
+  }
 
   // Generic Eigen 2 csv writer
   template <typename Derived>

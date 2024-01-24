@@ -31,7 +31,7 @@ os.makedirs(POSITION_OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(RA_DEC_OUTPUT_DIRECTORY, exist_ok=True)
 
 # Enable both to output Hipparcos positions. Only needed once if using the same time
-NUM_HIP_STARS = 118322
+NUM_HIP_STARS = 118322 # tsv contains up to ID 120404?
 # TODO: Remove stars that don't exist
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
 CACHE_HIPPARCOS = False
