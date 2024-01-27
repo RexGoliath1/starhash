@@ -126,7 +126,8 @@ private:
   Eigen::MatrixXd bcrf_frame;
 
   // Default thresholding parameters (Default tetra amounts are in readme)
-  float brightness_thresh = 11; // Minimum brightness of db
+  //float brightness_thresh = 11; // Minimum brightness of db
+  float brightness_thresh = 20; // Minimum brightness of db. Checking entire catalog prop
   // float brightness_thresh = 6.5; // Minimum brightness of db
   double min_separation_angle =
       0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for

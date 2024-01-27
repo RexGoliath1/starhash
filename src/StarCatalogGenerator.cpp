@@ -298,9 +298,9 @@ void StarCatalogGenerator::filter_star_separation()
     }  
 
     star_table = proper_motion_data(verification_stars, Eigen::all);
+    // input_catalog_data = input_catalog_data(verification_stars, Eigen::all);
     std::cout << "Found " << star_table.rows() << " verification stars for catalog." << std::endl;
     std::cout << "Found " << pattern_stars.size() << " pattern stars for catalog." << std::endl;
-    // Create HIP Array here from verifcation stars
 }
 
 void StarCatalogGenerator::get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int> &nearby_stars) 
