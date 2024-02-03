@@ -609,7 +609,7 @@ class Stellarium():
 
 
 if __name__ == "__main__":
-    config_file = "stellarscript/stellar_config.yaml"
+    config_file = os.path.join(CURRENT_DIRECTORY, "stellar_config.yaml")
     stel = Stellarium(config_file)
 
 

@@ -24,10 +24,10 @@ fov: 4.0 # 44.2
 aperture: 1.0 # 0.0125
 # width: 6480
 # height: 4860
-width: 1024
-height: 768
-#width: 2048
-#height: 1536
+# width: 1024
+# height: 768
+width: 2048
+height: 1536
 
 # Stellarium Time Settings
 gregorian_date: "2024-02-03 12:00:00.000"
@@ -63,7 +63,7 @@ delay_sec: 0.01
 num_steps: 100
 
 # Stellarium API URLs
-url_main: "http://localhost:8090/api/"
+url_main: "http://localhost:7624/api/"
 url_status: "main/status"
 url_view: "main/view"
 url_view_skyculture: "view/skyculturedescription/"
