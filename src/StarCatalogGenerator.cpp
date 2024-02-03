@@ -140,24 +140,13 @@ void StarCatalogGenerator::sort_star_magnitudes()
         input_catalog_data.row(i) = vec[i];
 }
 
-void StarCatalogGenerator::init_besselian_year()
-{
-    // MAJOR TODO: Replace with chrono / ERFA equivilent byear calculation. (See astropy.time.Time())
-    current_byear = 2022.6583374268196;// "Current" Besellian Epoch (08/2022)
-}
-
 void StarCatalogGenerator::init_bcrf()
-{
     // Initialize BCRF (Barycentric Celestial Reference System) aka observer position relative to sun
-    // Hard TODO: Replace to include parallax, currently ignoring
 
-    // Eigen::RowVectorXd rBCRF(1, 3) 
-    // rBCRF << au2km, 0,0, 0.0;
+    // TODO: Probably use astropy to write input file that can be injested by this script (yaml-cpp?)
+    Eigen::RowVectorXd row_bcrf_obs_pos(3) = {-0.69004781, 0.64965094, 0.28184848};
 
-    Eigen::RowVectorXd row_bcrf_obs_pos(3);
-    row_bcrf_obs_pos << 0, 0, 0;
-
-    // Simple TODO: Don't be dumb with memory and just use matrix vector multiply
+    // Simple(?) TODO: Don't be dumb with memory and just use matrix vector multiply
     bcrf_frame = row_bcrf_obs_pos.replicate<hip_rows, 1>();
 }
 
@@ -171,8 +160,8 @@ void StarCatalogGenerator::correct_proper_motion()
     Eigen::MatrixXd p_hat(input_catalog_data.rows(), 3);
     Eigen::MatrixXd q_hat(input_catalog_data.rows(), 3);
 
-    los.col(0) = input_catalog_data.col(RA_ICRS).array().cos() * input_catalog_data.col(DE_ICRS).array().cos();
-    los.col(1) = input_catalog_data.col(RA_ICRS).array().sin() * input_catalog_data.col(DE_ICRS).array().cos();
+    los.col(0) = input_catalog_data.col(DE_ICRS).array().cos() * input_catalog_data.col(RA_ICRS).array().cos();
+    los.col(1) = input_catalog_data.col(DE_ICRS).array().cos() * input_catalog_data.col(RA_ICRS).array().sin();
     los.col(2) = input_catalog_data.col(DE_ICRS).array().sin();
 
     p_hat.col(0) = -1 * input_catalog_data.col(RA_ICRS).array().sin();
@@ -183,7 +172,9 @@ void StarCatalogGenerator::correct_proper_motion()
     q_hat.col(1) = -1 * input_catalog_data.col(DE_ICRS).array().sin() * input_catalog_data.col(DE_ICRS).array().sin();
     q_hat.col(2) = -1 * input_catalog_data.col(DE_ICRS).array().cos();
 
-    proper_motion_data = (current_byear  - hip_byear) * (p_hat.array().colwise() * input_catalog_data.col(PMRA).array() + q_hat.array().colwise() * input_catalog_data.col(PMDE).array());
+    proper_motion_data = (current_byear  - hip_byear) * 
+        (p_hat.array().colwise() * input_catalog_data.col(PMRA).array() + q_hat.array().colwise() * input_catalog_data.col(PMDE).array());
+
     plx = bcrf_frame.array().colwise() * input_catalog_data.col(PLX).array();
 
     proper_motion_data = los + proper_motion_data - plx;
@@ -631,10 +622,13 @@ void StarCatalogGenerator::generate_output_catalog()
     output_hdf5(output_catalog_file, "star_table", star_table, true);
     output_hdf5(output_catalog_file, "pattern_catalog", pattern_catalog);
     output_hdf5(output_catalog_file, "input_catalog_data", input_catalog_data);
+    //output_hdf5(output_catalog_file, "proper_motion_data", proper_motion_data);
 
 #ifdef DEBUG_PATTERN_CATALOG 
     fs::path debug_catalog = output_catalog_file.parent_path() / "pattern_catalog.csv";
     write_to_csv(debug_catalog, pattern_catalog);
+    fs::path debug_pm = output_catalog_file.parent_path() / "proper_motion_data.csv";
+    write_to_csv(debug_pm, proper_motion_data);
 #endif
 
 }

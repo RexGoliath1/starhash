@@ -32,7 +32,7 @@
 // #define DEBUG_HASH
 // #define DEBUG_GET_NEARBY_STARS
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
-// #define DEBUG_PATTERN_CATALOG
+#define DEBUG_PATTERN_CATALOG
 
 namespace fs = std::filesystem;
 
@@ -121,13 +121,14 @@ private:
   float hip_byear = 1991.25; // Hipparcos Besellian Epoch
   unsigned int hip_columns = 10;
   unsigned int hip_header_rows = 55;
-  float current_byear;
+    // TODO: Replace with astropy script input. For now it's manual.
+  float current_byear = 2024.0921411361237;// Current Besellian Epoch
 
   Eigen::MatrixXd bcrf_frame;
 
   // Default thresholding parameters (Default tetra amounts are in readme)
-  //float brightness_thresh = 11; // Minimum brightness of db
-  float brightness_thresh = 20; // Minimum brightness of db. Checking entire catalog prop
+  float brightness_thresh = 11; // Minimum brightness of db
+  //float brightness_thresh = 0.0; // Minimum brightness of db. Checking entire catalog prop
   // float brightness_thresh = 6.5; // Minimum brightness of db
   double min_separation_angle =
       0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for

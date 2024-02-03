@@ -30,8 +30,7 @@ height: 768
 #height: 1536
 
 # Stellarium Time Settings
-#jday: 2481445.0
-jday: 2451545.0
+gregorian_date: "2024-02-03 12:00:00.000"
 timerate: 0.0
 
 # Stellarium Location Settings

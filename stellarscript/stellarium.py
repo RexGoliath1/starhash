@@ -12,6 +12,7 @@ from tqdm import tqdm
 import itertools
 import pandas as pd
 import sqlite3
+from astropy.time import Time
 
 # Ongoing TODOs
 # StelSkyDrawer.twinkleAmount
@@ -34,7 +35,6 @@ os.makedirs(RA_DEC_OUTPUT_DIRECTORY, exist_ok=True)
 NUM_HIP_STARS = 118322 # tsv contains up to ID 120404?
 # TODO: Remove stars that don't exist
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
-CACHE_HIPPARCOS = False
 RECACHE_HIPPARCOS = False
 # For each frame / J2000 Boresight location, output star locations
 OUTPUT_POSITIONS = True
@@ -151,7 +151,8 @@ class Stellarium():
         self.disabled_properties = []
         self.enabled_properties = []
         self.timerate = 0
-        self.jday = 0
+        self.gregorian_date = 0
+        self.julian_date = 0
         self.R = 0
         self.E = 0
         self.K = 0
@@ -299,7 +300,7 @@ class Stellarium():
         for obj_name in tqdm(iterable=HIP_NAMES, desc="Getting Star Positions", disable=TQDM_SILENCE):
 
             # First, check if file is available, otherwise query
-            file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}_{self.jday}.json")
+            file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}_{self.gregorian_date}.json")
             if os.path.exists(file_path):
                 with open(file_path) as fp:
                     data = json.load(fp)
@@ -342,7 +343,7 @@ class Stellarium():
 
     def load_star_info(self):
         """ Load star info from cache or create cache """
-        file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{self.jday}.db")
+        file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{self.gregorian_date}.db")
 
         # First, if we are recaching, delete the file
         if RECACHE_HIPPARCOS:
@@ -411,10 +412,15 @@ class Stellarium():
 
     def set_date(self):
         """ Set time and timestep"""
-        param_date = {'time': str(self.jday)}
+
+        # Convert from Gregorian Input to Julian Date Stellarium input
+        time_obj = Time(self.gregorian_date)
+        self.julian_date = time_obj.jd
+
+        param_date = {'time': str(self.julian_date)}
         response = requests.post(self.url_main + self.url_time, data = param_date)
         if not response.ok:
-            raise Exception("jday: ", response.status_code)
+            raise Exception("julian_date: ", response.status_code)
 
         param_date = {'timerate': str(self.timerate)}
         response = requests.post(self.url_main + self.url_time, data = param_date)
