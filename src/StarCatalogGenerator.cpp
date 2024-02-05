@@ -11,7 +11,7 @@ StarCatalogGenerator::StarCatalogGenerator(const std::string &in_file, const std
     bcrf_frame.resize(hip_rows, 3);
     bcrf_frame.setZero();
 
-    init_besselian_year();
+    // init_besselian_year();
     init_bcrf();
 }
 
@@ -121,8 +121,8 @@ bool StarCatalogGenerator::read_hipparcos()
 // Filter out dim stars, change some units to radians
 void StarCatalogGenerator::convert_hipparcos()
 {
-    input_catalog_data.col(RA_ICRS) *= deg2rad;
-    input_catalog_data.col(DE_ICRS) *= deg2rad;
+    input_catalog_data.col(RA_J2000) *= deg2rad;
+    input_catalog_data.col(DE_J2000) *= deg2rad;
     input_catalog_data.col(PMRA) *= mas2rad;
     input_catalog_data.col(PMDE) *= mas2rad;
     input_catalog_data.col(PLX) *= mas2rad;
@@ -138,13 +138,23 @@ void StarCatalogGenerator::sort_star_magnitudes()
 
     for (int64_t i = 0; i < input_catalog_data.rows(); ++i)
         input_catalog_data.row(i) = vec[i];
+
+#ifdef DEBUG_INPUT_CATALOG
+    fs::path debug_input = output_catalog_file.parent_path() / "input_catalog.csv";
+    write_to_csv(debug_input, input_catalog_data);
+#endif
 }
 
-void StarCatalogGenerator::init_bcrf()
+void StarCatalogGenerator::init_bcrf() 
+{
     // Initialize BCRF (Barycentric Celestial Reference System) aka observer position relative to sun
 
     // TODO: Probably use astropy to write input file that can be injested by this script (yaml-cpp?)
-    Eigen::RowVectorXd row_bcrf_obs_pos(3) = {-0.69004781, 0.64965094, 0.28184848};
+    Eigen::RowVectorXd row_bcrf_obs_pos(3);
+    row_bcrf_obs_pos << -0.69004781, 0.64965094, 0.28184848; // 2024
+    // row_bcrf_obs_pos << -0.97593161, -0.19017534, -0.08252697; // 1991.25
+    // row_bcrf_obs_pos << 1.0, 0.0, 0.0; // Fuck if I know
+    // row_bcrf_obs_pos << 0.0, 0.0, 0.0; // Fuck if I know
 
     // Simple(?) TODO: Don't be dumb with memory and just use matrix vector multiply
     bcrf_frame = row_bcrf_obs_pos.replicate<hip_rows, 1>();
@@ -160,27 +170,30 @@ void StarCatalogGenerator::correct_proper_motion()
     Eigen::MatrixXd p_hat(input_catalog_data.rows(), 3);
     Eigen::MatrixXd q_hat(input_catalog_data.rows(), 3);
 
-    los.col(0) = input_catalog_data.col(DE_ICRS).array().cos() * input_catalog_data.col(RA_ICRS).array().cos();
-    los.col(1) = input_catalog_data.col(DE_ICRS).array().cos() * input_catalog_data.col(RA_ICRS).array().sin();
-    los.col(2) = input_catalog_data.col(DE_ICRS).array().sin();
+    los.col(0) = input_catalog_data.col(DE_J2000).array().cos() * input_catalog_data.col(RA_J2000).array().cos();
+    los.col(1) = input_catalog_data.col(DE_J2000).array().cos() * input_catalog_data.col(RA_J2000).array().sin();
+    los.col(2) = input_catalog_data.col(DE_J2000).array().sin();
 
-    p_hat.col(0) = -1 * input_catalog_data.col(RA_ICRS).array().sin();
-    p_hat.col(1) = input_catalog_data.col(RA_ICRS).array().cos();
+    p_hat.col(0) = -1 * input_catalog_data.col(RA_J2000).array().sin();
+    p_hat.col(1) = input_catalog_data.col(RA_J2000).array().cos();
     p_hat.col(2).setZero(); 
 
-    q_hat.col(0) = -1 * input_catalog_data.col(DE_ICRS).array().sin() * input_catalog_data.col(DE_ICRS).array().cos();
-    q_hat.col(1) = -1 * input_catalog_data.col(DE_ICRS).array().sin() * input_catalog_data.col(DE_ICRS).array().sin();
-    q_hat.col(2) = -1 * input_catalog_data.col(DE_ICRS).array().cos();
+    q_hat.col(0) = -1 * input_catalog_data.col(DE_J2000).array().sin() * input_catalog_data.col(DE_J2000).array().cos();
+    q_hat.col(1) = -1 * input_catalog_data.col(DE_J2000).array().sin() * input_catalog_data.col(DE_J2000).array().sin();
+    q_hat.col(2) = -1 * input_catalog_data.col(DE_J2000).array().cos();
 
     proper_motion_data = (current_byear  - hip_byear) * 
         (p_hat.array().colwise() * input_catalog_data.col(PMRA).array() + q_hat.array().colwise() * input_catalog_data.col(PMDE).array());
 
     plx = bcrf_frame.array().colwise() * input_catalog_data.col(PLX).array();
 
-    proper_motion_data = los + proper_motion_data - plx;
+    //proper_motion_data = los + proper_motion_data - plx;
+    proper_motion_data = los;// + proper_motion_data - plx;
     proper_motion_data.rowwise().normalize();
 
     #ifdef DEBUG_PM
+    fs::path debug_pm = output_catalog_file.parent_path() / "proper_motion_data.csv";
+    write_to_csv(debug_pm, proper_motion_data);
     // Check against PM J2000 calculations provided by VizieR
     Eigen::MatrixXd hproper_motion_data(input_catalog_data.rows(), 3);
     hproper_motion_data.col(0) = input_catalog_data.col(RA_J2000).array().cos() * input_catalog_data.col(RA_J2000).array().cos();
@@ -627,8 +640,6 @@ void StarCatalogGenerator::generate_output_catalog()
 #ifdef DEBUG_PATTERN_CATALOG 
     fs::path debug_catalog = output_catalog_file.parent_path() / "pattern_catalog.csv";
     write_to_csv(debug_catalog, pattern_catalog);
-    fs::path debug_pm = output_catalog_file.parent_path() / "proper_motion_data.csv";
-    write_to_csv(debug_pm, proper_motion_data);
 #endif
 
 }
@@ -642,6 +653,8 @@ void StarCatalogGenerator::run_pipeline()
         std::cout << "Reading Hipparcos Catalog" << std::endl;
         if (read_hipparcos())
         {
+            std::cout << "Convert Hipparcos" << std::endl;
+            convert_hipparcos();
             std::cout << "Sorting Stars" << std::endl;
             sort_star_magnitudes();
             std::cout << "Correcting Proper Motion" << std::endl;

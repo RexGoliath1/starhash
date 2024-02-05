@@ -4,7 +4,6 @@ import requests
 import subprocess
 import time
 import yaml
-import math
 import numpy as np
 import json
 from scipy.spatial.transform import Rotation
@@ -293,6 +292,7 @@ class Stellarium():
     def get_star_positions(self):
         """ Get star position in camera using the Intrinsic + Extrinsic Transformation matrix """
 
+        positions = {}
         coords = {}
         magnitude_limit = 7.0 + 5 * np.log10(100 * self.aperture)
 
@@ -336,9 +336,9 @@ class Stellarium():
             if 0 <= uv[0] <= self.width and 0 <= uv[1] <= self.height:
                 print(f"{obj_name}: IN FRAME @ ({uv})")
                 coords[obj_name] = uv
+                positions[obj_name] = [x, y, z]
 
-
-        return coords
+        return positions, coords
 
 
     def load_star_info(self):
@@ -556,7 +556,6 @@ class Stellarium():
         self.get_obj_list()
         self.get_date()
 
-
     def run_scene(self):
         """ Set view to ra/dec """
 
@@ -592,16 +591,25 @@ class Stellarium():
             self.get_extrinsic()
 
             if OUTPUT_POSITIONS:
-                coords = self.get_star_positions()
+                positions, coords = self.get_star_positions()
                 coords_file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"{ii}.json")
-                with open(coords_file, 'w') as fp:    
+                with open(coords_file, 'w') as fp:
                     json.dump(coords, fp)
+
+                pos_file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"positions_{ii}.json")
+                with open(pos_file, 'w') as fp:
+                    json.dump(positions, fp)
             
             if OUTPUT_RA_DEC:
                 # Output RA/DEC for validation
                 ra_dec_file = os.path.join(RA_DEC_OUTPUT_DIRECTORY, f"{ii}_ra_dec.json")
                 with open(ra_dec_file, 'w') as fp:    
-                    json.dump({"ra": self.ra, "dec": self.dec}, fp)
+                    json.dump({
+                        "ra": self.ra, 
+                        "dec": self.dec, 
+                        "E": self.E.tolist(), 
+                        "K": self.K.tolist()
+                    }, fp)
 
             # This script outputs pictures in local user folder. 
             # afaik this folder is not configurable through API.

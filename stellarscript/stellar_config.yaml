@@ -24,13 +24,14 @@ fov: 4.0 # 44.2
 aperture: 1.0 # 0.0125
 # width: 6480
 # height: 4860
-# width: 1024
-# height: 768
-width: 2048
-height: 1536
+width: 1024
+height: 768
+#width: 2048
+#height: 1536
 
 # Stellarium Time Settings
 gregorian_date: "2024-02-03 12:00:00.000"
+# gregorian_date: "1991-04-02 03:56:23.317"
 timerate: 0.0
 
 # Stellarium Location Settings
@@ -48,19 +49,19 @@ altitude: 1000.0
 
 # Slew Right
 dec_start: 0.0
-#ra_start: -1.5707963267948966
+# #ra_start: -1.5707963267948966
 ra_start: 0.0
 dec_end: 0.0
 ra_end: 1.5707963267948966
 
 # Slew Up
-# dec_start: -1.5707963267948966
+# dec_start: 0.0
 # ra_start: 0.0
 # dec_end: 1.5707963267948966
 # ra_end: 0.0
 
 delay_sec: 0.01
-num_steps: 100
+num_steps: 1000
 
 # Stellarium API URLs
 url_main: "http://localhost:7624/api/"

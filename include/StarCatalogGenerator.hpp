@@ -28,11 +28,12 @@
 
 // Some macro defines to debug various functions before valgrid setup
 // #define DEBUG_HIP
-// #define DEBUG_PM
+#define DEBUG_INPUT_CATALOG
+#define DEBUG_PM
 // #define DEBUG_HASH
 // #define DEBUG_GET_NEARBY_STARS
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
-#define DEBUG_PATTERN_CATALOG
+// #define DEBUG_PATTERN_CATALOG
 
 namespace fs = std::filesystem;
 
@@ -44,8 +45,18 @@ const unsigned int hip_cols = 10;
 // TODO: convert unary_function deprecated.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-template <typename T> struct matrix_hash : std::unary_function<T, size_t> {
-  std::size_t operator()(T const &matrix) const {
+
+template <typename T, typename Result>
+struct unary_function {
+    using argument_type = T;
+    using result_type = Result;
+};
+
+template <typename T>
+struct matrix_hash : unary_function<T, std::size_t> {
+    std::size_t operator()(T const &matrix) const {
+// template <typename T> struct matrix_hash : std::unary_function<T, size_t> {
+//   std::size_t operator()(T const &matrix) const {
     // Note that it is oblivious to the storage order of Eigen matrix (column-
     // or row-major). It will give you the same hash value for two different
     // matrices if they are the transpose of each other in different storage
@@ -120,15 +131,16 @@ private:
 
   float hip_byear = 1991.25; // Hipparcos Besellian Epoch
   unsigned int hip_columns = 10;
-  unsigned int hip_header_rows = 55;
+  unsigned int hip_header_rows = 53;
     // TODO: Replace with astropy script input. For now it's manual.
   float current_byear = 2024.0921411361237;// Current Besellian Epoch
+  // float current_byear = 1991.25;// Current Besellian Epoch
 
   Eigen::MatrixXd bcrf_frame;
 
   // Default thresholding parameters (Default tetra amounts are in readme)
-  float brightness_thresh = 11; // Minimum brightness of db
-  //float brightness_thresh = 0.0; // Minimum brightness of db. Checking entire catalog prop
+  // float brightness_thresh = 11; // Minimum brightness of db
+  float brightness_thresh = 0.0; // Minimum brightness of db. Checking entire catalog prop
   // float brightness_thresh = 6.5; // Minimum brightness of db
   double min_separation_angle =
       0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for
