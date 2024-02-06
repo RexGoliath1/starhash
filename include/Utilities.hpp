@@ -1,3 +1,6 @@
+#ifndef UTILITIES_SH
+#define UTILITIES_SH
+
 #include <iostream>
 #include <filesystem>
 #include <limits.h>
@@ -12,3 +15,5 @@
 namespace fs = std::filesystem;
 
 fs::path get_executable_path();
+
+#endif // UTILITIES_SH

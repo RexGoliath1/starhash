@@ -1,8 +1,13 @@
 #include "StarCatalogGenerator.hpp"
 
-StarCatalogGenerator::StarCatalogGenerator(const std::string &in_file, const std::string &out_file) {
+StarCatalogGenerator::StarCatalogGenerator(const std::string &in_file, const std::string &out_file) 
+{
     input_catalog_file = in_file;
     output_catalog_file = out_file;
+
+    std::ostringstream stream;
+    stream << std::fixed << std::setprecision(2) << current_byear; // Set precision to 2 decimal places
+    year_str = stream.str();
 
     edges.resize(num_pattern_angles);
     edges.setZero();
@@ -151,8 +156,8 @@ void StarCatalogGenerator::init_bcrf()
 
     // TODO: Probably use astropy to write input file that can be injested by this script (yaml-cpp?)
     Eigen::RowVectorXd row_bcrf_obs_pos(3);
-    row_bcrf_obs_pos << -0.69004781, 0.64965094, 0.28184848; // 2024
-    // row_bcrf_obs_pos << -0.97593161, -0.19017534, -0.08252697; // 1991.25
+    // row_bcrf_obs_pos << -0.69004781, 0.64965094, 0.28184848; // 2024
+    row_bcrf_obs_pos << -0.97593161, -0.19017534, -0.08252697; // 1991.25
     // row_bcrf_obs_pos << 1.0, 0.0, 0.0; // Fuck if I know
     // row_bcrf_obs_pos << 0.0, 0.0, 0.0; // Fuck if I know
 
@@ -187,12 +192,12 @@ void StarCatalogGenerator::correct_proper_motion()
 
     plx = bcrf_frame.array().colwise() * input_catalog_data.col(PLX).array();
 
-    //proper_motion_data = los + proper_motion_data - plx;
-    proper_motion_data = los;// + proper_motion_data - plx;
+    proper_motion_data = los + proper_motion_data - plx;
+    // proper_motion_data = los; // This may be needed for Stellarium
     proper_motion_data.rowwise().normalize();
 
     #ifdef DEBUG_PM
-    fs::path debug_pm = output_catalog_file.parent_path() / "proper_motion_data.csv";
+    fs::path debug_pm = output_catalog_file.parent_path() / ("proper_motion_data_" + year_str + ".csv");
     write_to_csv(debug_pm, proper_motion_data);
     // Check against PM J2000 calculations provided by VizieR
     Eigen::MatrixXd hproper_motion_data(input_catalog_data.rows(), 3);
@@ -638,7 +643,7 @@ void StarCatalogGenerator::generate_output_catalog()
     //output_hdf5(output_catalog_file, "proper_motion_data", proper_motion_data);
 
 #ifdef DEBUG_PATTERN_CATALOG 
-    fs::path debug_catalog = output_catalog_file.parent_path() / "pattern_catalog.csv";
+    fs::path debug_catalog = output_catalog_file.parent_path() / ("pattern_catalog" + year_str + ".csv");
     write_to_csv(debug_catalog, pattern_catalog);
 #endif
 

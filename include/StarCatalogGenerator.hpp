@@ -1,3 +1,6 @@
+#ifndef CATALOG_GENERATOR_SH
+#define CATALOG_GENERATOR_SH
+
 #include "H5Cpp.h"
 #include <Eigen/Dense>
 #include <algorithm>
@@ -18,6 +21,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <iomanip>
 #include <sys/stat.h>
 #include <unordered_map>
 #include <vector>
@@ -39,6 +43,7 @@ namespace fs = std::filesystem;
 
 const unsigned int hip_rows = 117955;
 const unsigned int hip_cols = 10;
+
 
 // Hash function for Eigen Matricies
 // Ignore warnings about std::unary_function and std::binary_function.
@@ -84,7 +89,9 @@ const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
 
 class StarCatalogGenerator {
 public:
-  StarCatalogGenerator(const std::string &in_file, const std::string &out_file);
+  StarCatalogGenerator(const std::string& in_file, const std::string& out_file);
+  //StarCatalogGenerator(const std::string& in_file = default_hipparcos_path,
+  //    const std::string& out_file = default_catalog_path);
   explicit StarCatalogGenerator();
   ~StarCatalogGenerator();
 
@@ -95,6 +102,7 @@ public:
 private:
   fs::path app_path = get_executable_path();
   fs::path default_hipparcos_path = app_path / "../data/hipparcos.tsv";
+  //TODO: Resultize
   fs::path default_catalog_path = app_path / "../results/output.h5";
 
   fs::path input_catalog_file;
@@ -135,6 +143,7 @@ private:
     // TODO: Replace with astropy script input. For now it's manual.
   float current_byear = 2024.0921411361237;// Current Besellian Epoch
   // float current_byear = 1991.25;// Current Besellian Epoch
+  std::string year_str;
 
   Eigen::MatrixXd bcrf_frame;
 
@@ -287,3 +296,5 @@ private:
     file.close();
   }
 };
+
+#endif // CATALOG_GENERATOR_SH

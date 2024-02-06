@@ -36,7 +36,7 @@ NUM_HIP_STARS = 118322 # tsv contains up to ID 120404?
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
 RECACHE_HIPPARCOS = False
 # For each frame / J2000 Boresight location, output star locations
-OUTPUT_POSITIONS = True
+OUTPUT_POSITIONS = False
 OUTPUT_RA_DEC = True
 FILTER_VARIABLE_STARS = False
 
@@ -115,7 +115,7 @@ stellarium_args = f' --screenshot-dir "{IMAGE_OUTPUT_DIRECTORY}"'
 class Stellarium():
     def __init__(self, config):
         self.debug_stel = 0
-        self.jnow = 0
+        self.j2000 = 0
         self.dec_start = 0
         self.dec_end = 0
         self.ra_start = 0
@@ -194,9 +194,9 @@ class Stellarium():
         response = requests.post(self.url_main + self.url_fov, data = param_fov)
         return response.status_code
 
-    def set_boresight(self, jnow_str):
-        assert isinstance(jnow_str, str)
-        param_view = {'jNow': jnow_str}
+    def set_boresight(self, j2000_str):
+        assert isinstance(j2000_str, str)
+        param_view = {'j2000': j2000_str}
         response = requests.post(self.url_main + self.url_view, data = param_view)
         if not response.ok:
             print(response.status_code)
@@ -205,9 +205,9 @@ class Stellarium():
             print(response.status_code)
         else:
             pass # TODO: Turn back on in some form
-            print(f"View jnow: (ra, dec) = ({self.ra}, {self.dec});")
-            print(f"    [x,y,z] = {response.json().get('jNow')}")
-            print(f"    jnow_str = {jnow_str}")
+            print(f"View j2000: (ra, dec) = ({self.ra}, {self.dec});")
+            print(f"    [x,y,z] = {response.json().get('j2000')}")
+            print(f"    j2000_str = {j2000_str}")
 
     def get_actions(self):
         # Get a list of available action IDs:
@@ -296,7 +296,7 @@ class Stellarium():
         coords = {}
         magnitude_limit = 7.0 + 5 * np.log10(100 * self.aperture)
 
-        # For all stars, get jNow and convert to pixel postion
+        # For all stars, get j2000 and convert to pixel postion
         for obj_name in tqdm(iterable=HIP_NAMES, desc="Getting Star Positions", disable=TQDM_SILENCE):
 
             # First, check if file is available, otherwise query
@@ -317,7 +317,7 @@ class Stellarium():
             if FILTER_VARIABLE_STARS and data["variable-star"] != "no":
                 continue # pulsating, variable, rotating, eclipsing-binary, eruptive, cataclysmic
 
-            (ra, dec) = (data["ra"] * DEG2RAD, data["dec"] * DEG2RAD)
+            (ra, dec) = (data["raJ2000"] * DEG2RAD, data["decJ2000"] * DEG2RAD)
             [x, y, z] = self.j2000_to_xyz(ra, dec)
             x_w = np.array([[x, y, z, 1]])
             x_c = np.matmul(self.E, x_w.T)
@@ -581,10 +581,10 @@ class Stellarium():
         for ii in range(0, self.num_steps):
             self.dec = dec[ii]
             self.ra = ra[ii]
-            self.jnow = self.j2000_to_xyz(self.ra, self.dec)
-            jnow_str = np.array2string(self.jnow, separator=',')
+            self.j2000 = self.j2000_to_xyz(self.ra, self.dec)
+            j2000_str = np.array2string(self.j2000, separator=',')
 
-            self.set_boresight(jnow_str=jnow_str)
+            self.set_boresight(j2000_str=j2000_str)
             # Wait, neccessary for rendering
             time.sleep(self.delay_sec)
 
@@ -608,7 +608,8 @@ class Stellarium():
                         "ra": self.ra, 
                         "dec": self.dec, 
                         "E": self.E.tolist(), 
-                        "K": self.K.tolist()
+                        "K": self.K.tolist(),
+                        "fov": self.fov
                     }, fp)
 
             # This script outputs pictures in local user folder. 

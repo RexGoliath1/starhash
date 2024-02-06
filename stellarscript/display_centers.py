@@ -9,30 +9,28 @@ from glob import iglob
 import re
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-import itertools
+
+DEBUG_PROP_CATALOG = True
+DEBUG_STELLAR_COORDS = False
+DEBUG_STELLAR_POSITIONS = False
 
 def xyz_to_coords(E, K, width, height):
     """ Function to convert proper motion contents to image coordinates """
     coords = {}
+ 
 
-    for row in range(0, pm_df.shape[0]):
-        # TODO: Replace with star names to check
-        obj_name = f'HIP {cat_df["HIP"].loc[row]}'
-        #obj_name = f'PLX {cat_df["Plx"].loc[row]}'
-        x = pm_df["x"].loc[row]
-        y = pm_df["y"].loc[row]
-        z = pm_df["z"].loc[row]
-        x_w = np.array([[x, y, z, 1]])
-        x_c = np.matmul(E, x_w.T)
-        x_p = np.matmul(K, x_c)
-        uv = (x_p / x_p[2][0])[:-1]
-        uv = list(itertools.chain(*uv))
+    data = pm_df[["x", "y", "z"]].to_numpy()
+    data = np.hstack([data, np.ones([data.shape[0], 1])])
+    x_c = np.matmul(E, data.T)
+    x_p = np.matmul(K, x_c)
+    uv = (x_p[:2, :] / x_p[2, :])
 
-        if x_p[2][0] < 0:
-            continue
 
-        if 0 <= uv[0] <= width and 0 <= uv[1] <= height:
-            coords[obj_name] = uv
+    in_bounds = (x_p[2] > 0) & (uv[0] >= 0) & (uv[0] < width) & (uv[1] >= 0) & (uv[1] < height)
+    uv_in_bounds = uv[:, in_bounds]
+    object_names = cat_df.iloc[in_bounds]['HIP'].apply(lambda x: f'HIP {x}').tolist()
+    coords = {name: uv_in_bounds[:,i].tolist() for i, name in enumerate(object_names)}
+
     return coords
 
 # Text settings
@@ -88,7 +86,7 @@ outputdir = os.path.join(basedir, "overlay_images")
 os.makedirs(outputdir, exist_ok=True)
 
 ### Plot everything and output
-for image in iglob(os.path.join(image_dir, "stellarium*.png")):
+for image in sorted(iglob(os.path.join(image_dir, "stellarium*.png"))):
     image_name = os.path.basename(image)
     output_file = os.path.join(outputdir, image_name)
     img = cv2.imread(filename=image, flags=cv2.COLOR_BGR2RGB)
@@ -101,15 +99,7 @@ for image in iglob(os.path.join(image_dir, "stellarium*.png")):
     else:
         continue
 
-    file = os.path.join(coords_dir, f"{number - 1}.json")
-    with open(file, 'r') as fp:
-        jl = json.load(fp)
-        coords = {k: np.array(v) for k, v in jl.items()}
-
-    file = os.path.join(coords_dir, f"positions_{number - 1}.json")
-    with open(file, 'r') as fp:
-        jl = json.load(fp)
-        stellar_pos = {k: np.array(v) for k, v in jl.items()}
+    plt.figure(figsize=(img.shape[1] / 100, img.shape[0] / 100), dpi=100)  # Adjust dpi as needed
     
     file = os.path.join(ra_dec_dir, f"{number - 1}_ra_dec.json")
     with open(file, 'r') as fp:
@@ -120,44 +110,65 @@ for image in iglob(os.path.join(image_dir, "stellarium*.png")):
         K = jl["K"]
         E = np.array(E)
         K = np.array(K)
+        fov = jl["fov"]
+        ang_thresh = fov / width * 3600 # Two Pixels
 
     # Stellarium Stars
-    for star in coords.keys():
-        pos = coords[star].astype(np.int32)
-        postup = (pos[0], pos[1])
-        radius_size = int(radius_scale_factor * img.shape[0])
-        thick_size = int(thick_scale_factor * img.shape[0])
-        cv2.circle(img=img, center=postup, radius=radius_size, color=color, thickness=thick_size)
-        if FONT_ENABLED:
-            img = cv2.putText(img, star, postup, font, fontScale, color, thickness, cv2.LINE_AA)
+    if DEBUG_STELLAR_COORDS:
+        file = os.path.join(coords_dir, f"{number - 1}.json")
+        with open(file, 'r') as fp:
+            jl = json.load(fp)
+            coords = {k: np.array(v) for k, v in jl.items()}
+
+        for star in coords.keys():
+            pos = coords[star].astype(np.int32)
+            postup = (pos[0], pos[1])
+            radius_size = int(radius_scale_factor * img.shape[0])
+            thick_size = int(thick_scale_factor * img.shape[0])
+            cv2.circle(img=img, center=postup, radius=radius_size, color=color, thickness=thick_size)
+            if FONT_ENABLED:
+                img = cv2.putText(img, star, postup, font, fontScale, color, thickness, cv2.LINE_AA)
+
+        plt.title(f"Star Field at: {coord_hms_dms} with {len(coords.keys())} HIP Stars")
 
     # Debugging.. For every stellarium star, check the xyz postion from HIP
-    for row in range(0, pm_df.shape[0]):
-        # TODO: Replace with star names to check
-        star = f'HIP {cat_df["HIP"].loc[row]}'
-        if star in stellar_pos.keys():
-            pos = stellar_pos[star]
-            [sx, sy, sz] = (pos[0], pos[1], pos[2])
-            hx = pm_df["x"].loc[row]
-            hy = pm_df["y"].loc[row]
-            hz = pm_df["z"].loc[row]
-            print(f"{star} Deltas: ({sx - hx}, {sy - hy}, {sz - hz})")
+    if DEBUG_STELLAR_POSITIONS:
+        file = os.path.join(coords_dir, f"positions_{number - 1}.json")
+        with open(file, 'r') as fp:
+            jl = json.load(fp)
+            stellar_pos = {k: np.array(v) for k, v in jl.items()}
+
+        num_stars = len(stellar_pos.keys())
+        num_stars_ae = 0 # Angle Error Stars
+        for row in range(0, pm_df.shape[0]):
+            # TODO: Replace with star names to check
+            star = f'HIP {cat_df["HIP"].loc[row]}'
+            if star in sorted(stellar_pos.keys()):
+                pos = stellar_pos[star]
+                pos = pos / np.linalg.norm(pos)
+                hpos = np.array(pm_df[["x", "y", "z"]].loc[row])
+                hpos = hpos / np.linalg.norm(hpos)
+                dangle = np.abs(np.arccos(np.dot(pos, hpos)) * 3600 * 180.0 / np.pi)
+                if dangle > ang_thresh:
+                    num_stars_ae += 1
+                    print(f"{star} Deltas Angle (arcsec): {dangle}")
+
+        print(f"Star Outage: {num_stars_ae}/{num_stars} = {100.0 * num_stars_ae/num_stars:.2f}%")
 
     # Propagated Catalog Stars
-    pm_pos = xyz_to_coords(E, K, width, height)
-    for star in pm_pos.keys():
-        pos = pm_pos[star]
-        postup = (np.int32(pos[0]), np.int32(pos[1]))
-        radius_size = int(pm_radius_scale_factor * img.shape[0])
-        thick_size = int(thick_scale_factor * img.shape[0])
-        cv2.circle(img=img, center=postup, radius=radius_size, color=hipcolor, thickness=thick_size)
-        if FONT_ENABLED:
-            img = cv2.putText(img, star, postup, font, fontScale, hipcolor, thickness, cv2.LINE_AA)
+    if DEBUG_PROP_CATALOG:
+        pm_pos = xyz_to_coords(E, K, width, height)
+        for star in pm_pos.keys():
+            pos = pm_pos[star]
+            postup = (np.int32(pos[0]), np.int32(pos[1]))
+            radius_size = int(pm_radius_scale_factor * img.shape[0])
+            thick_size = int(thick_scale_factor * img.shape[0])
+            cv2.circle(img=img, center=postup, radius=radius_size, color=hipcolor, thickness=thick_size)
+            if FONT_ENABLED:
+                img = cv2.putText(img, star, postup, font, fontScale, hipcolor, thickness, cv2.LINE_AA)
+        plt.title(f"Star Field at: {coord_hms_dms} with {len(pm_pos.keys())} HIP Stars")
 
-    #plt.figure(dpi=150)
-    #plt.figure(dpi=150)
-    plt.figure(figsize=(img.shape[1] / 100, img.shape[0] / 100), dpi=100)  # Adjust dpi as needed
     plt.imshow(img)
-    plt.title(f"Star Field at: {coord_hms_dms} with {len(coords.keys())} HIP Stars")
     plt.savefig(os.path.join(outputdir, image_name), bbox_inches='tight')
+    plt.close()
 
