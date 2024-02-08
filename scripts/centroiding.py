@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 import cv2
-import time
+from time import time
 from tqdm import tqdm
 import argparse
 import yaml
@@ -60,9 +60,15 @@ def group_poi_stats(flat_image, snr, stats, args):
 
 def centroiding_pipeline(image_path, args):
     """ Centroiding Loop """
+    np.random.seed(args.seed)
     img = cv2.imread(image_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    image_name = os.path.splitext(os.path.basename(image_path))
+    output_path = os.path.join(args.output_path, image_name[0])
+    os.makedirs(output_path, exist_ok=True)
+
+    t1 = time()
 
     if args.denoise:
         gray = cv2.GaussianBlur(gray, (3, 3), 0)
@@ -108,7 +114,6 @@ def centroiding_pipeline(image_path, args):
 
     # loop through the pixel level points of interest
     for ind, center in enumerate(tqdm(poi_subs)):
-        fig_name = os.path.join(args.output_path, f"blob_{ind}.png")
         column_array = np.arange(center[0] - args.centroid_size, center[0] + args.centroid_size + 1)
 
         row_array = np.arange(
@@ -118,7 +123,7 @@ def centroiding_pipeline(image_path, args):
         row_check = (row_array >= 0) & (row_array <= gray.shape[0] - 1)
         cols, rows = np.meshgrid(column_array[col_check], row_array[row_check])
 
-        if args.display_blob_centroids:
+        if args.output_plots and args.display_blob_centroids:
             psf_img = cv2.circle(psf_img, (int(center[0]), int(center[1])), **blob_kwargs)
 
         # if col_check and row_check:
@@ -128,66 +133,73 @@ def centroiding_pipeline(image_path, args):
             roi_snr = snr[rows, cols]
             x0, y0, z0, residuals, covariance = gaussian_fit(cols, rows, roi)
             # x0, y0 = psf.centroid
-
-            if (x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any()):
-                plt.imshow(roi, 'gray')
-                plt.title(f"No fit: Blob {ind}: {x0}, {y0}")
-                plt.draw()
-                plt.savefig(fig_name)
-                plt.clf()
-                continue
-            else:
+            if not ((x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any())):
                 blob_candidate[ind, 0] = 1
                 dx = x0 - (center[0] - args.centroid_size)
                 dy = y0 - (center[1] - args.centroid_size)
+                if (np.abs(np.asarray(center) - np.asarray([x0, y0]).flatten()) <= 3).all():
+                    star_points.append([x0, y0])
+                    star_illums.append(gray[tuple(center[::-1])])
+                    # star_psfs.append(psf)
+                    if stats is not None:
+                        out_stats.append(stats[ind])
 
-                fig, axs = plt.subplots(2, 2, figsize=(15, 10))
-                fig.suptitle(f"Blob {ind} Centroiding", fontsize=20)
+            if args.output_plots:
+                fig_name = os.path.join(output_path, f"blob_{ind}.png")
+                if (x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any()):
+                    plt.imshow(roi, 'gray')
+                    plt.title(f"No fit: Blob {ind}: {x0}, {y0}")
+                    plt.draw()
+                    plt.savefig(fig_name)
+                    plt.clf()
+                    continue
+                else:
+                    fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+                    fig.suptitle(f"Blob {ind} Centroiding", fontsize=20)
 
-                gray_plt = axs[0, 0].imshow(roi, cmap='gray')
-                axs[0, 0].scatter(dx, dy, marker='x', color='red', s=100)  # Scatter plot of centroid as red "x"
-                axs[0, 0].set_title(f"Centroid: {dx:.2f} {dy:.2f}")
-                plt.colorbar(gray_plt, ax=axs[0, 0], fraction=0.046, pad=0.04)
+                    gray_plt = axs[0, 0].imshow(roi, cmap='gray')
+                    axs[0, 0].scatter(dx, dy, marker='x', color='red', s=100)  # Scatter plot of centroid as red "x"
+                    axs[0, 0].set_title(f"Centroid: {dx:.2f} {dy:.2f}")
+                    plt.colorbar(gray_plt, ax=axs[0, 0], fraction=0.046, pad=0.04)
 
-                max_snr = np.max(roi_snr)
-                snr_plt = axs[0, 1].imshow(roi_snr, cmap='Reds', interpolation='nearest', vmin=0.0, vmax=max_snr)
-                axs[0, 1].set_title(f"SNR (thresh: {args.snr_threshold})")
-                plt.colorbar(snr_plt, ax=axs[0, 1], fraction=0.046, pad=0.04)
+                    max_snr = np.max(roi_snr)
+                    snr_plt = axs[0, 1].imshow(roi_snr, cmap='Reds', interpolation='nearest', vmin=0.0, vmax=max_snr)
+                    axs[0, 1].set_title(f"SNR (thresh: {args.snr_threshold})")
+                    plt.colorbar(snr_plt, ax=axs[0, 1], fraction=0.046, pad=0.04)
 
-                max_z = np.max(z0)
-                z_plt = axs[1, 0].imshow(z0.reshape(roi.shape), cmap='Reds', interpolation='nearest', vmax=max_z)
-                axs[1, 0].set_title(f"Least Squares")
-                plt.colorbar(z_plt, ax=axs[1, 0], fraction=0.046, pad=0.04)
+                    max_z = np.max(z0)
+                    z_plt = axs[1, 0].imshow(z0.reshape(roi.shape), cmap='Reds', interpolation='nearest', vmax=max_z)
+                    axs[1, 0].set_title(f"Least Squares")
+                    plt.colorbar(z_plt, ax=axs[1, 0], fraction=0.046, pad=0.04)
 
-                max_res = np.max(residuals)
-                res_plt = axs[1, 1].imshow(residuals.reshape(roi.shape), cmap='Reds', interpolation='nearest', vmax=max_res)
-                axs[1, 1].set_title(f"Residuals")
-                plt.colorbar(res_plt, ax=axs[1, 1], fraction=0.046, pad=0.04)
+                    max_res = np.max(residuals)
+                    res_plt = axs[1, 1].imshow(residuals.reshape(roi.shape), cmap='Reds', interpolation='nearest', vmax=max_res)
+                    axs[1, 1].set_title(f"Residuals")
+                    plt.colorbar(res_plt, ax=axs[1, 1], fraction=0.046, pad=0.04)
 
-                plt.draw()
-                plt.tight_layout()
-                #plt.show()
-                plt.savefig(fig_name)
-                plt.clf()
-                plt.close(fig)
-                if args.display_gauss_centroids:
-                    psf_img = cv2.circle(psf_img, (int(x0), int(y0)), **gauss_kwargs)
+                    plt.draw()
+                    plt.tight_layout()
+                    #plt.show()
+                    plt.savefig(fig_name)
+                    plt.clf()
+                    plt.close(fig)
+                    if args.display_gauss_centroids:
+                        psf_img = cv2.circle(psf_img, (int(x0), int(y0)), **gauss_kwargs)
 
-            if (np.abs(np.asarray(center) - np.asarray([x0, y0]).flatten()) <= 3).all():
-                star_points.append([x0, y0])
-                star_illums.append(gray[tuple(center[::-1])])
-                # star_psfs.append(psf)
-                if stats is not None:
-                    out_stats.append(stats[ind])
-
+    t2 = time()
+    print(f"Took {t2 - t1:.2f} seconds for everything")
     pct = 100.0 * blob_candidate.sum() / blob_candidates
-    plt.figure(figsize=(40, 15))
-    plt.imshow(psf_img)
-    plt.title(f"Full Solution Blob Gaussian Percent: {pct:2f}")
-    #plt.show()
-    plt.draw()
-    fig_name = os.path.join(args.output_path, f"full_solution.png")
-    plt.savefig(fig_name)
+    print(f"Got {blob_candidate.sum()} / {blob_candidates} ({pct} %)")
+
+    if args.output_plots:
+        pct = 100.0 * blob_candidate.sum() / blob_candidates
+        plt.figure(figsize=(40, 15))
+        plt.imshow(psf_img)
+        plt.title(f"Full Solution Blob Gaussian Percent: {pct:2f}")
+        #plt.show()
+        plt.draw()
+        fig_name = os.path.join(output_path, f"full_solution.png")
+        plt.savefig(fig_name)
 
 
 def get_outliers(samples, sigma_cutoff=4):
@@ -245,7 +257,9 @@ def gaussian_fit(x, y, z):
 
         covariance = np.linalg.pinv(
             jacobian.T @ jacobian) * float(np.std(residuals)) ** 2
-    #except np.linalg.linalg.LinAlgError:
+    except np.linalg.LinAlgError as e:
+        print(f"Probably couldn't invert: {e}")
+        return np.nan, np.nan, np.nan, np.nan, np.nan
     except ValueError as e:
         print(f"Something bad happened: {e}")
         return np.nan, np.nan, np.nan, np.nan, np.nan
@@ -257,8 +271,10 @@ if __name__ == "__main__":
     print("Starting....")
     parser = argparse.ArgumentParser(description="Overlay OpenCV blob detection on an image")
     parser.add_argument("--input_path", default=IMAGE_DIRECTORY, type=str, help="")
+    parser.add_argument("--input_pattern", default="stellarium*.png", type=str, help="")
     parser.add_argument("--output_path", default=OUTPUT_DIRECTORY ,type=str, help="")
     parser.add_argument("--config_path", default=DEFAULT_CONFIG,type=str, help="")
+    parser.add_argument("--output_plots", type=bool, default=True, help="")
     parser.add_argument("--display_blob_centroids", type=bool, default=True, help="")
     parser.add_argument("--display_gauss_centroids", type=bool, default=True, help="")
     parser.add_argument("--denoise", type=bool, default=True, help="")
@@ -269,6 +285,7 @@ if __name__ == "__main__":
     parser.add_argument("--poi_min_size", type=int, default=2, help="")
     parser.add_argument("--reject_saturation", type=bool, default=True, help="")
     parser.add_argument("--centroid_size", type=int, default=True, help="")
+    parser.add_argument("--seed", type=int, default=1337, help="")
 
     args = parser.parse_args()
     args = parameter_override(args)
@@ -277,5 +294,9 @@ if __name__ == "__main__":
     assert (os.path.exists(args.input_path))
     assert (os.path.exists(args.output_path))
 
-    for image_path in iglob(os.path.join(args.input_path, "*8115.png")):
+    temp_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
+    image_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
+    # Read in the K Matrix
+    #for image_path in iglob(os.path.join(args.input_path, "*8115.png")):
+    for image_path in sorted(iglob(os.path.join(temp_path, "stellarium-*.png"))):
         centroiding_pipeline(image_path, args)
