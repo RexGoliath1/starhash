@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -63,12 +65,11 @@ def centroiding_pipeline(image_path, args):
     np.random.seed(args.seed)
     img = cv2.imread(image_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    image_name = os.path.splitext(os.path.basename(image_path))
-    output_path = os.path.join(args.output_path, image_name[0])
-    os.makedirs(output_path, exist_ok=True)
-
-    t1 = time()
+    if args.output_plots:
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        image_name = os.path.splitext(os.path.basename(image_path))
+        output_path = os.path.join(args.output_path, image_name[0])
+        os.makedirs(output_path, exist_ok=True)
 
     if args.denoise:
         gray = cv2.GaussianBlur(gray, (3, 3), 0)
@@ -107,7 +108,8 @@ def centroiding_pipeline(image_path, args):
     star_psfs = []
     out_stats = []
 
-    psf_img = img_rgb.copy()
+    if args.output_plots and args.display_blob_centroids:
+        psf_img = img_rgb.copy()
 
     blob_candidates = len(poi_subs)
     blob_candidate = np.zeros((blob_candidates, 1))
@@ -186,13 +188,12 @@ def centroiding_pipeline(image_path, args):
                     if args.display_gauss_centroids:
                         psf_img = cv2.circle(psf_img, (int(x0), int(y0)), **gauss_kwargs)
 
-    t2 = time()
-    print(f"Took {t2 - t1:.2f} seconds for everything")
     pct = 100.0 * blob_candidate.sum() / blob_candidates
     print(f"Got {blob_candidate.sum()} / {blob_candidates} ({pct} %)")
 
     if args.output_plots:
         pct = 100.0 * blob_candidate.sum() / blob_candidates
+        return np.nan, np.nan, np.nan, np.nan, np.nan
         plt.figure(figsize=(40, 15))
         plt.imshow(psf_img)
         plt.title(f"Full Solution Blob Gaussian Percent: {pct:2f}")
@@ -229,40 +230,46 @@ def gaussian_fit(x, y, z):
     coefficients = np.vstack(
         [np.power(x, 2), x, np.power(y, 2), y, np.ones(x.shape)]).T
 
-    try:
-        solution = np.linalg.lstsq(coefficients, np.log(z), rcond=None)[0]
+    #try:
+    
+    epsilon = 1e-10
+    z_safe = z.clip(min=epsilon)
+    solution = np.linalg.lstsq(coefficients, np.log(z_safe), rcond=1e-15)[0]
 
-        sigma_x = np.sqrt(-1 / (2 * solution[0]))
-        sigma_y = np.sqrt(-1 / (2 * solution[2]))
+    sigma_x = np.sqrt(-1 / (2 * solution[0]))
+    sigma_y = np.sqrt(-1 / (2 * solution[2]))
 
-        x0 = solution[1] * sigma_x ** 2
-        y0 = solution[3] * sigma_y ** 2
+    x0 = solution[1] * sigma_x ** 2
+    y0 = solution[3] * sigma_y ** 2
 
-        amplitude = np.exp(
-            solution[4] + x0 ** 2 / (2 * sigma_x ** 2) + y0 ** 2 / (2 * sigma_y ** 2))
+    amplitude = np.exp(
+        solution[4] + x0 ** 2 / (2 * sigma_x ** 2) + y0 ** 2 / (2 * sigma_y ** 2))
 
-        if (sigma_x < 0) or (sigma_y < 0):
-            print("Sigmas are negative ...")
-            return np.nan, np.nan
+    if (sigma_x < 0) or (sigma_y < 0):
+        print("Sigmas are negative ...")
+        return np.nan, np.nan
 
-        z0 = amplitude * np.exp(-(x - x0) ** 2 / (2 * sigma_x ** 2) - (y - y0) ** 2 / (2 * sigma_y ** 2))
-        residuals = z - z0
+    z0 = amplitude * np.exp(-(x - x0) ** 2 / (2 * sigma_x ** 2) - (y - y0) ** 2 / (2 * sigma_y ** 2))
+    residuals = z - z0
 
-        jacobian = np.vstack(
-            [z0 * (x - x0) / (sigma_x ** 2),
-             z0 * (y - y0) / (sigma_y ** 2),
-             z0 * (x - x0) ** 2 / (sigma_x ** 3),
-             z0 * (y - y0) ** 2 / (sigma_y ** 3),
-             z0 / amplitude]).T
+    jacobian = np.vstack(
+        [z0 * (x - x0) / (sigma_x ** 2),
+         z0 * (y - y0) / (sigma_y ** 2),
+         z0 * (x - x0) ** 2 / (sigma_x ** 3),
+         z0 * (y - y0) ** 2 / (sigma_y ** 3),
+         z0 / amplitude]).T
 
-        covariance = np.linalg.pinv(
-            jacobian.T @ jacobian) * float(np.std(residuals)) ** 2
-    except np.linalg.LinAlgError as e:
-        print(f"Probably couldn't invert: {e}")
-        return np.nan, np.nan, np.nan, np.nan, np.nan
-    except ValueError as e:
-        print(f"Something bad happened: {e}")
-        return np.nan, np.nan, np.nan, np.nan, np.nan
+    covariance = np.linalg.pinv(
+        jacobian.T @ jacobian) * float(np.std(residuals)) ** 2
+    #except np.linalg.LinAlgError as e:
+    #    print(f"Probably couldn't invert: {e}")
+    #    return np.nan, np.nan, np.nan, np.nan, np.nan
+    #except ValueError as e:
+    #    print(f"Something bad happened: {e}")
+    #    return np.nan, np.nan, np.nan, np.nan, np.nan
+        #except:
+        #    print("what in the fuck")
+        #    return np.nan, np.nan, np.nan, np.nan, np.nan
 
     return x0, y0, z0, residuals, covariance
 
@@ -274,7 +281,7 @@ if __name__ == "__main__":
     parser.add_argument("--input_pattern", default="stellarium*.png", type=str, help="")
     parser.add_argument("--output_path", default=OUTPUT_DIRECTORY ,type=str, help="")
     parser.add_argument("--config_path", default=DEFAULT_CONFIG,type=str, help="")
-    parser.add_argument("--output_plots", type=bool, default=True, help="")
+    parser.add_argument("--output_plots", type=bool, default=False, help="")
     parser.add_argument("--display_blob_centroids", type=bool, default=True, help="")
     parser.add_argument("--display_gauss_centroids", type=bool, default=True, help="")
     parser.add_argument("--denoise", type=bool, default=True, help="")
@@ -294,9 +301,15 @@ if __name__ == "__main__":
     assert (os.path.exists(args.input_path))
     assert (os.path.exists(args.output_path))
 
-    temp_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
-    image_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
+    #temp_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
+    #image_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
     # Read in the K Matrix
-    #for image_path in iglob(os.path.join(args.input_path, "*8115.png")):
-    for image_path in sorted(iglob(os.path.join(temp_path, "stellarium-*.png"))):
-        centroiding_pipeline(image_path, args)
+    for image_path in iglob(os.path.join(args.input_path, "*8115.png")):
+        num_test = 100
+        test = np.zeros(num_test)
+        print(test.shape)
+        for ii in range(num_test):
+            t1 = time()
+            centroiding_pipeline(image_path, args)
+            test[ii] = time() - t1
+    print(f"Took {np.mean(test):.2f} seconds on average. Std: {np.std(test):.2f}. {num_test} samples")
