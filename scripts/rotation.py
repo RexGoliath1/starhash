@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 from time import time
+import math
 
 # Function to generate random unit vectors
 def generate_random_unit_vectors(n):
@@ -151,10 +152,13 @@ def single_sample(vectors, angle, angle_noise_magnitude):
 def pipeline():
     fov = 25.0
     width = 720
-    vectors = 5  # 4 vectors (4 minimum)
+    vectors = 4  # 4 vectors (4 minimum)
     angle = np.radians(10)  # 10 degree rotation
     angle_noise_magnitude = np.radians(0.01) # 0.1 degree errors
     samples = 10000
+    stars = 1000
+
+    pcat_size = int(math.factorial(stars) / (math.factorial(stars-vectors) * math.factorial(vectors)))
 
     angle_errors = np.zeros(samples)
     dt = np.zeros(samples)
@@ -172,6 +176,8 @@ def pipeline():
     print(f"Samples: {samples}. Vectors: {vectors}")
     print(f"Nominal z-axis rotation of {np.degrees(angle)} degrees")
     print(f"Simulated Star Vector Angle error of {np.degrees(angle_noise_magnitude)} degrees ({np.degrees(angle_noise_magnitude) * 3600} arcsec)")
+    print(f"Catalog Size: {stars} stars, Pattern Catalog Size: {pcat_size}, Pattern Catalog Memory: {pcat_size * 5 / (1024**3):.2f} GB")
+
 
     print("___________________________________________________________________")
     # Calculate the angle of rotation between rotation_matrix and C_opt
