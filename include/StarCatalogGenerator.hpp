@@ -15,20 +15,20 @@
 #include <fstream>
 #include <functional>
 #include <inttypes.h>
+#include <iomanip>
 #include <iostream>
 #include <list>
 #include <math.h>
 #include <memory>
 #include <sstream>
 #include <string>
-#include <iomanip>
 #include <sys/stat.h>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
-#include <type_traits>
 
-#include "eigen_mods.hpp"
 #include "Utilities.hpp"
+#include "eigen_mods.hpp"
 
 // Some macro defines to debug various functions before valgrid setup
 // #define DEBUG_HIP
@@ -44,24 +44,22 @@ namespace fs = std::filesystem;
 const unsigned int hip_rows = 117955;
 const unsigned int hip_cols = 10;
 
-
 // Hash function for Eigen Matricies
 // Ignore warnings about std::unary_function and std::binary_function.
 // TODO: convert unary_function deprecated.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-template <typename T, typename Result>
-struct unary_function {
-    using argument_type = T;
-    using result_type = Result;
+template <typename T, typename Result> struct unary_function {
+  using argument_type = T;
+  using result_type = Result;
 };
 
-template <typename T>
-struct matrix_hash : unary_function<T, std::size_t> {
-    std::size_t operator()(T const &matrix) const {
-// template <typename T> struct matrix_hash : std::unary_function<T, size_t> {
-//   std::size_t operator()(T const &matrix) const {
+template <typename T> struct matrix_hash : unary_function<T, std::size_t> {
+  std::size_t operator()(T const &matrix) const {
+    // template <typename T> struct matrix_hash : std::unary_function<T, size_t>
+    // {
+    //   std::size_t operator()(T const &matrix) const {
     // Note that it is oblivious to the storage order of Eigen matrix (column-
     // or row-major). It will give you the same hash value for two different
     // matrices if they are the transpose of each other in different storage
@@ -89,9 +87,9 @@ const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
 
 class StarCatalogGenerator {
 public:
-  StarCatalogGenerator(const std::string& in_file, const std::string& out_file);
-  //StarCatalogGenerator(const std::string& in_file = default_hipparcos_path,
-  //    const std::string& out_file = default_catalog_path);
+  StarCatalogGenerator(const std::string &in_file, const std::string &out_file);
+  // StarCatalogGenerator(const std::string& in_file = default_hipparcos_path,
+  //     const std::string& out_file = default_catalog_path);
   explicit StarCatalogGenerator();
   ~StarCatalogGenerator();
 
@@ -102,7 +100,7 @@ public:
 private:
   fs::path app_path = get_executable_path();
   fs::path default_hipparcos_path = app_path / "../data/hipparcos.tsv";
-  //TODO: Resultize
+  // TODO: Resultize
   fs::path default_catalog_path = app_path / "../results/output.h5";
 
   fs::path input_catalog_file;
@@ -140,8 +138,8 @@ private:
   float hip_byear = 1991.25; // Hipparcos Besellian Epoch
   unsigned int hip_columns = 10;
   unsigned int hip_header_rows = 53;
-    // TODO: Replace with astropy script input. For now it's manual.
-  float current_byear = 2024.0921411361237;// Current Besellian Epoch
+  // TODO: Replace with astropy script input. For now it's manual.
+  float current_byear = 2024.0921411361237; // Current Besellian Epoch
   // float current_byear = 1991.25;// Current Besellian Epoch
   std::string year_str;
 
@@ -149,7 +147,8 @@ private:
 
   // Default thresholding parameters (Default tetra amounts are in readme)
   // float brightness_thresh = 11; // Minimum brightness of db
-  float brightness_thresh = 0.0; // Minimum brightness of db. Checking entire catalog prop
+  float brightness_thresh =
+      0.0; // Minimum brightness of db. Checking entire catalog prop
   // float brightness_thresh = 6.5; // Minimum brightness of db
   double min_separation_angle =
       0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for
@@ -158,7 +157,7 @@ private:
       min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
   unsigned int pattern_stars_per_fov = 10;
   unsigned int catalog_stars_per_fov = 20;
-  double max_fov_angle = 42;
+  double max_fov_angle = 25;
   double max_fov_dist = std::cos(max_fov_angle * deg2rad);
   double max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
   unsigned int temp_star_bins = 4;
@@ -223,68 +222,71 @@ private:
   void generate_output_catalog();
 
   template <typename Derived>
-  void output_hdf5(std::string filepath, std::string dataset, const Eigen::MatrixBase<Derived>& matrix, bool truncate = false) {
+  void output_hdf5(std::string filepath, std::string dataset,
+                   const Eigen::MatrixBase<Derived> &matrix,
+                   bool truncate = false) {
 
-      // Decide if overwritting or appending
-      H5::H5File h5_file;
-      if (truncate) {
-        h5_file = H5::H5File(filepath.c_str(), H5F_ACC_TRUNC);
-      } else {
-        h5_file = H5::H5File(filepath.c_str(), H5F_ACC_RDWR);
-      }
+    // Decide if overwritting or appending
+    H5::H5File h5_file;
+    if (truncate) {
+      h5_file = H5::H5File(filepath.c_str(), H5F_ACC_TRUNC);
+    } else {
+      h5_file = H5::H5File(filepath.c_str(), H5F_ACC_RDWR);
+    }
 
-      hsize_t dim[2];
-      dim[0] = matrix.rows();
-      dim[1] = matrix.cols();
-      
-      // Determine the data type
-      H5::DataType datatype;
-      if (std::is_same<typename Derived::Scalar, int>::value) {
-          datatype = H5::PredType::NATIVE_INT;
-      } else if (std::is_same<typename Derived::Scalar, double>::value) {
-          datatype = H5::PredType::NATIVE_DOUBLE;
-      } else {
-          // Handle other types or throw an error
-      }
-      
-      // Create the data array
-      auto arr = new typename Derived::Scalar*[dim[0]];
+    hsize_t dim[2];
+    dim[0] = matrix.rows();
+    dim[1] = matrix.cols();
+
+    // Determine the data type
+    H5::DataType datatype;
+    if (std::is_same<typename Derived::Scalar, int>::value) {
+      datatype = H5::PredType::NATIVE_INT;
+    } else if (std::is_same<typename Derived::Scalar, double>::value) {
+      datatype = H5::PredType::NATIVE_DOUBLE;
+    } else {
+      // Handle other types or throw an error
+    }
+
+    // Create the data array
+    auto arr = new typename Derived::Scalar *[dim[0]];
+    for (hsize_t i = 0; i < dim[0]; i++) {
+      arr[i] = new typename Derived::Scalar[dim[1]];
+    }
+
+    // Copy the data into the array
+    for (hsize_t j = 0; j < dim[1]; j++) {
       for (hsize_t i = 0; i < dim[0]; i++) {
-          arr[i] = new typename Derived::Scalar[dim[1]];
+        arr[i][j] = matrix(i, j);
       }
-      
-      // Copy the data into the array
-      for (hsize_t j = 0; j < dim[1]; j++) {
-          for (hsize_t i = 0; i < dim[0]; i++) {
-              arr[i][j] = matrix(i, j);
-          }
-      }
+    }
 
-      if (h5_file.getId() < 0) {
-        // The file is not open or not valid.
-        throw std::runtime_error("Unable to open HDF5 file.");
-      }
-      
-      H5::DataSpace ds(2, dim);
-      H5::DataSet pc_dataset = h5_file.createDataSet(dataset.c_str(), datatype, ds);
+    if (h5_file.getId() < 0) {
+      // The file is not open or not valid.
+      throw std::runtime_error("Unable to open HDF5 file.");
+    }
 
-      if (!pc_dataset.getId()) {
-        // The dataset was not created successfully.
-        throw std::runtime_error("Unable to create HDF5 dataset.");
-      }
+    H5::DataSpace ds(2, dim);
+    H5::DataSet pc_dataset =
+        h5_file.createDataSet(dataset.c_str(), datatype, ds);
 
-      pc_dataset.write(&arr[0][0], datatype);
+    if (!pc_dataset.getId()) {
+      // The dataset was not created successfully.
+      throw std::runtime_error("Unable to create HDF5 dataset.");
+    }
 
-      // Free the allocated memory
-      for (hsize_t i = 0; i < dim[0]; i++) {
-          delete[] arr[i];
-      }
-      delete[] arr;
+    pc_dataset.write(&arr[0][0], datatype);
 
-      // for (size_t i = pc_cols; i > 0; ) {
-      //     delete[] data_arr[--i];
-      // }
-      // delete[] data_arr;
+    // Free the allocated memory
+    for (hsize_t i = 0; i < dim[0]; i++) {
+      delete[] arr[i];
+    }
+    delete[] arr;
+
+    // for (size_t i = pc_cols; i > 0; ) {
+    //     delete[] data_arr[--i];
+    // }
+    // delete[] data_arr;
   }
 
   // Generic Eigen 2 csv writer
