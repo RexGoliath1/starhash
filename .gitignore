@@ -12,10 +12,8 @@
 # Built Visual Studio Code Extensions
 *.vsix
 
-build/*
-inputs/*
-results/**/*
-stellarscript/results/**/*
+**/build/*
+**/results/*
 **/.DS_Store
 **/package-lock.json
 

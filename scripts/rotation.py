@@ -76,7 +76,7 @@ def quaternion_to_dcm(q):
 
     return C
 
-def quest1981(v_b, v_i, w):
+def quest(v_b, v_i, w):
     """Quaternion Estimator (QUEST) algorithm."""
     tolerance = 1e-5
 
@@ -139,12 +139,12 @@ def single_sample(vectors, angle, angle_noise_magnitude):
     for ii in range(vectors):
         vb_noisy[ii] = add_angle_noise(vb[ii], angle_noise_magnitude)
 
-    w = np.ones(vectors) * .25
+    w = np.ones(vectors)
     vi = vi.T
     vb_noisy = vb_noisy.T
 
     t1 = time()
-    C_opt, q_opt = quest1981(vb_noisy, vi, w)
+    C_opt, q_opt = quest(vb_noisy, vi, w)
     dt = time() - t1
     angle_error = rotation_angle(rotation_matrix, C_opt)
     return angle_error, dt
@@ -180,14 +180,12 @@ def pipeline():
 
 
     print("___________________________________________________________________")
-    # Calculate the angle of rotation between rotation_matrix and C_opt
     print(f"Mean Attitude Error: {mu_err:.4f} degrees ({mu_err * 3600:.4f} arcsec)")
     print(f"Std. Dev. Attitude Error: {std_err:.4f} degrees ({std_err * 3600:.4f} arcsec)")
 
     print("___________________________________________________________________")
     print(f"FOV: {fov} degrees, Width: {width} pixels")
     print(f"Std. Dev. Induced Star Centroid Error: {std_sim_pixels:.3f} pixels")
-    # Note: These aren't actually centroid errors, but just overall att errors in pixels
     print(f"Mean Attitude Error: {mu_pixels:.2f} pixels")
     print(f"Std. Dev. Attitude Error: {std_pixels:.2f} pixels")
     print("___________________________________________________________________")
