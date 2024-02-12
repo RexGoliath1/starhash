@@ -6,13 +6,25 @@ import math
 from scipy.stats import kurtosis
 import matplotlib.pyplot as plt
 
+# TODO: Proper Module
+import sys
+from pathlib import Path
+lib_path = Path(__file__).resolve().parent.parent / 'lib'
+sys.path.append(str(lib_path))
+
+from transform_utils import rotate_vectors, rotation_angle, euler_to_rotation_matrix
+from attitude_determination import quest, davenport, triad, foma, svd, esoq2
+
 outdir = os.path.join(os.path.dirname(__file__), "att_det_results")
 os.makedirs(outdir, exist_ok=True)
 
 methods = {
-    1: "davenport",
+    #1: "davenport",
     2: "quest",
-    3: "triad"
+    3: "triad",
+    4: "foma",
+    5: "svd",
+    6: "esoq2"
 }
 
 # Function to generate random unit vectors
@@ -23,29 +35,6 @@ def generate_random_unit_vectors(n):
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
     unit_vectors = vectors / norms
     return unit_vectors
-
-# Function to rotate vectors by a given rotation matrix
-def rotate_vectors(vectors, rotation_matrix):
-    return np.dot(vectors, rotation_matrix.T)
-
-def rotation_angle(rotation_matrix1, rotation_matrix2):
-    rotation_matrix1 = normalize_rotation_matrix(rotation_matrix1)
-    rotation_matrix2 = normalize_rotation_matrix(rotation_matrix2)
-
-    # Compute the trace of the difference matrix
-    trace_diff = np.trace(rotation_matrix1.T @ rotation_matrix2)
-    trace_diff = np.clip(trace_diff, -1, 3)
-    angle = np.arccos((trace_diff - 1) / 2)
-
-    return np.degrees(angle)
-
-def normalize_rotation_matrix(rotation_matrix):
-    # Orthogonalize the rotation matrix using QR decomposition
-    Q, R = np.linalg.qr(rotation_matrix)
-    # Ensure the determinant is positive
-    if np.linalg.det(Q) < 0:
-        Q *= -1
-    return Q
 
 # Function to add noise to vectors
 def add_noise(vectors, noise_level):
@@ -73,154 +62,6 @@ def add_angle_noise(v, angle_noise_magnitude):
     R_noise = Rx @ Ry @ Rz
     v_noisy = R_noise @ v
     return v_noisy
-
-def euler_to_rotation_matrix(yaw, pitch, roll):
-    """ Convert Euler angles (yaw, pitch, roll) to rotation matrix """
-    # Convert angles to radians
-    yaw = np.radians(yaw)
-    pitch = np.radians(pitch)
-    roll = np.radians(roll)
-
-    # Compute sine and cosine values
-    cy = np.cos(yaw)
-    sy = np.sin(yaw)
-    cp = np.cos(pitch)
-    sp = np.sin(pitch)
-    cr = np.cos(roll)
-    sr = np.sin(roll)
-
-    # Compute rotation matrix
-    rotation_matrix = np.array([
-        [cy * cp, cy * sp * sr - sy * cr, cy * sp * cr + sy * sr],
-        [sy * cp, sy * sp * sr + cy * cr, sy * sp * cr - cy * sr],
-        [-sp, cp * sr, cp * cr]
-    ])
-
-    return rotation_matrix
-
-def quaternion_to_dcm(q):
-    q0 = q[3]
-    q1 = q[0]
-    q2 = q[1]
-    q3 = q[2]
-
-    C = np.zeros((3, 3))
-    C[0, 0] = q0**2 + q1**2 - q2**2 - q3**2
-    C[0, 1] = 2 * (q1 * q2 + q0 * q3)
-    C[0, 2] = 2 * (q1 * q3 - q0 * q2)
-    C[1, 0] = 2 * (q1 * q2 - q0 * q3)
-    C[1, 1] = q0**2 - q1**2 + q2**2 - q3**2
-    C[1, 2] = 2 * (q2 * q3 + q0 * q1)
-    C[2, 0] = 2 * (q1 * q3 + q0 * q2)
-    C[2, 1] = 2 * (q2 * q3 - q0 * q1)
-    C[2, 2] = q0**2 - q1**2 - q2**2 + q3**2
-
-    return C
-
-def dcm_to_quaternion(C):
-    trace = np.trace(C)
-    if trace > 0:
-        s = 0.5 / np.sqrt(trace + 1)
-        q = np.array([(C[2, 1] - C[1, 2]) * s,
-                      (C[0, 2] - C[2, 0]) * s,
-                      (C[1, 0] - C[0, 1]) * s,
-                      0.25 / s])
-    elif C[0, 0] > C[1, 1] and C[0, 0] > C[2, 2]:
-        s = 2.0 * np.sqrt(1.0 + C[0, 0] - C[1, 1] - C[2, 2])
-        q = np.array([0.25 * s,
-                      (C[0, 1] + C[1, 0]) / s,
-                      (C[0, 2] + C[2, 0]) / s,
-                      (C[2, 1] - C[1, 2]) / s])
-    elif C[1, 1] > C[2, 2]:
-        s = 2.0 * np.sqrt(1.0 + C[1, 1] - C[0, 0] - C[2, 2])
-        q = np.array([(C[0, 1] + C[1, 0]) / s,
-                      0.25 * s,
-                      (C[1, 2] + C[2, 1]) / s,
-                      (C[0, 2] - C[2, 0]) / s])
-    else:
-        s = 2.0 * np.sqrt(1.0 + C[2, 2] - C[0, 0] - C[1, 1])
-        q = np.array([(C[0, 2] + C[2, 0]) / s,
-                      (C[1, 2] + C[2, 1]) / s,
-                      0.25 * s,
-                      (C[1, 0] - C[0, 1]) / s])
-    return q
-
-def quest(v_b, v_i, w):
-    """Quaternion Estimator (QUEST) algorithm."""
-    tolerance = 1e-5
-
-    # B matrix computation
-    B = v_b @ np.diag(w) @ v_i.T
-    S = B + B.T
-    sigma = np.trace(B)
-
-    # Helper variables
-    Z = np.array([B[1, 2] - B[2, 1], B[2, 0] - B[0, 2], B[0, 1] - B[1, 0]])
-    delta = np.linalg.det(S)
-    kappa = np.trace(delta * np.linalg.inv(S))
-
-    # Coefficients for the characteristic equation
-    a = sigma**2 - kappa
-    b = sigma**2 + Z.T @ Z
-    c = delta + Z.T @ S @ Z
-    d = Z.T @ S @ S @ Z 
-    constant = a*b + c*sigma - d
-
-    # Newton-Raphson method to find the root
-    lambda_ = np.sum(w)
-    last_lambda = 0.0
-    while np.abs(lambda_ - last_lambda) >= tolerance:
-        last_lambda = lambda_
-        f = lambda_**4 - (a + b)*lambda_**2 - c*lambda_ + constant
-        f_dot = 4*lambda_**3 - 2*(a + b)*lambda_ - c
-        lambda_ -= f / f_dot
-
-    # Optimal quaternion computation
-    omega = lambda_
-    alpha = omega**2 - sigma**2 + kappa
-    beta = omega - sigma
-    gamma = (omega + sigma)*alpha - delta
-    X = (alpha*np.eye(3) + beta*S + S @ S) @ Z
-    q_opt = np.hstack((X, gamma)) / np.sqrt(gamma**2 + np.linalg.norm(X)**2)
-
-    # Convert quaternion to DCM
-    C_opt = quaternion_to_dcm(q_opt)
-
-    return C_opt, q_opt
-
-def davenport(v_b, v_i, w):
-    # Matrix K (4x4)
-    #B = np.dot((v_b * w[:, np.newaxis]).T, v_i.T)
-    B = v_b @ np.diag(w) @ v_i.T
-    Z = np.array([B[1, 2] - B[2, 1], B[2, 0] - B[0, 2], B[0, 1] - B[1, 0]])
-    Z = Z.reshape(3,1)
-    K = np.block([[B + B.T - np.eye(3) * np.trace(B), Z],
-                  [Z.T, np.trace(B)]])
-
-    # Eigenvector associated with largest eigenvalue
-    evals, evecs = np.linalg.eig(K)
-    idx = np.argmax(evals)
-    q_opt = evecs[:, idx]
-    C_opt = quaternion_to_dcm(q_opt);
-
-    return C_opt, q_opt
-
-def triad(b1, b2, r1, r2):
-    """Tri-axial Attitude Determination (TRIAD)"""
-
-    # Calculate v2
-    v2 = np.cross(r1, r2) / np.linalg.norm(np.cross(r1, r2))
-
-    # Calculate w2
-    w2 = np.cross(b1, b2) / np.linalg.norm(np.cross(b1, b2))
-
-    # Calculate rotation matrix C
-    C_opt = np.outer(b1, r1) + np.outer(np.cross(b1, w2), np.cross(r1, v2)) + np.outer(w2, v2)
-
-    # Convert rotation matrix to quaternion
-    q_opt = dcm_to_quaternion(C_opt)
-
-    return C_opt, q_opt
 
 def single_sample(method, vectors, rotation, angle_noise_magnitude):
     """ Generate a single sample of QUEST Dispersions """
@@ -250,12 +91,17 @@ def single_sample(method, vectors, rotation, angle_noise_magnitude):
         C_opt, q_opt = quest(vb_noisy, vi, w)
     elif method == "triad":
         # Note: Assume first vector is known. Has error even when zero noise.
-        # vb1 = vb[0, :]
         vb1 = vb_noisy[:, 0]
         vb2 = vb_noisy[:, 1]
         vi1 = vi[:, 0]
         vi2 = vi[:, 1]
         C_opt, q_opt = triad(vb1, vb2, vi1, vi2)
+    elif method == "foma":
+        C_opt, q_opt = foma(vb_noisy, vi, w)
+    elif method == "svd":
+        C_opt, q_opt = svd(vb_noisy, vi, w)
+    elif method == "esoq2":
+        C_opt, q_opt = esoq2(vb_noisy, vi, w)
     else:
         raise Exception(f"Unknown method {method}")
 
@@ -321,9 +167,9 @@ def print_errors(method, config, angle_errors, dt):
 
     plt.xlabel("Attitude Error (degrees)")
 
-    plt.xlim([0, 0.1])
+    plt.xlim([0, 0.2])
     plt.tight_layout()
-    plt.savefig(os.path.join(outdir, f"{method.upper()} Attitude_Error"))
+    plt.savefig(os.path.join(outdir, f"Attitude_Error - {method.upper()}"))
     plt.close()
 
     h = plt.hist(x=dt, bins=1000, edgecolor="k")
@@ -331,7 +177,7 @@ def print_errors(method, config, angle_errors, dt):
     plt.xlabel("Runtime (seconds)")
     plt.xlim([0, 0.0001])
     plt.tight_layout()
-    plt.savefig(os.path.join(outdir, f"{method.upper()} Runtime"))
+    plt.savefig(os.path.join(outdir, f"Runtime - {method.upper()}"))
     plt.close()
 
 def pipeline():
@@ -339,8 +185,8 @@ def pipeline():
         "fov" : 25.0,
         "width" : 720,
         "vectors" : 4, # 4 vectors (4 minimum)
-        "angle_noise_magnitude" : np.radians(0.05),
-        "samples" : 10000,
+        "angle_noise_magnitude" : np.radians(0.1),
+        "samples" : 100000,
         "stars" : 1000
     }
 

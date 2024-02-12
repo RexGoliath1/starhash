@@ -12,6 +12,17 @@ import itertools
 import pandas as pd
 import sqlite3
 from astropy.time import Time
+import ast
+
+# TODO: Proper Module
+import sys
+from pathlib import Path
+lib_path = Path(__file__).resolve().parent.parent / 'lib'
+sys.path.append(str(lib_path))
+
+
+from transform_utils import rotation_vector_from_matrices
+from attitude_determination import quest, davenport, triad, foma, svd, esoq2
 
 # Ongoing TODOs
 # StelSkyDrawer.twinkleAmount
@@ -22,13 +33,11 @@ REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
 OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results", time.strftime("%Y%m%d-%H%M%S"))
 STAR_OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results", ".stars")
 IMAGE_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "images")
-POSITION_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "img_coords")
-RA_DEC_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "ra_dec")
+DATA_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "data")
 os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(STAR_OUTPUT_DIRECTORY, exist_ok=True)
 os.makedirs(IMAGE_OUTPUT_DIRECTORY, exist_ok=True)
-os.makedirs(POSITION_OUTPUT_DIRECTORY, exist_ok=True)
-os.makedirs(RA_DEC_OUTPUT_DIRECTORY, exist_ok=True)
+os.makedirs(DATA_OUTPUT_DIRECTORY, exist_ok=True)
 
 # Enable both to output Hipparcos positions. Only needed once if using the same time
 NUM_HIP_STARS = 118322 # tsv contains up to ID 120404?
@@ -36,8 +45,7 @@ NUM_HIP_STARS = 118322 # tsv contains up to ID 120404?
 HIP_NAMES = [f"HIP {ii}" for ii in range(1, NUM_HIP_STARS + 1)]
 RECACHE_HIPPARCOS = False
 # For each frame / J2000 Boresight location, output star locations
-OUTPUT_POSITIONS = False
-OUTPUT_RA_DEC = True
+OUTPUT_POSITIONS = True
 FILTER_VARIABLE_STARS = False
 
 COLS_TO_CONVERT = {
@@ -201,13 +209,18 @@ class Stellarium():
         if not response.ok:
             print(response.status_code)
         response = requests.get(self.url_main + self.url_view) 
+
         if not response.ok:
             print(response.status_code)
         else:
+            # Stellarium seems to trim some bits, reset boresight ra/dec here?
+            # Doesn't seem to help
+            # bore = response.json()
+            # [sx, sy, sz] = ast.literal_eval(bore["j2000"])
+            # self.dec = np.arcsin(sz)
+            # self.ra = np.arctan2(sy, sx)
+
             pass # TODO: Turn back on in some form
-            print(f"View j2000: (ra, dec) = ({self.ra}, {self.dec});")
-            print(f"    [x,y,z] = {response.json().get('j2000')}")
-            print(f"    j2000_str = {j2000_str}")
 
     def get_actions(self):
         # Get a list of available action IDs:
@@ -292,20 +305,12 @@ class Stellarium():
     def get_star_positions(self):
         """ Get star position in camera using the Intrinsic + Extrinsic Transformation matrix """
 
-        positions = {}
-        coords = {}
+        output = {}
         magnitude_limit = 7.0 + 5 * np.log10(100 * self.aperture)
 
         # For all stars, get j2000 and convert to pixel postion
         for obj_name in tqdm(iterable=HIP_NAMES, desc="Getting Star Positions", disable=TQDM_SILENCE):
-
-            # First, check if file is available, otherwise query
-            file_path = os.path.join(STAR_OUTPUT_DIRECTORY, f"{obj_name}_{self.gregorian_date}.json")
-            if os.path.exists(file_path):
-                with open(file_path) as fp:
-                    data = json.load(fp)
-            else:
-                data = self.get_obj_info(obj_name=obj_name)
+            data = self.get_obj_info(obj_name=obj_name)
 
             if data is None:
                 continue
@@ -320,6 +325,7 @@ class Stellarium():
             (ra, dec) = (data["raJ2000"] * DEG2RAD, data["decJ2000"] * DEG2RAD)
             [x, y, z] = self.j2000_to_xyz(ra, dec)
             x_w = np.array([[x, y, z, 1]])
+            # I think this might be it?
             x_c = np.matmul(self.E, x_w.T)
             x_p = np.matmul(self.K, x_c)
             uv = (x_p / x_p[2][0])[:-1]
@@ -334,11 +340,12 @@ class Stellarium():
 
             # For debugging, print out stars within frame
             if 0 <= uv[0] <= self.width and 0 <= uv[1] <= self.height:
-                print(f"{obj_name}: IN FRAME @ ({uv})")
-                coords[obj_name] = uv
-                positions[obj_name] = [x, y, z]
+                output[obj_name] = {}
+                output[obj_name]["pixel"] = uv
+                output[obj_name]["vec_camera"] = [x, y, z]
+                output[obj_name]["vec_inertial"] = x_c.flatten().tolist()
 
-        return positions, coords
+        return output
 
 
     def load_star_info(self):
@@ -544,6 +551,80 @@ class Stellarium():
         #self.R = np.linalg.inv(self.R)
         self.E = np.concatenate((self.R, t.T), axis=1)
 
+    def get_quaternions(self, coords):
+
+        # Number of stars in frame
+        num_stars = len(set(coords.keys()))
+
+        if num_stars < 4:
+            print("Insufficient amount of stars")
+            return
+
+        vb = np.zeros([3, num_stars])
+        vi = np.zeros([3, num_stars])
+        w = np.ones(num_stars)
+        K_inv = np.linalg.inv(self.K)
+        T_cam_to_j2000 = self.R
+
+        for ii, obj_name in enumerate(coords.keys()):
+            data = self.get_obj_info(obj_name=obj_name)
+            if data is None:
+                continue
+
+            (ra, dec) = (data["raJ2000"] * DEG2RAD, data["decJ2000"] * DEG2RAD)
+            [x, y, z] = self.j2000_to_xyz(ra, dec)
+            vi[:, ii] = np.array([x,y,z])
+
+            [u,v] = coords[obj_name]["pixel"]
+            pc = np.array([[u, v, 1]],).T
+            vc = K_inv @ pc
+            vc[2] = np.sqrt(1 - vc[0]**2 -vc[1]**2)
+
+            # These points should be in front of the camera
+            assert(vc[2] >= 0)
+            vb[:, ii] = vc.reshape(3,)
+
+        method = "davenport"
+        vectors = 1000
+        vectors = np.min([vectors, vb.shape[1]])
+        assert(vectors >= 4)
+        vb = vb[:, :vectors]
+        vi = vi[:, :vectors]
+        w = w[:vectors]
+
+        if method == "davenport":
+            C_opt, q_opt = davenport(vb, vi, w)
+        elif method == "quest":
+            C_opt, q_opt = quest(vb, vi, w)
+        elif method == "triad":
+            # Note: Assume first vector is known. Has error even when zero noise.
+            vb1 = vb[:, 0]
+            vb2 = vb[:, 1]
+            vi1 = vi[:, 0]
+            vi2 = vi[:, 1]
+            C_opt, q_opt = triad(vb1, vb2, vi1, vi2)
+        elif method == "foma":
+            C_opt, q_opt = foma(vb, vi, w)
+        elif method == "svd":
+            C_opt, q_opt = svd(vb, vi, w)
+        elif method == "esoq2":
+            C_opt, q_opt = esoq2(vb, vi, w)
+        else:
+            raise Exception(f"Unknown method {method}")
+
+        C_opt, q_opt = quest(vb, vi, w)
+        rot_vec_error = rotation_vector_from_matrices(T_cam_to_j2000, C_opt)
+        rv_deg = np.degrees(rot_vec_error)
+        rv_as = rv_deg * 3600
+        rv_mas = 1000 * rv_as
+
+        # Not clear why there are small errors. 
+        # It seems like maybe setting boresight ra/dec does not correspond to the expected transform.
+        # delaying the API lookup does not help
+        print(f"rv_mag_mas: {np.linalg.norm(rv_mas):.2f} rot_vec_error: {rv_mas} (Milli Arc-Seconds)")
+        print(f"rv_mag_as: {np.linalg.norm(rv_as):.2f} rot_vec_error: {rv_as} (Arc-Seconds)")
+        print(f"rv_mag_deg: {np.linalg.norm(rv_deg):.2f} rot_vec_error: {rv_deg} (Degrees)")
+
 
     def run_debug(self):
         """ Run debugging to output jsons of various parameters """
@@ -590,27 +671,23 @@ class Stellarium():
 
             self.get_extrinsic()
 
-            if OUTPUT_POSITIONS:
-                positions, coords = self.get_star_positions()
-                coords_file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"{ii}.json")
-                with open(coords_file, 'w') as fp:
-                    json.dump(coords, fp)
+            data = {}
+            data["ra"] = self.ra
+            data["dec"] = self.dec
+            data["E"] = self.E.tolist()
+            data["K"] = self.K.tolist()
+            data["fov"] = self.fov
 
-                pos_file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"positions_{ii}.json")
-                with open(pos_file, 'w') as fp:
-                    json.dump(positions, fp)
-            
-            if OUTPUT_RA_DEC:
-                # Output RA/DEC for validation
-                ra_dec_file = os.path.join(RA_DEC_OUTPUT_DIRECTORY, f"{ii}_ra_dec.json")
-                with open(ra_dec_file, 'w') as fp:    
-                    json.dump({
-                        "ra": self.ra, 
-                        "dec": self.dec, 
-                        "E": self.E.tolist(), 
-                        "K": self.K.tolist(),
-                        "fov": self.fov
-                    }, fp)
+            if OUTPUT_POSITIONS:
+                data["stars"] = self.get_star_positions()
+                self.get_quaternions(data["stars"])
+
+            # Output RA/DEC for validation
+            output_file = os.path.join(DATA_OUTPUT_DIRECTORY, f"{ii + 1}_data.json")
+            with open(output_file, 'w') as fp:
+                json.dump(data, fp, indent=4)
+
+
 
             # This script outputs pictures in local user folder. 
             # afaik this folder is not configurable through API.

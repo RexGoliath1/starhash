@@ -61,7 +61,7 @@ ra_end: 1.5707963267948966
 # ra_end: 0.0
 
 delay_sec: 0.01
-num_steps: 1000
+num_steps: 100
 
 # Stellarium API URLs
 url_main: "http://localhost:7624/api/"

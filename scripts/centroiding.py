@@ -8,12 +8,18 @@ from time import time
 from tqdm import tqdm
 import argparse
 import yaml
-from glob import iglob
+from glob import iglob, glob
+from datetime import datetime
+from scipy.spatial import cKDTree
+import re
+import json
 
 # Default Paths
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
-IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "images")
+# IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "images")
+IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "stellarscript", "results")
+IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "stellarscript", "results")
 OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results")
 DEFAULT_CONFIG = os.path.join(CURRENT_DIRECTORY, "centroiding.yaml")
 
@@ -65,24 +71,23 @@ def centroiding_pipeline(image_path, args):
     np.random.seed(args.seed)
     img = cv2.imread(image_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    centroid_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    image_name = os.path.splitext(os.path.basename(image_path))
+    output_path = os.path.join(args.output_path, image_name[0])
+
     if args.output_plots:
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        image_name = os.path.splitext(os.path.basename(image_path))
-        output_path = os.path.join(args.output_path, image_name[0])
         os.makedirs(output_path, exist_ok=True)
 
     if args.denoise:
-        gray = cv2.GaussianBlur(gray, (3, 3), 0)
+        gray = cv2.GaussianBlur(gray, (args.size_denoise, args.size_denoise), 0)
 
-    flat_image = gray.astype(np.float32) - cv2.medianBlur(gray.copy().astype(np.float32), 5)
+    print(f"gray.shape: {gray.shape}")
+    flat_image = gray.astype(np.float32) - cv2.medianBlur(gray.copy(), args.size_median)
 
     im_shape = flat_image.shape
-    dist = np.minimum(np.min(im_shape) - 1, 5)
+    dist = np.minimum(np.min(im_shape) - 1, args.distance_threshold)
     num_pix = float(np.prod(np.array(im_shape) - dist))
-
     num_choice = int(np.minimum(num_pix // 4, 2000))
-
-    num_pix = float(np.prod(np.array(im_shape) - dist))
 
     start_rows, start_cols = np.unravel_index(
         np.random.choice(np.arange(int(num_pix)),
@@ -108,9 +113,6 @@ def centroiding_pipeline(image_path, args):
     star_psfs = []
     out_stats = []
 
-    if args.output_plots and args.display_blob_centroids:
-        psf_img = img_rgb.copy()
-
     blob_candidates = len(poi_subs)
     blob_candidate = np.zeros((blob_candidates, 1))
 
@@ -126,7 +128,7 @@ def centroiding_pipeline(image_path, args):
         cols, rows = np.meshgrid(column_array[col_check], row_array[row_check])
 
         if args.output_plots and args.display_blob_centroids:
-            psf_img = cv2.circle(psf_img, (int(center[0]), int(center[1])), **blob_kwargs)
+            centroid_img = cv2.circle(centroid_img, (int(center[0]), int(center[1])), **blob_kwargs)
 
         # if col_check and row_check:
         if cols.size >= 0.5 * (2 * args.centroid_size + 1)**2:
@@ -146,7 +148,11 @@ def centroiding_pipeline(image_path, args):
                     if stats is not None:
                         out_stats.append(stats[ind])
 
-            if args.output_plots:
+            if args.output_plots and args.display_gauss_centroids:
+                if not ((x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any())):
+                    centroid_img = cv2.circle(centroid_img, (int(x0), int(y0)), **gauss_kwargs)
+
+            if args.output_plots and args.output_individual_blobs:
                 fig_name = os.path.join(output_path, f"blob_{ind}.png")
                 if (x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any()):
                     plt.imshow(roi, 'gray')
@@ -185,22 +191,20 @@ def centroiding_pipeline(image_path, args):
                     plt.savefig(fig_name)
                     plt.clf()
                     plt.close(fig)
-                    if args.display_gauss_centroids:
-                        psf_img = cv2.circle(psf_img, (int(x0), int(y0)), **gauss_kwargs)
 
     pct = 100.0 * blob_candidate.sum() / blob_candidates
-    print(f"Got {blob_candidate.sum()} / {blob_candidates} ({pct} %)")
+    print(f"Centroid candidates passing Gaussian Fit: {blob_candidate.sum()} / {blob_candidates} ({pct} %)")
 
     if args.output_plots:
         pct = 100.0 * blob_candidate.sum() / blob_candidates
-        return np.nan, np.nan, np.nan, np.nan, np.nan
         plt.figure(figsize=(40, 15))
-        plt.imshow(psf_img)
+        plt.imshow(centroid_img)
         plt.title(f"Full Solution Blob Gaussian Percent: {pct:2f}")
-        #plt.show()
         plt.draw()
         fig_name = os.path.join(output_path, f"full_solution.png")
         plt.savefig(fig_name)
+
+    return star_points
 
 
 def get_outliers(samples, sigma_cutoff=4):
@@ -236,6 +240,10 @@ def gaussian_fit(x, y, z):
     z_safe = z.clip(min=epsilon)
     solution = np.linalg.lstsq(coefficients, np.log(z_safe), rcond=1e-15)[0]
 
+    if solution[0] > 0 or solution[2] > 0:
+        print("TODO: Solutions are positive ...")
+        return np.nan, np.nan, np.nan, np.nan, np.nan
+
     sigma_x = np.sqrt(-1 / (2 * solution[0]))
     sigma_y = np.sqrt(-1 / (2 * solution[2]))
 
@@ -247,7 +255,7 @@ def gaussian_fit(x, y, z):
 
     if (sigma_x < 0) or (sigma_y < 0):
         print("Sigmas are negative ...")
-        return np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan, np.nan
 
     z0 = amplitude * np.exp(-(x - x0) ** 2 / (2 * sigma_x ** 2) - (y - y0) ** 2 / (2 * sigma_y ** 2))
     residuals = z - z0
@@ -278,20 +286,27 @@ if __name__ == "__main__":
     print("Starting....")
     parser = argparse.ArgumentParser(description="Overlay OpenCV blob detection on an image")
     parser.add_argument("--input_path", default=IMAGE_DIRECTORY, type=str, help="")
+    # parser.add_argument("--coord_path", default=COORD_DIRECTORY, type=str, help="")
+    parser.add_argument("--use_latest", default=True, type=bool, help="")
     parser.add_argument("--input_pattern", default="stellarium*.png", type=str, help="")
+    parser.add_argument("--coords_pattern", default="_data", type=str, help="")
     parser.add_argument("--output_path", default=OUTPUT_DIRECTORY ,type=str, help="")
     parser.add_argument("--config_path", default=DEFAULT_CONFIG,type=str, help="")
-    parser.add_argument("--output_plots", type=bool, default=False, help="")
+    parser.add_argument("--output_plots", type=bool, default=True, help="")
+    parser.add_argument("--output_individual_blobs", type=bool, default=False, help="")
     parser.add_argument("--display_blob_centroids", type=bool, default=True, help="")
     parser.add_argument("--display_gauss_centroids", type=bool, default=True, help="")
-    parser.add_argument("--denoise", type=bool, default=True, help="")
+    parser.add_argument("--denoise", type=bool, default=False, help="")
+    parser.add_argument("--size_denoise", type=int, default=3, help="")
     parser.add_argument("--flatten", type=bool, default=True, help="")
+    parser.add_argument("--size_median", type=int, default=9, help="")
+    parser.add_argument("--distance_threshold", type=int, default=31, help="")
     parser.add_argument("--num_blobs", type=int, default=5, help="")
-    parser.add_argument("--snr_threshold", type=int, default=5, help="")
+    parser.add_argument("--snr_threshold", type=int, default=50000, help="")
     parser.add_argument("--poi_max_size", type=int, default=50, help="")
     parser.add_argument("--poi_min_size", type=int, default=2, help="")
     parser.add_argument("--reject_saturation", type=bool, default=True, help="")
-    parser.add_argument("--centroid_size", type=int, default=True, help="")
+    parser.add_argument("--centroid_size", type=int, default=1, help="")
     parser.add_argument("--seed", type=int, default=1337, help="")
 
     args = parser.parse_args()
@@ -301,15 +316,87 @@ if __name__ == "__main__":
     assert (os.path.exists(args.input_path))
     assert (os.path.exists(args.output_path))
 
+    if args.use_latest:
+        default_date = datetime.strptime('20181110-105531', "%Y%m%d-%H%M%S")
+        most_recent = default_date
+        for res_folder in os.listdir(args.input_path):
+            try:
+                date = datetime.strptime(res_folder, "%Y%m%d-%H%M%S")
+            except:
+                continue
+
+            if date is None:
+                continue
+            elif date > most_recent:
+                most_recent = date
+
+        if most_recent == default_date:
+            raise Exception("No recent folders found!")
+
+        mr_folder = most_recent.strftime("%Y%m%d-%H%M%S")
+        args.coords_path= os.path.join(args.input_path, mr_folder, "data")
+        args.input_path= os.path.join(args.input_path, mr_folder, "images")
+
     #temp_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
     #image_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
     # Read in the K Matrix
-    for image_path in iglob(os.path.join(args.input_path, "*8115.png")):
-        num_test = 100
+    for image_path in iglob(os.path.join(args.input_path, args.input_pattern)):
+        num_test = 1
         test = np.zeros(num_test)
-        print(test.shape)
+        img_name = os.path.basename(image_path)
+
+        match = re.search(r"\d+", img_name)
+        if match is None:
+            print("Something happened. File not there")
+            continue
+
+        number = int(match.group())
+        if number is None:
+            print("Something happened. File not there")
+            continue
+
+        coord_file = os.path.join(args.coords_path, str(number) + args.coords_pattern + ".json")
+
+        with open(coord_file, 'r') as fp:
+            jl = json.load(fp)
+            E = jl["E"]
+            K = jl["K"]
+            E = np.array(E)
+            K = np.array(K)
+            K_inv = np.linalg.inv(K)
+            truth_stars = jl["stars"]
+
+        num_stars = len(truth_stars.keys())
+        star_names = list(truth_stars.keys())
+        truth_coords = np.zeros([2, num_stars])
+
+        for ii in range(num_stars):
+            star_name = star_names[ii]
+            # truth_coords[:, ii] = truth_stars[star_name]["vec_inertial"]
+            truth_coords[:, ii] = truth_stars[star_name]["pixel"]
+
         for ii in range(num_test):
             t1 = time()
-            centroiding_pipeline(image_path, args)
+            star_points = centroiding_pipeline(image_path, args)
             test[ii] = time() - t1
-    print(f"Took {np.mean(test):.2f} seconds on average. Std: {np.std(test):.2f}. {num_test} samples")
+
+            measured_coords = np.zeros([2, len(star_points)])
+            for star_point in star_points:
+                # [u,v] = star_point
+                # pc = np.array([[u, v, 1]],).T
+                # vc = K_inv @ pc
+                # vc[2] = np.sqrt(1 - vc[0]**2 -vc[1]**2)
+                measured_coords[:, ii] = star_point
+
+            # For now, we will use a KDTree to look for the right truth coordinates
+            threshold = 5.0
+            tree = cKDTree(truth_coords.T)
+            idx = tree.query_ball_point(x=measured_coords.T, r=threshold, p=1)
+            # index = [idx1 in idx if not idx1 is None]
+            for i, indices in enumerate(idx):
+                if indices:  # If there are truth points within the threshold
+                    closest_truth_coords = truth_coords[:, indices]
+                    closest_index = indices[np.argmin(np.linalg.norm(closest_truth_coords - measured_coords[:, i][:, np.newaxis], axis=0))]
+            print("Got the indicies!")
+
+        print(f"Took {np.mean(test):.2f} seconds on average. Std: {np.std(test):.2f}. {num_test} samples")

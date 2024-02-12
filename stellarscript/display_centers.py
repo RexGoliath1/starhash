@@ -10,9 +10,9 @@ import re
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-DEBUG_PROP_CATALOG = True
-DEBUG_STELLAR_COORDS = False
-DEBUG_STELLAR_POSITIONS = False
+DEBUG_PROP_CATALOG = False
+DEBUG_STELLAR_COORDS = True
+DEBUG_STELLAR_POSITIONS = True
 
 def xyz_to_coords(E, K, width, height):
     """ Function to convert proper motion contents to image coordinates """
@@ -78,17 +78,17 @@ if most_recent == default_date:
 print(f"Evaluating date {most_recent}")
 
 mr_folder = most_recent.strftime("%Y%m%d-%H%M%S")
-basedir = os.path.join(results_folder, mr_folder)
-image_dir = os.path.join(basedir, "images")
-coords_dir = os.path.join(basedir, "img_coords")
-ra_dec_dir = os.path.join(basedir, "ra_dec")
-outputdir = os.path.join(basedir, "overlay_images")
-os.makedirs(outputdir, exist_ok=True)
+OUTPUT_DIRECTORY = os.path.join(results_folder, mr_folder)
+IMAGE_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "images")
+POSITION_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "img_coords")
+RA_DEC_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "ra_dec")
+OVERLAY_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "overlay_images")
+os.makedirs(OVERLAY_OUTPUT_DIRECTORY, exist_ok=True)
 
 ### Plot everything and output
-for image in sorted(iglob(os.path.join(image_dir, "stellarium*.png"))):
+for image in sorted(iglob(os.path.join(IMAGE_OUTPUT_DIRECTORY, "stellarium*.png"))):
     image_name = os.path.basename(image)
-    output_file = os.path.join(outputdir, image_name)
+    output_file = os.path.join(OVERLAY_OUTPUT_DIRECTORY, image_name)
     img = cv2.imread(filename=image, flags=cv2.COLOR_BGR2RGB)
     height, width, channels = img.shape
 
@@ -101,7 +101,7 @@ for image in sorted(iglob(os.path.join(image_dir, "stellarium*.png"))):
 
     plt.figure(figsize=(img.shape[1] / 100, img.shape[0] / 100), dpi=100)  # Adjust dpi as needed
     
-    file = os.path.join(ra_dec_dir, f"{number - 1}_ra_dec.json")
+    file = os.path.join(RA_DEC_OUTPUT_DIRECTORY, f"{number - 1}_ra_dec.json")
     with open(file, 'r') as fp:
         jl = json.load(fp)
         coord = SkyCoord(ra=jl["ra"]*u.radian, dec=jl["dec"]*u.radian, frame='icrs')
@@ -115,7 +115,7 @@ for image in sorted(iglob(os.path.join(image_dir, "stellarium*.png"))):
 
     # Stellarium Stars
     if DEBUG_STELLAR_COORDS:
-        file = os.path.join(coords_dir, f"{number - 1}.json")
+        file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"camera_coordinates_{number - 1}.json")
         with open(file, 'r') as fp:
             jl = json.load(fp)
             coords = {k: np.array(v) for k, v in jl.items()}
@@ -133,10 +133,15 @@ for image in sorted(iglob(os.path.join(image_dir, "stellarium*.png"))):
 
     # Debugging.. For every stellarium star, check the xyz postion from HIP
     if DEBUG_STELLAR_POSITIONS:
-        file = os.path.join(coords_dir, f"positions_{number - 1}.json")
+        file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"inertial_positions_{number - 1}.json")
         with open(file, 'r') as fp:
             jl = json.load(fp)
             stellar_pos = {k: np.array(v) for k, v in jl.items()}
+
+        file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"camera_positions_{number - 1}.json")
+        with open(file, 'r') as fp:
+            jl = json.load(fp)
+            camera_pos = {k: np.array(v) for k, v in jl.items()}
 
         num_stars = len(stellar_pos.keys())
         num_stars_ae = 0 # Angle Error Stars
@@ -152,6 +157,7 @@ for image in sorted(iglob(os.path.join(image_dir, "stellarium*.png"))):
                 if dangle > ang_thresh:
                     num_stars_ae += 1
                     print(f"{star} Deltas Angle (arcsec): {dangle}")
+
 
         print(f"Star Outage: {num_stars_ae}/{num_stars} = {100.0 * num_stars_ae/num_stars:.2f}%")
 
@@ -169,6 +175,6 @@ for image in sorted(iglob(os.path.join(image_dir, "stellarium*.png"))):
         plt.title(f"Star Field at: {coord_hms_dms} with {len(pm_pos.keys())} HIP Stars")
 
     plt.imshow(img)
-    plt.savefig(os.path.join(outputdir, image_name), bbox_inches='tight')
+    plt.savefig(os.path.join(OVERLAY_OUTPUT_DIRECTORY, image_name), bbox_inches='tight')
     plt.close()
 
