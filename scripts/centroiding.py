@@ -1,3 +1,4 @@
+from operator import truth
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -13,6 +14,16 @@ from datetime import datetime
 from scipy.spatial import cKDTree
 import re
 import json
+from scipy.optimize import linear_sum_assignment
+
+# TODO: Proper Module
+import sys
+from pathlib import Path
+lib_path = Path(__file__).resolve().parent.parent / 'lib'
+sys.path.append(str(lib_path))
+
+from transform_utils import rotation_vector_from_matrices
+from attitude_determination import quest, davenport, triad, foma, svd, esoq2
 
 # Default Paths
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
@@ -32,6 +43,12 @@ blob_kwargs = {
 gauss_kwargs = {
     "color": (255, 0, 0),
     "radius": 10,
+    "thickness": 1,
+}
+
+truth_kwargs = {
+    "color": (0, 0, 255),
+    "radius": 20,
     "thickness": 1,
 }
 
@@ -77,6 +94,9 @@ def centroiding_pipeline(image_path, args):
 
     if args.output_plots:
         os.makedirs(output_path, exist_ok=True)
+        for ii in range(args.truth_coords.shape[1]):
+            [x,y] = args.truth_coords[:, ii]
+            centroid_img = cv2.circle(centroid_img, (int(x), int(y)), **truth_kwargs)
 
     if args.denoise:
         gray = cv2.GaussianBlur(gray, (args.size_denoise, args.size_denoise), 0)
@@ -364,16 +384,23 @@ if __name__ == "__main__":
             E = np.array(E)
             K = np.array(K)
             K_inv = np.linalg.inv(K)
+            T_cam_to_j2000 = E[:,:3]
             truth_stars = jl["stars"]
 
         num_stars = len(truth_stars.keys())
         star_names = list(truth_stars.keys())
         truth_coords = np.zeros([2, num_stars])
+        truth_vectors = np.zeros([3, num_stars])
 
+        truth_coords_list = []
         for ii in range(num_stars):
             star_name = star_names[ii]
             # truth_coords[:, ii] = truth_stars[star_name]["vec_inertial"]
             truth_coords[:, ii] = truth_stars[star_name]["pixel"]
+            truth_coords_list.append(truth_stars[star_name]["pixel"])
+            truth_vectors[:, ii] = truth_stars[star_name]["vec_inertial"]
+
+        args.truth_coords = truth_coords
 
         for ii in range(num_test):
             t1 = time()
@@ -381,22 +408,59 @@ if __name__ == "__main__":
             test[ii] = time() - t1
 
             measured_coords = np.zeros([2, len(star_points)])
-            for star_point in star_points:
-                # [u,v] = star_point
-                # pc = np.array([[u, v, 1]],).T
-                # vc = K_inv @ pc
-                # vc[2] = np.sqrt(1 - vc[0]**2 -vc[1]**2)
-                measured_coords[:, ii] = star_point
+            measured_vectors = np.zeros([3, len(star_points)])
+            for jj, star_point in enumerate(star_points):
+                [u,v] = star_point
+                pc = np.array([[u, v, 1]],).T
+                vc = K_inv @ pc
+                vc[2] = np.sqrt(1 - vc[0]**2 -vc[1]**2)
+                measured_vectors[:, jj] = vc.T
+                measured_coords[:, jj] = star_point
 
-            # For now, we will use a KDTree to look for the right truth coordinates
-            threshold = 5.0
-            tree = cKDTree(truth_coords.T)
-            idx = tree.query_ball_point(x=measured_coords.T, r=threshold, p=1)
-            # index = [idx1 in idx if not idx1 is None]
+            # For now, we will use a KDTree / Hungarian Algorithm to map our centriods to true pixel locations
+            threshold = 10.0
+            max_cost = threshold * 1000
+            assert(threshold < max_cost)
+            tree = cKDTree(truth_coords_list)
+            idx = tree.query_ball_point(x=star_points, r=threshold, p=2)
+            cost_matrix = np.full((len(star_points), len(truth_coords_list)), max_cost)
+
             for i, indices in enumerate(idx):
-                if indices:  # If there are truth points within the threshold
-                    closest_truth_coords = truth_coords[:, indices]
-                    closest_index = indices[np.argmin(np.linalg.norm(closest_truth_coords - measured_coords[:, i][:, np.newaxis], axis=0))]
-            print("Got the indicies!")
+                for truth_index in indices:
+                    distance = np.linalg.norm(np.array(truth_coords_list[truth_index]) - np.array(star_points[i]))
+                    cost_matrix[i, truth_index] = distance
+
+            measured_indicies, truth_indices = linear_sum_assignment(cost_matrix)
+
+            valid_assignments = cost_matrix[measured_indicies, truth_indices] < threshold
+            measured_indicies = measured_indicies[valid_assignments]
+            truth_indices = truth_indices[valid_assignments]
+
+            # If successful, vb and vi should be the 1:1 mapping of centroid vectors to inertial truth
+            vb = measured_vectors[:, measured_indicies]
+            vi = truth_vectors[:, truth_indices]
+
+            # TODO: Maybe randomize selections? 
+            # Probably want to test all combinations of (vb.shape[1] choose vectors)
+            quest_vectors = 4
+            if quest_vectors is not None and quest_vectors < vb.shape[1]:
+                rng = np.random.default_rng()
+                vectors = rng.choice(vb.shape[1], size=quest_vectors, replace=False)
+                vb = vb[:, vectors]
+                vi = vi[:, vectors]
+
+            w = np.ones(vb.shape[1])
+            C_opt, q_opt = quest(vb, vi, w)
+            # TODO: Nope, this is broken somewhere, the E matrix looks transposed, but no combinations work
+            rot_vec_error = rotation_vector_from_matrices(T_cam_to_j2000, C_opt)
+            rv_deg = np.degrees(rot_vec_error)
+            rv_as = rv_deg * 3600
+            rv_mas = 1000 * rv_as
+
+            print(f"rv_mag_mas: {np.linalg.norm(rv_mas):.2f} rot_vec_error: {rv_mas} (Milli Arc-Seconds)")
+            print(f"rv_mag_as: {np.linalg.norm(rv_as):.2f} rot_vec_error: {rv_as} (Arc-Seconds)")
+            print(f"rv_mag_deg: {np.linalg.norm(rv_deg):.2f} rot_vec_error: {rv_deg} (Degrees)")
+
+            print("Finished matching!")
 
         print(f"Took {np.mean(test):.2f} seconds on average. Std: {np.std(test):.2f}. {num_test} samples")
