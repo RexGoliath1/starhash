@@ -342,8 +342,8 @@ class Stellarium():
             if 0 <= uv[0] <= self.width and 0 <= uv[1] <= self.height:
                 output[obj_name] = {}
                 output[obj_name]["pixel"] = uv
-                output[obj_name]["vec_camera"] = [x, y, z]
-                output[obj_name]["vec_inertial"] = x_c.flatten().tolist()
+                output[obj_name]["vec_camera"] = x_c.flatten().tolist()
+                output[obj_name]["vec_inertial"] = [x, y, z]
 
         return output
 
@@ -552,7 +552,6 @@ class Stellarium():
         self.E = np.concatenate((self.R, t.T), axis=1)
 
     def get_quaternions(self, coords):
-
         # Number of stars in frame
         num_stars = len(set(coords.keys()))
 

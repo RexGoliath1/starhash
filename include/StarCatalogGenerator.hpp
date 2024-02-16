@@ -2,7 +2,6 @@
 #define CATALOG_GENERATOR_SH
 
 #include "H5Cpp.h"
-#include <Eigen/Dense>
 #include <algorithm>
 #include <array>
 #include <assert.h>

@@ -22,14 +22,13 @@ from pathlib import Path
 lib_path = Path(__file__).resolve().parent.parent / 'lib'
 sys.path.append(str(lib_path))
 
-from transform_utils import rotation_vector_from_matrices
+from transform_utils import rotation_vector_from_matrices, vectors_to_angle
 from attitude_determination import quest, davenport, triad, foma, svd, esoq2
 
 # Default Paths
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
 # IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "images")
-IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "stellarscript", "results")
 IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "stellarscript", "results")
 OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results")
 DEFAULT_CONFIG = os.path.join(CURRENT_DIRECTORY, "centroiding.yaml")
@@ -391,6 +390,7 @@ if __name__ == "__main__":
         star_names = list(truth_stars.keys())
         truth_coords = np.zeros([2, num_stars])
         truth_vectors = np.zeros([3, num_stars])
+        truth_body_vectors = np.zeros([3, num_stars])
 
         truth_coords_list = []
         for ii in range(num_stars):
@@ -399,6 +399,7 @@ if __name__ == "__main__":
             truth_coords[:, ii] = truth_stars[star_name]["pixel"]
             truth_coords_list.append(truth_stars[star_name]["pixel"])
             truth_vectors[:, ii] = truth_stars[star_name]["vec_inertial"]
+            truth_body_vectors[:, ii] = truth_stars[star_name]["vec_camera"]
 
         args.truth_coords = truth_coords
 
@@ -438,10 +439,20 @@ if __name__ == "__main__":
 
             # If successful, vb and vi should be the 1:1 mapping of centroid vectors to inertial truth
             vb = measured_vectors[:, measured_indicies]
+            mc = measured_coords[:, measured_indicies]
             vi = truth_vectors[:, truth_indices]
+            tc = truth_coords[:, truth_indices]
 
-            # TODO: Maybe randomize selections? 
-            # Probably want to test all combinations of (vb.shape[1] choose vectors)
+            vc_truth = truth_body_vectors[:, truth_indices]
+
+            # Sanity checks
+            for vnum in range(0, len(truth_vectors)):
+                print(f"Truth: ({tc[:, vnum]}) ; Measured: ({mc[:, vnum]})")
+                print(f"Truth Vector : ({vc_truth[:, vnum]}) ; Measured Vector: ({vb[:, vnum]})")
+                ang = np.degrees(vectors_to_angle(vc_truth[:, vnum], vb[:, vnum]))
+                print(f"Angle Between Centroid and Star: {ang:.2f}")
+
+            # TODO: Plot all attitude accuracy combinations of pattern size
             quest_vectors = 4
             if quest_vectors is not None and quest_vectors < vb.shape[1]:
                 rng = np.random.default_rng()

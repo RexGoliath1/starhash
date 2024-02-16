@@ -1,10 +1,13 @@
 import numpy as np
 
+def vectors_to_angle(v1: np.ndarray, v2: np.ndarray):
+    return np.arccos(np.dot(v1, v2)) / np.abs(np.linalg.norm(v1) * np.linalg.norm(v2))
+
 # Function to rotate vectors by a given rotation matrix
-def rotate_vectors(vectors, rotation_matrix):
+def rotate_vectors(vectors: np.ndarray, rotation_matrix: np.ndarray):
     return np.dot(vectors, rotation_matrix.T)
 
-def rotation_angle(rotation_matrix1, rotation_matrix2):
+def rotation_angle(rotation_matrix1: np.ndarray, rotation_matrix2: np.ndarray):
     rotation_matrix1 = normalize_rotation_matrix(rotation_matrix1)
     rotation_matrix2 = normalize_rotation_matrix(rotation_matrix2)
 
@@ -15,7 +18,7 @@ def rotation_angle(rotation_matrix1, rotation_matrix2):
 
     return np.degrees(angle)
 
-def rotation_vector_from_matrices(rotation_matrix1, rotation_matrix2):
+def rotation_vector_from_matrices(rotation_matrix1: np.ndarray, rotation_matrix2: np.ndarray):
     R = rotation_matrix2 @ np.linalg.inv(rotation_matrix1)
     
     # Ensure the rotation matrix is orthogonal
@@ -36,10 +39,8 @@ def rotation_vector_from_matrices(rotation_matrix1, rotation_matrix2):
     return rotation_vector
 
 
-def normalize_rotation_matrix(rotation_matrix):
-    # Orthogonalize the rotation matrix using QR decomposition
+def normalize_rotation_matrix(rotation_matrix: np.ndarray):
     Q, R = np.linalg.qr(rotation_matrix)
-    # Ensure the determinant is positive
     if np.linalg.det(Q) < 0:
         Q *= -1
     return Q
