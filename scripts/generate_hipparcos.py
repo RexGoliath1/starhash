@@ -12,28 +12,36 @@ import re
 
 plot_kde = False
 plot_rade = False
-plot_rade_change = True
+plot_rade_change = False
 
-assert int(plot_kde) + int(plot_rade) + int(plot_rade_change) == 1
+assert int(plot_kde) + int(plot_rade) + int(plot_rade_change) <= 1
 
 def set_sky_coord(result, ref_time):
+
+    plx = u.Quantity(result['Plx'])
+    distance = Distance(parallax=plx, allow_negative=True)
     coord = SkyCoord(
+        frame = "icrs",
         obstime = ref_time,
         ra = result["RArad"],
         dec = result["DErad"],
-        distance=result['Plx'], # mas
+        distance=distance,
+        # distance=result['Plx'],
         pm_ra_cosdec = result['pmRA'], # mas/yr
         pm_dec = result['pmDE'], # mas/yr
     )
     return coord
 
 # set the reference time for proper motion calculations
-ref_time = Time('2000-01-01')
-
+ref_time = Time('2000-01-01 12:00:00.000')
 
 # set the date to calculate the updated positions (Use now for testing)
-update_time = Time.now()
-update_time = Time('2005-01-01')
+# update_time = Time.now()
+# update_time = Time('2005-01-01')
+# update_time = Time('2024-02-03 12:00:00.000')
+# update_time = Time('2022-09-11T17:55:01', format='isot', scale='tcb')
+update_time = Time('2024-02-25T17:59:34', format='isot', scale='tcb')
+# update_time = Time('2000-01-01 12:00:00.000')
 
 catalog = "I/311/hip2"
 output_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "hipparcos.csv")
@@ -48,7 +56,13 @@ columns = [
     "pmRA",
     "pmDE",
     "Hpmag",
-    "B-V"
+    "B-V",
+    "e_Plx",
+    "e_pmRA",
+    "e_pmDE",
+    "sHp",
+    "e_B-V",
+    "V-I"
 ]
 
 ra = 0.0
@@ -64,6 +78,7 @@ else:
     result = result[0]
     ref_time_string = re.findall("\d+\.\d+", result["RArad"].description)[0]
     ref_time = Time(ref_time_string, format='jyear', scale='tcb')
+    # ref_time = Time('2000-01-01')
 
     # There are apparently some negative parallaxes in the Hipparcos and Gaia catalogs. 
     # These are converted to NaN distances.
@@ -76,16 +91,28 @@ else:
     #distance = Distance(parallax=plx, allow_negative=True)
 
     c = set_sky_coord(result, ref_time)
-    coords_updated = c.apply_space_motion(new_obstime=update_time)
 
     updated_result = result.copy()
-    updated_result["RAdeg"] = coords_updated.ra.deg
-    updated_result["DEdeg"] = coords_updated.dec.deg
+    updated_result["RAdeg"] = c.icrs.ra.deg
+    updated_result["DEdeg"] = c.icrs.dec.deg
+
+    coords_updated = c.apply_space_motion(new_obstime=update_time)
+
+    # Trying to match original tsv...
+    # updated_result["RArad"] = coords_updated.fk5.ra.deg
+    # updated_result["DErad"] = coords_updated.fk5.dec.deg
+    updated_result["_RAJ2000"] = coords_updated.fk5.ra.deg
+    updated_result["_DEJ2000"] = coords_updated.fk5.dec.deg
+    updated_result["_RAICRS"] = coords_updated.icrs.ra.deg
+    updated_result["_DEICRS"] = coords_updated.icrs.dec.deg
+    # updated_result["_RAJ2000"] = c.fk5.ra.deg
+    # updated_result["_DEJ2000"] = c.fk5.dec.deg
 
 
     #v.coordinates = c
     df = updated_result.to_pandas()
-    df.sort_values('Hpmag', inplace=True)
+    # df.sort_values('Hpmag', inplace=True)
+    df.sort_values('HIP', inplace=True)
     df.to_csv(output_file, index=False)
 
     if plot_kde:

@@ -19,6 +19,7 @@
 #include <list>
 #include <math.h>
 #include <memory>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -134,11 +135,12 @@ private:
   const double mas2rad = mas2arcsec * arcsec2deg * deg2rad;
   const double au2km = 149597870.691;
 
-  float hip_byear = 1991.25; // Hipparcos Besellian Epoch
+  bool ut_pm = false;
   unsigned int hip_columns = 10;
   unsigned int hip_header_rows = 53;
   // TODO: Replace with astropy script input. For now it's manual.
-  float current_byear = 2024.0921411361237; // Current Besellian Epoch
+  float hip_jyear = 2000.0;                 // Hipparcos Epoch (Julian Year)
+  float current_jyear = 2024.0903490759754; // Launch Epoch (Julian Year)
   // float current_byear = 1991.25;// Current Besellian Epoch
   std::string year_str;
 
@@ -147,16 +149,16 @@ private:
   // Default thresholding parameters (Default tetra amounts are in readme)
   // float brightness_thresh = 11; // Minimum brightness of db
   float brightness_thresh =
-      0.0; // Minimum brightness of db. Checking entire catalog prop
+      100.0; // Minimum brightness of db. Checking entire catalog prop
   // float brightness_thresh = 6.5; // Minimum brightness of db
   double min_separation_angle =
-      0.3; // Minimum angle between 2 stars (ifov degrees or equivilent for
-           // dealing with double / close stars)
+      0.05; // Minimum angle between 2 stars (ifov degrees or equivilent for
+            // dealing with double / close stars)
   double min_separation = std::cos(
       min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
   unsigned int pattern_stars_per_fov = 10;
   unsigned int catalog_stars_per_fov = 20;
-  double max_fov_angle = 25;
+  double max_fov_angle = 20;
   double max_fov_dist = std::cos(max_fov_angle * deg2rad);
   double max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
   unsigned int temp_star_bins = 4;

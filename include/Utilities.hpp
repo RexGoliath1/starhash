@@ -1,9 +1,7 @@
 #ifndef UTILITIES_SH
 #define UTILITIES_SH
 
-#include <iostream>
 #include <filesystem>
-#include <limits.h>
 
 // Check for the operating system
 #if defined(__linux__)
@@ -15,5 +13,6 @@
 namespace fs = std::filesystem;
 
 fs::path get_executable_path();
+void show_progress_bar(int progress, int total);
 
 #endif // UTILITIES_SH
