@@ -18,3 +18,5 @@
 **/.DS_Store
 **/package-lock.json
 
+.cache/clangd/*
+**/*.hdf5

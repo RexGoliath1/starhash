@@ -31,12 +31,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME})
 
 # Find Package
-set(OpenCV_DIR /home/gonk/opencv/build)
 option(OpenCV_STATIC OFF)
 find_package(OpenCV REQUIRED)
 find_package(HDF5 COMPONENTS C CXX HL REQUIRED)
 find_package(PkgConfig)
 find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(yaml-cpp REQUIRED)
 
 list(APPEND USER_INC ${PROJECT_SOURCE_DIR}/include)
 
@@ -56,6 +56,7 @@ if (HDF5_FOUND)
     list(APPEND USER_INC ${HDF5_INCLUDE_DIRS})
     list(APPEND LINK_LIBS ${HDF5_CXX_LIBRARIES})
 endif()
+
 
 list(APPEND USER_INC ${PROJECT_SOURCE_DIR/include})
 
@@ -82,5 +83,5 @@ add_executable(${CMAKE_PROJECT_NAME} ${ALL_SRC})
 link_directories(${OpenCV_LIB_DIR} ${HDF5_LIBRARY_DIRS})
 
 # Additional Dependencies
-target_link_libraries(${CMAKE_PROJECT_NAME} ${LINK_LIBS} Eigen3::Eigen)
+target_link_libraries(${CMAKE_PROJECT_NAME} ${LINK_LIBS} Eigen3::Eigen yaml-cpp::yaml-cpp)
 

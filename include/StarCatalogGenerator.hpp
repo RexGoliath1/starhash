@@ -2,25 +2,13 @@
 #define CATALOG_GENERATOR_SH
 
 #include "H5Cpp.h"
-#include <algorithm>
-#include <array>
-#include <assert.h>
-#include <chrono>
+#include "yaml-cpp/yaml.h"
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <functional>
-#include <inttypes.h>
-#include <iomanip>
-#include <iostream>
-#include <list>
-#include <math.h>
-#include <memory>
-#include <numeric>
-#include <sstream>
 #include <string>
 #include <sys/stat.h>
 #include <type_traits>
@@ -29,6 +17,35 @@
 
 #include "Utilities.hpp"
 #include "eigen_mods.hpp"
+
+namespace fs = std::filesystem;
+
+// Defaults
+inline fs::path app_path = get_executable_path();
+inline fs::path base_path = app_path.parent_path();
+inline fs::path default_config_path = base_path / "data/config.yaml";
+
+// Constants
+const double deg2rad    = M_PI / 180.0;
+const double arcsec2deg = (1.0 / 3600.0);
+const double mas2arcsec = (1.0 / 1000.0);
+const double mas2rad    = mas2arcsec * arcsec2deg * deg2rad;
+const double au2km      = 149597870.691;
+
+// Input Catalog Columns
+enum {
+  RA_J2000 = 0,
+  DE_J2000,
+  HIP,
+  RA_ICRS,
+  DE_ICRS,
+  PLX,
+  PMRA,
+  PMDE,
+  HPMAG,
+  COLOUR,
+  SIZE_ELEMS
+};
 
 // Some macro defines to debug various functions before valgrid setup
 // #define DEBUG_HIP
@@ -39,7 +56,6 @@
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
 // #define DEBUG_PATTERN_CATALOG
 
-namespace fs = std::filesystem;
 
 const unsigned int hip_rows = 117955;
 const unsigned int hip_cols = 10;
@@ -57,13 +73,6 @@ template <typename T, typename Result> struct unary_function {
 
 template <typename T> struct matrix_hash : unary_function<T, std::size_t> {
   std::size_t operator()(T const &matrix) const {
-    // template <typename T> struct matrix_hash : std::unary_function<T, size_t>
-    // {
-    //   std::size_t operator()(T const &matrix) const {
-    // Note that it is oblivious to the storage order of Eigen matrix (column-
-    // or row-major). It will give you the same hash value for two different
-    // matrices if they are the transpose of each other in different storage
-    // order.
     size_t seed = 0;
     for (size_t i = 0; i < (size_t)matrix.size(); ++i) {
       auto elem = *(matrix.data() + i);
@@ -87,102 +96,61 @@ const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
 
 class StarCatalogGenerator {
 public:
-  StarCatalogGenerator(const std::string &in_file, const std::string &out_file);
-  // StarCatalogGenerator(const std::string& in_file = default_hipparcos_path,
-  //     const std::string& out_file = default_catalog_path);
-  explicit StarCatalogGenerator();
+  StarCatalogGenerator();
   ~StarCatalogGenerator();
 
   bool load_pattern_catalog();
-  // Pipeline method for everything
-  void run_pipeline();
+  void run();
 
 private:
-  fs::path app_path = get_executable_path();
-  fs::path default_hipparcos_path = app_path / "../data/hipparcos.tsv";
-  // TODO: Resultize
-  fs::path default_catalog_path = app_path / "../results/output.h5";
-
   fs::path input_catalog_file;
   fs::path output_catalog_file;
   Eigen::MatrixXd input_catalog_data;
   Eigen::MatrixXd proper_motion_data;
 
-  // filter_star_separation outputs
-  Eigen::MatrixXd
-      star_table; // Post star separation check table with PM corrected ICRS
-                  // angles for "verificeation stars".
-  std::vector<int> pattern_stars; // Vector of "Pattern stars" satisfying
-                                  // separation thresholds
-
+  // @brief Post star separation check table with PM corrected ICRS
+  Eigen::MatrixXd star_table; 
+  // @brief Vector of "Pattern stars" satisfying separation thresholds
+  std::vector<int> pattern_stars; 
   CoarseSkyMap coarse_sky_map;
   Eigen::ArrayXd edges;
-
-  bool regenerate_catalog = true;
-
-  // TODO: Load dynamically through some kind of configuration
-  const unsigned int pattern_size = 4;
-  const unsigned int num_pattern_angles =
-      (pattern_size * (pattern_size - 1)) / 2;
-  ;
-
+  bool regenerate;
+  unsigned int pattern_size;
+  unsigned int num_pattern_angles;
   int total_catalog_stars = 0;
-  int number_hippo_stars_bright = 0;
 
-  const double deg2rad = M_PI / 180.0;
-  const double arcsec2deg = (1.0 / 3600.0);
-  const double mas2arcsec = (1.0 / 1000.0);
-  const double mas2rad = mas2arcsec * arcsec2deg * deg2rad;
-  const double au2km = 149597870.691;
-
-  bool ut_pm = false;
+  bool ut_pm;
   unsigned int hip_columns = 10;
   unsigned int hip_header_rows = 53;
-  // TODO: Replace with astropy script input. For now it's manual.
-  float hip_jyear = 2000.0;                 // Hipparcos Epoch (Julian Year)
-  float current_jyear = 2024.0903490759754; // Launch Epoch (Julian Year)
-  // float current_byear = 1991.25;// Current Besellian Epoch
+
+  float catalog_jyear;
+  float target_jyear;
   std::string year_str;
 
+  // @brief Observer position relative to Barycentric Celestial Reference System (get_earth_ssb.py)
+  Eigen::RowVector3d bcrf_position;
   Eigen::MatrixXd bcrf_frame;
 
-  // Default thresholding parameters (Default tetra amounts are in readme)
-  // float brightness_thresh = 11; // Minimum brightness of db
-  float brightness_thresh =
-      100.0; // Minimum brightness of db. Checking entire catalog prop
-  // float brightness_thresh = 6.5; // Minimum brightness of db
-  double min_separation_angle =
-      0.05; // Minimum angle between 2 stars (ifov degrees or equivilent for
-            // dealing with double / close stars)
-  double min_separation = std::cos(
-      min_separation_angle * deg2rad); // Minimum norm distance between 2 stars
-  unsigned int pattern_stars_per_fov = 10;
-  unsigned int catalog_stars_per_fov = 20;
-  double max_fov_angle = 20;
-  double max_fov_dist = std::cos(max_fov_angle * deg2rad);
-  double max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
-  unsigned int temp_star_bins = 4;
-  int pattern_bins = 25;
+  // @brief Default thresholding parameters
+  float magnitude_thresh;
+  // @brief Minimum angle between 2 stars (ifov degrees or equivilent for double stars
+  double min_separation_angle;
+  // @brief Minimum norm distance between 2 stars
+  double min_separation;
+  unsigned int pattern_stars_per_fov;
+  unsigned int catalog_stars_per_fov;
+  double max_fov_angle;
+  double max_fov_dist;
+  double max_half_fov_dist;
+  unsigned int intermediate_star_bins;
+  // @brief TODO: check why int
+  int pattern_bins;
 
   // Global counter for pattern_list
   int pattern_list_size = 0;
-  int pattern_list_growth = 20000;
-  int index_pattern_debug_freq = 10000;
-  int separation_debug_freq = 10000;
-
-  enum {
-    RA_J2000 = 0,
-    DE_J2000,
-    HID,
-    RA_ICRS,
-    DE_ICRS,
-    PLX,
-    PMRA,
-    PMDE,
-    HPMAG,
-    COLOUR,
-    SIZE_ELEMS
-  };
+  int pattern_list_growth;
+  int index_pattern_debug_freq;
+  int separation_debug_freq;
 
   // TODO: Inspect if python is doing things with this.. Currently > INT_MAX so
   // modulo is of -1640531535
@@ -192,40 +160,30 @@ private:
   const int magic_number = 2654435761;
 #pragma GCC diagnostic pop
 
-  void create_new_catalog();
-
-  bool pattern_catalog_file_exists();
+  void read_yaml(fs::path config_path = default_config_path);
 
   // Initial catalog transforms
-  bool read_hipparcos();
+  bool read_input_catalog();
   void convert_hipparcos();
   void sort_star_magnitudes();
-  void init_besselian_year(); // TODO: Time is hard
   void init_bcrf();
   void correct_proper_motion();
 
-  // Star angular thresholding (wrt other starts and optical axis)
   void filter_star_separation();
-  bool is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list,
-                              std::vector<int> nearby_star_pattern);
-  void get_nearby_stars(Eigen::Vector3d star_vector,
-                        std::vector<int> &nearby_stars);
+  bool is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_star_pattern);
+  void get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int> &nearby_stars);
   void get_star_edge_pattern(Eigen::VectorXi pattern);
-  void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list,
-                                std::vector<int> nearby_stars, int star_id);
+  void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_stars, int star_id);
 
   // Intermediate hash table functions
   void init_output_catalog();
 
   // Final star edge pattern hash table (from paper / code)
-  int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins,
-                   const unsigned int catalog_length);
+  int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length);
   void generate_output_catalog();
 
   template <typename Derived>
-  void output_hdf5(std::string filepath, std::string dataset,
-                   const Eigen::MatrixBase<Derived> &matrix,
-                   bool truncate = false) {
+  void output_hdf5(std::string filepath, std::string dataset, const Eigen::MatrixBase<Derived> &matrix, bool truncate = false) {
 
     // Decide if overwritting or appending
     H5::H5File h5_file;
@@ -247,6 +205,7 @@ private:
       datatype = H5::PredType::NATIVE_DOUBLE;
     } else {
       // Handle other types or throw an error
+      throw std::runtime_error("Unknown datatype");
     }
 
     // Create the data array
@@ -283,11 +242,6 @@ private:
       delete[] arr[i];
     }
     delete[] arr;
-
-    // for (size_t i = pc_cols; i > 0; ) {
-    //     delete[] data_arr[--i];
-    // }
-    // delete[] data_arr;
   }
 
   // Generic Eigen 2 csv writer

@@ -57,8 +57,8 @@ int main(int argc, char **argv) {
   }
 
 #ifndef SKIP_CATALOG_CREATE
-  StarCatalogGenerator catalog(hipparcos_file, p_cat_out_file);
-  catalog.run_pipeline();
+  StarCatalogGenerator catalog;
+  catalog.run();
 #endif
 
   StarSolver solver(max_contours, max_points_per_contour, output_path);

@@ -111,9 +111,10 @@ else:
 
     #v.coordinates = c
     df = updated_result.to_pandas()
+
     # df.sort_values('Hpmag', inplace=True)
     df.sort_values('HIP', inplace=True)
-    df.to_csv(output_file, index=False)
+    df.to_csv(output_file, index=False, header=True)
 
     if plot_kde:
         # Make a KDE plot of RA and Dec
@@ -188,7 +189,6 @@ else:
         fig, ax = plt.subplots(figsize=(16, 9), dpi=1920/16)
         cm = plt.cm.get_cmap('Reds_r')
 
-        #def animate(fig, ax, year):
         def animate(year):
             print(f"Year = {year}")
             time = Time(f"{year}-01-01")
@@ -237,10 +237,6 @@ else:
                     ax.annotate(label, (x[ii], y[ii]))
 
             ax.set_title(f"Time: [{time}] HIP RA/DEC. Number of stars: {df.shape[0]}")
-            #plt.show()
-
-        #for year in range(start_year, end_year):
-        #    animate(fig, ax, year)
 
         ani = animation.FuncAnimation(fig, animate, interval=100, frames=list(range(start_year, end_year, skip_years)))
         ani.save('animation.gif', writer='pillow')

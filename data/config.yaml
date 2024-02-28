@@ -1,0 +1,27 @@
+catalog:
+  regenerate: true
+  target_jyear: 2024.0903490759754
+  catalog_jyear: 2000.0
+  target_bcrf_position: [-0.97593161, -0.19017534, -0.08252697]
+  input_catalog_file: "data/hipparcos.tsv"
+  output_catalog_file: "results/output.h5"
+  pattern_size: 4
+  pattern_stars_per_fov: 10
+  catalog_stars_per_fov: 20
+  magnitude_thresh: 6.0
+  max_fov_angle: 20.0
+  intermediate_star_bins: 4
+  pattern_bins: 25
+  min_separation_angle: 0.05
+debug:
+  input_catalog: true
+  proper_motion: true
+  hash_function: false
+  nearby_stars: false
+  nearby_star_patterns: false
+  pattern_catalog: false
+  pattern_list_growth: 20000
+  index_pattern_debug_freq: 10000
+  separation_debug_freq: 10000
+unit_test:
+  proper_motion: false

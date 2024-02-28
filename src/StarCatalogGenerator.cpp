@@ -1,13 +1,23 @@
 #include "StarCatalogGenerator.hpp"
+#include <algorithm>
+#include <assert.h>
+#include <iomanip>
+#include <iostream>
+#include <numeric>
+#include <sstream>
 
-StarCatalogGenerator::StarCatalogGenerator(const std::string &in_file,
-                                           const std::string &out_file) {
-  input_catalog_file = in_file;
-  output_catalog_file = out_file;
+StarCatalogGenerator::StarCatalogGenerator() {
+  // First let's get the catalog length
+  read_yaml();
+
+  // Config dependant variables
+  num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
+  min_separation = std::cos(min_separation_angle * deg2rad); 
+  max_fov_dist = std::cos(max_fov_angle * deg2rad);
+  max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
 
   std::ostringstream stream;
-  stream << std::fixed << std::setprecision(2)
-         << current_jyear; // Set precision to 2 decimal places
+  stream << std::fixed << std::setprecision(2) << target_jyear;
   year_str = stream.str();
 
   edges.resize(num_pattern_angles);
@@ -17,18 +27,42 @@ StarCatalogGenerator::StarCatalogGenerator(const std::string &in_file,
   bcrf_frame.resize(hip_rows, 3);
   bcrf_frame.setZero();
 
-  // init_besselian_year();
   init_bcrf();
 }
 
-StarCatalogGenerator::StarCatalogGenerator()
-    : StarCatalogGenerator(default_hipparcos_path, default_catalog_path) {}
-
 StarCatalogGenerator::~StarCatalogGenerator() {}
 
-bool StarCatalogGenerator::pattern_catalog_file_exists() {
-  struct stat buffer;
-  return (stat(output_catalog_file.c_str(), &buffer) == 0);
+void StarCatalogGenerator::read_yaml(fs::path config_path) {
+  YAML::Node config = YAML::LoadFile(config_path.c_str());
+
+  regenerate = config["catalog"]["regenerate"].as<bool>();
+  target_jyear = config["catalog"]["target_jyear"].as<double>();
+  catalog_jyear = config["catalog"]["catalog_jyear"].as<double>();
+
+  std::vector<double> target_bcrf_position;
+  target_bcrf_position = config["catalog"]["target_bcrf_position"].as<std::vector<double>>();
+  bcrf_position = Eigen::Map<Eigen::RowVectorXd, Eigen::Unaligned>(target_bcrf_position.data(), target_bcrf_position.size());
+
+  // TODO: Extend to multiple input catalogs
+  input_catalog_file = config["catalog"]["input_catalog_file"].as<std::string>();
+  input_catalog_file = base_path / input_catalog_file;
+  assert(fs::exists(input_catalog_file));
+  output_catalog_file = config["catalog"]["output_catalog_file"].as<std::string>();
+  output_catalog_file = base_path / output_catalog_file;
+  pattern_size = config["catalog"]["pattern_size"].as<unsigned int>();
+  pattern_stars_per_fov = config["catalog"]["pattern_stars_per_fov"].as<unsigned int>();
+  catalog_stars_per_fov = config["catalog"]["catalog_stars_per_fov"].as<unsigned int>();
+  magnitude_thresh = config["catalog"]["magnitude_thresh"].as<double>();
+  max_fov_angle = config["catalog"]["max_fov_angle"].as<double>();
+  intermediate_star_bins = config["catalog"]["intermediate_star_bins"].as<unsigned int>();
+  pattern_bins = config["catalog"]["pattern_bins"].as<int>();
+  min_separation_angle = config["catalog"]["min_separation_angle"].as<double>();
+
+  pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
+  index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
+  separation_debug_freq = config["debug"]["separation_debug_freq"].as<int>();
+
+  ut_pm = config["unit_test"]["proper_motion"].as<bool>();
 }
 
 bool StarCatalogGenerator::load_pattern_catalog() {
@@ -44,7 +78,13 @@ bool StarCatalogGenerator::load_pattern_catalog() {
   return true;
 }
 
-bool StarCatalogGenerator::read_hipparcos() {
+bool StarCatalogGenerator::read_input_catalog() {
+  // Check catalog exists
+  if (!fs::exists(input_catalog_file)) {
+    std::cout << "DNE: " << input_catalog_file << std::endl;
+    return false;
+  }
+
   std::ifstream data(input_catalog_file.c_str());
   unsigned int rcnt = 0, ccnt = 0;
   std::string lstr;
@@ -78,7 +118,7 @@ bool StarCatalogGenerator::read_hipparcos() {
     }
 
     // If magnitude is below threshold, zero out row and continue
-    if ((ccnt > 0) && (float(temp_catalog(rcnt, HPMAG)) < brightness_thresh)) {
+    if ((ccnt > 0) && (float(temp_catalog(rcnt, HPMAG)) < magnitude_thresh)) {
       idx.push_back(rcnt);
       rcnt++;
     } else if (ccnt > 0) {
@@ -183,8 +223,8 @@ void StarCatalogGenerator::correct_proper_motion() {
   int de_row = DE_J2000;
 
   if (ut_pm) {
-    hip_jyear = 1991.25;
-    current_jyear = 2000.0;
+    catalog_jyear = 1991.25;
+    target_jyear = 2000.0;
     ra_row = RA_ICRS;
     de_row = DE_ICRS;
   }
@@ -211,7 +251,7 @@ void StarCatalogGenerator::correct_proper_motion() {
   q_hat.col(2) = input_catalog_data.col(de_row).array().cos();
 
   proper_motion_data =
-      (current_jyear - hip_jyear) *
+      (target_jyear - catalog_jyear) *
       (p_hat.array().colwise() * input_catalog_data.col(PMRA).array() +
        q_hat.array().colwise() * input_catalog_data.col(PMDE).array());
 
@@ -417,14 +457,14 @@ void StarCatalogGenerator::get_nearby_stars(Eigen::Vector3d star_vector,
   Eigen::Vector3i low_codes, high_codes;
   Eigen::Vector3i codes;
   Eigen::Vector3i zeros = Eigen::Vector3i::Zero();
-  Eigen::Vector3i bin_limit = int(2 * temp_star_bins) * Eigen::Vector3i::Ones();
+  Eigen::Vector3i bin_limit = int(2 * intermediate_star_bins) * Eigen::Vector3i::Ones();
   std::vector<int> star_ids;
 
   low_codes =
-      (temp_star_bins * (star_vector.array() + 1.0 - max_fov_dist)).cast<int>();
+      (intermediate_star_bins * (star_vector.array() + 1.0 - max_fov_dist)).cast<int>();
   low_codes.array().max(zeros.array());
   high_codes =
-      (temp_star_bins * (star_vector.array() + 1.0 + max_fov_dist)).cast<int>();
+      (intermediate_star_bins * (star_vector.array() + 1.0 + max_fov_dist)).cast<int>();
   high_codes.array().min(bin_limit.array());
 
   // For all nearby star hash codes (+/- FOV) get list of nearby stars for new
@@ -600,7 +640,7 @@ void StarCatalogGenerator::get_nearby_star_patterns(
 
 void StarCatalogGenerator::init_output_catalog() {
   Eigen::MatrixXi codes = Eigen::MatrixXi(star_table.cols(), star_table.rows());
-  codes = ((double)temp_star_bins * (star_table.array() + 1)).cast<int>();
+  codes = ((double)intermediate_star_bins * (star_table.array() + 1)).cast<int>();
 
 // Debug IO
 #ifdef DEBUG_HASH
@@ -618,7 +658,7 @@ void StarCatalogGenerator::init_output_catalog() {
 
 #ifdef DEBUG_HASH
   Eigen::Vector3i test(3, 1);
-  test = ((double)temp_star_bins * (star_table.row(0).array() + 1)).cast<int>();
+  test = ((double)intermediate_star_bins * (star_table.row(0).array() + 1)).cast<int>();
   std::cout << "List: ";
   const std::vector<int> llist = coarse_sky_map[test];
   if (llist.empty())
@@ -746,28 +786,34 @@ void StarCatalogGenerator::generate_output_catalog() {
 #endif
 }
 
-// Dumb pipeline to keep things organized
-void StarCatalogGenerator::run_pipeline() {
+void StarCatalogGenerator::run() {
   // Load pre-existing catalog if exists, otherwise create new database (hash
   // table)
-  if (!pattern_catalog_file_exists() || regenerate_catalog) {
+  if (!fs::exists(output_catalog_file) || regenerate) {
+
     std::cout << "Reading Hipparcos Catalog" << std::endl;
-    if (read_hipparcos()) {
-      std::cout << "Convert Hipparcos" << std::endl;
-      convert_hipparcos();
-      std::cout << "Sorting Stars" << std::endl;
-      sort_star_magnitudes();
-      std::cout << "Correcting Proper Motion" << std::endl;
-      correct_proper_motion();
-      std::cout << "Filtering Star Separation" << std::endl;
-      filter_star_separation();
-      std::cout << "Initializing output catalog" << std::endl;
-      init_output_catalog();
-      std::cout << "Generating output catalog" << std::endl;
-      generate_output_catalog();
-    }
+    assert(read_input_catalog());
+
+    std::cout << "Convert Hipparcos" << std::endl;
+    convert_hipparcos();
+
+    std::cout << "Sorting Stars" << std::endl;
+    sort_star_magnitudes();
+
+    std::cout << "Correcting Proper Motion" << std::endl;
+    correct_proper_motion();
+
+    std::cout << "Filtering Star Separation" << std::endl;
+    filter_star_separation();
+
+    std::cout << "Initializing output catalog" << std::endl;
+    init_output_catalog();
+
+    std::cout << "Generating output catalog" << std::endl;
+    generate_output_catalog();
+    
   } else {
-    std::cout << "Loading existing pattern catalog and star table" << std::endl;
+    std::cout << "Loading existing output catalog" << std::endl;
     load_pattern_catalog();
   }
 }
