@@ -32,33 +32,41 @@ const double mas2arcsec = (1.0 / 1000.0);
 const double mas2rad    = mas2arcsec * arcsec2deg * deg2rad;
 const double au2km      = 149597870.691;
 
-// Input Catalog Columns
 enum {
-  RA_J2000 = 0,
-  DE_J2000,
   HIP,
-  RA_ICRS,
-  DE_ICRS,
+  RArad,
+  DErad,
   PLX,
   PMRA,
   PMDE,
   HPMAG,
-  COLOUR,
-  SIZE_ELEMS
+  B_V,
+  E_PLX,
+  E_PMRA,
+  E_PMDE,
+  SHP,
+  e_B_V,
+  V_I,
+  RAdeg,
+  DEdeg,
+  RA_J2000,
+  DE_J2000,
+  RA_ICRS,
+  DE_ICRS,
+  CATALOG_COLUMNS
 };
 
 // Some macro defines to debug various functions before valgrid setup
 // #define DEBUG_HIP
 #define DEBUG_INPUT_CATALOG
 #define DEBUG_PM
-// #define DEBUG_HASH
+#define DEBUG_HASH
 // #define DEBUG_GET_NEARBY_STARS
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
-// #define DEBUG_PATTERN_CATALOG
+#define DEBUG_PATTERN_CATALOG
 
 
-const unsigned int hip_rows = 117955;
-const unsigned int hip_cols = 10;
+const unsigned int catalog_rows = 117955;
 
 // Hash function for Eigen Matricies
 // Ignore warnings about std::unary_function and std::binary_function.
@@ -91,7 +99,7 @@ using CoarseSkyMap = std::unordered_map<Eigen::Vector3i, std::vector<int>,
                                         matrix_hash<Eigen::Vector3i>>;
 
 // Define eigen csv formatter
-const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+const static Eigen::IOFormat CSVFormat(Eigen::FullPrecision,
                                        Eigen::DontAlignCols, ", ", "\n");
 
 class StarCatalogGenerator {
@@ -120,9 +128,7 @@ private:
   int total_catalog_stars = 0;
 
   bool ut_pm;
-  unsigned int hip_columns = 10;
-  unsigned int hip_header_rows = 53;
-
+  bool ut_no_motion;
   float catalog_jyear;
   float target_jyear;
   std::string year_str;
@@ -131,32 +137,43 @@ private:
   Eigen::RowVector3d bcrf_position;
   Eigen::MatrixXd bcrf_frame;
 
-  // @brief Default thresholding parameters
-  float magnitude_thresh;
-  // @brief Minimum angle between 2 stars (ifov degrees or equivilent for double stars
-  double min_separation_angle;
-  // @brief Minimum norm distance between 2 stars
+  // @brief Default magnitude thresholding parameters
+  double magnitude_thresh;
+  // @brief Default parallax thresholding parameters
+  double plx_thresh;
+  // @brief Minimum angle between 2 stars (Distance)
   double min_separation;
+  // @brief Max Pattern stars per fov
   unsigned int pattern_stars_per_fov;
+  // @brief Max Catalog stars per fov
   unsigned int catalog_stars_per_fov;
-  double max_fov_angle;
+  // @brief Max Expected FOV (Distance)
   double max_fov_dist;
-  double max_half_fov_dist;
+  // @brief Max Expected Half FOV (Distance)
+  double max_hfov_dist;
+  // @brief Intermediate hash number of bins
   unsigned int intermediate_star_bins;
   // @brief TODO: check why int
   int pattern_bins;
 
-  // Global counter for pattern_list
+  // @brief Global counter for pattern_list
   int pattern_list_size = 0;
+  // @brief pattern_list dynamic growth
   int pattern_list_growth;
+  // @brief pattern printout frequency
   int index_pattern_debug_freq;
+  // @brief star sep printout frequency
   int separation_debug_freq;
+
+  // @brief path to debug hash
+  fs::path debug_hash_file;
 
   // TODO: Inspect if python is doing things with this.. Currently > INT_MAX so
   // modulo is of -1640531535
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wsign-conversion"
+  // @brief magic hash number
   const int magic_number = 2654435761;
 #pragma GCC diagnostic pop
 

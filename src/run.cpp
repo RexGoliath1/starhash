@@ -38,23 +38,11 @@ int main(int argc, char **argv) {
     std::cout << "Creating new catalog with defaults" << std::endl;
     base_path = fs::current_path() / "..";
 
-    data_path = base_path / "data";
-    hipparcos_file = data_path / "hipparcos.tsv";
-
     output_path = base_path / "results";
     p_cat_out_file = output_path / "output.h5";
   }
 
   create_out_directory(output_path);
-
-  if (fs::exists(hipparcos_file)) {
-    std::cout << "Hipparcos Catalog Path: " << hipparcos_file.string()
-              << std::endl;
-  } else {
-    std::cout << "Hipparcos Catalog does not exist: " << hipparcos_file.string()
-              << std::endl;
-    return 1;
-  }
 
 #ifndef SKIP_CATALOG_CREATE
   StarCatalogGenerator catalog;

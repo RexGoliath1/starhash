@@ -9,6 +9,7 @@ from scipy.stats.kde import gaussian_kde
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import re
+import pandas as pd
 
 plot_kde = False
 plot_rade = False
@@ -19,7 +20,7 @@ assert int(plot_kde) + int(plot_rade) + int(plot_rade_change) <= 1
 def set_sky_coord(result, ref_time):
 
     plx = u.Quantity(result['Plx'])
-    distance = Distance(parallax=plx, allow_negative=True)
+    distance = Distance(parallax=plx, allow_negative=False)
     coord = SkyCoord(
         frame = "icrs",
         obstime = ref_time,
@@ -70,7 +71,10 @@ dec = 0.0
 
 v = Vizier(catalog=catalog, columns=columns, row_limit=-1)
 
-result = v.query_constraints(Hpmag='>0.0')
+# result = v.query_constraints(Hpmag='>0.0')
+# TODO: Look into using these. For now we will drop the use both here and in the catalog generator
+result = v.query_constraints(Plx='>0.0')
+
 if result is None:
     raise ValueError('No results found')
 else:
@@ -85,6 +89,7 @@ else:
     # See the discussion in this paper: https://arxiv.org/abs/1507.02105
     # These stars will likely be removed from the catalog.
     # https://astronomy.stackexchange.com/questions/26250/what-is-the-proper-interpretation-of-a-negative-parallax
+    # https://github.com/agabrown/astrometry-inference-tutorials/blob/master/luminosity-calibration/DemoNegativeParallax.ipynb
     # https://gea.esac.esa.int/archive/documentation/GDR2/
     
     #plx = result['Plx'] * 1.0 * u.mas
@@ -101,10 +106,10 @@ else:
     # Trying to match original tsv...
     # updated_result["RArad"] = coords_updated.fk5.ra.deg
     # updated_result["DErad"] = coords_updated.fk5.dec.deg
-    updated_result["_RAJ2000"] = coords_updated.fk5.ra.deg
-    updated_result["_DEJ2000"] = coords_updated.fk5.dec.deg
-    updated_result["_RAICRS"] = coords_updated.icrs.ra.deg
-    updated_result["_DEICRS"] = coords_updated.icrs.dec.deg
+    updated_result["RAJ2000"] = coords_updated.fk5.ra.deg
+    updated_result["DEJ2000"] = coords_updated.fk5.dec.deg
+    updated_result["RAICRS"] = coords_updated.icrs.ra.deg
+    updated_result["DEICRS"] = coords_updated.icrs.dec.deg
     # updated_result["_RAJ2000"] = c.fk5.ra.deg
     # updated_result["_DEJ2000"] = c.fk5.dec.deg
 
@@ -241,4 +246,5 @@ else:
         ani = animation.FuncAnimation(fig, animate, interval=100, frames=list(range(start_year, end_year, skip_years)))
         ani.save('animation.gif', writer='pillow')
 
-print("Done!")
+empty_entries = np.where(pd.isnull(df))
+print(f"Done! Empty entries: {empty_entries}")

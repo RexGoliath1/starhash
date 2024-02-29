@@ -3,18 +3,19 @@ import numpy as np
 import os
 from tqdm import tqdm
 import itertools
+import yaml
 
 default_input = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "hipparcos.csv")
-default_output = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "catalog.hdf5")
+default_output= os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
 _MAGIC_RAND = 2654435761
 
 class tetra():
-    def __init__(self, input_catalog: str = default_input, output_file: str = default_output):
-        self.output_db              = output_file
+    def __init__(self, input_catalog: str = default_input, output_path: str = default_output):
+        self.output_path            = output_path
         self.max_fov                = 20.0
-        self.pattern_stars_per_fov  = 10
-        self.catalog_stars_per_fov  = 20
+        self.pattern_stars_per_fov  = 5 # 10
+        self.catalog_stars_per_fov  = 10 # 20
         self.star_min_separation    = 0.05
         self.pattern_max_error      = 0.005
         self.pattern_size           = 4
@@ -35,9 +36,11 @@ class tetra():
         star_table = pd.read_csv(input_catalog)
         idx = star_table["Hpmag"] < self.min_brightness
         star_table = star_table[idx]
+        idx = star_table["Plx"] > 0.0
+        star_table = star_table[idx]
 
-        ra  = np.deg2rad(star_table["_RAICRS"])
-        dec = np.deg2rad(star_table["_DEICRS"])
+        ra  = np.deg2rad(star_table["RAJ2000"])
+        dec = np.deg2rad(star_table["DEJ2000"])
         star_table["x"] = np.cos(ra) * np.cos(dec)
         star_table["y"] = np.sin(ra) * np.cos(dec)
         star_table["z"] = np.sin(dec)
@@ -91,6 +94,32 @@ class tetra():
             # if the partition is empty, create a new list to hold the star
             # if the partition already contains stars, add the star to the list
             temp_coarse_sky_map[hash_code] = temp_coarse_sky_map.pop(hash_code, []) + [star_id]
+
+        def np_rep(dumper, data):
+            return dumper.represent_list(data.tolist())
+        def tup_rep(dumper, data):
+            return dumper.represent_list(list(data))
+
+
+        yaml.add_representer(np.ndarray, np_rep)
+        yaml.add_representer(tuple, tup_rep)
+        
+        def convert_to_serializable(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {key: convert_to_serializable(value) for key, value in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_serializable(item) for item in obj]
+            else:
+                return obj
+
+        serializable_data = convert_to_serializable(temp_coarse_sky_map)
+
+        csm = os.path.join(default_output, "pycoarse_sky_map.yaml")
+        with open(csm, 'w') as outfile:
+            # yaml.dump(temp_coarse_sky_map, outfile)
+            yaml.dump(serializable_data, outfile)
 
         def temp_get_nearby_stars(vector, radius):
             """Get nearby from temporary hash table."""
@@ -161,6 +190,14 @@ class tetra():
                 if not pattern_catalog[index][0]:
                     pattern_catalog[index] = pattern
                     break
+
+        
+        st_file = os.path.join(self.output_path, "py_star_table.csv")
+        st = star_table[["x", "y", "z"]]
+        st.to_csv(st_file, index=False, header=False)
+        pat_file = os.path.join(self.output_path, "py_pattern_catalog.csv")
+        pat_df = pd.DataFrame(pattern_catalog)
+        pat_df.to_csv(pat_file, index=False, header=False)
 
         print("Done!")
 

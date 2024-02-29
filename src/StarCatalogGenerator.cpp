@@ -12,9 +12,6 @@ StarCatalogGenerator::StarCatalogGenerator() {
 
   // Config dependant variables
   num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
-  min_separation = std::cos(min_separation_angle * deg2rad); 
-  max_fov_dist = std::cos(max_fov_angle * deg2rad);
-  max_half_fov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
 
   std::ostringstream stream;
   stream << std::fixed << std::setprecision(2) << target_jyear;
@@ -22,10 +19,6 @@ StarCatalogGenerator::StarCatalogGenerator() {
 
   edges.resize(num_pattern_angles);
   edges.setZero();
-  proper_motion_data.resize(hip_rows, 3);
-  proper_motion_data.setZero();
-  bcrf_frame.resize(hip_rows, 3);
-  bcrf_frame.setZero();
 
   init_bcrf();
 }
@@ -53,16 +46,22 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   pattern_stars_per_fov = config["catalog"]["pattern_stars_per_fov"].as<unsigned int>();
   catalog_stars_per_fov = config["catalog"]["catalog_stars_per_fov"].as<unsigned int>();
   magnitude_thresh = config["catalog"]["magnitude_thresh"].as<double>();
-  max_fov_angle = config["catalog"]["max_fov_angle"].as<double>();
+  double max_fov_angle = config["catalog"]["max_fov_angle"].as<double>();
+  max_fov_dist = std::cos(max_fov_angle * deg2rad);
+  max_hfov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
   intermediate_star_bins = config["catalog"]["intermediate_star_bins"].as<unsigned int>();
   pattern_bins = config["catalog"]["pattern_bins"].as<int>();
-  min_separation_angle = config["catalog"]["min_separation_angle"].as<double>();
+  double min_separation_angle = config["catalog"]["min_separation_angle"].as<double>();
+  min_separation = std::cos(min_separation_angle * deg2rad); 
 
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
   index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
   separation_debug_freq = config["debug"]["separation_debug_freq"].as<int>();
+  debug_hash_file = config["debug"]["debug_hash_file"].as<std::string>();
+  debug_hash_file = base_path / debug_hash_file;
 
   ut_pm = config["unit_test"]["proper_motion"].as<bool>();
+  ut_no_motion = config["unit_test"]["no_motion"].as<bool>();
 }
 
 bool StarCatalogGenerator::load_pattern_catalog() {
@@ -79,37 +78,36 @@ bool StarCatalogGenerator::load_pattern_catalog() {
 }
 
 bool StarCatalogGenerator::read_input_catalog() {
+  std::string lstr, num;
+  std::vector<unsigned int> idx;
+  unsigned int rcnt = 0, ccnt = 0;
+  unsigned int mag_dropped = 0, plx_dropped = 0, col_dropped = 0;
+
+  Eigen::MatrixXd temp_catalog;
+  temp_catalog.resize(catalog_rows, CATALOG_COLUMNS);
+  temp_catalog.setZero();
+
   // Check catalog exists
   if (!fs::exists(input_catalog_file)) {
     std::cout << "DNE: " << input_catalog_file << std::endl;
     return false;
   }
 
-  std::ifstream data(input_catalog_file.c_str());
-  unsigned int rcnt = 0, ccnt = 0;
-  std::string lstr;
-  std::vector<unsigned int> idx;
-  Eigen::MatrixXd temp_catalog;
-  temp_catalog.resize(hip_rows, hip_cols);
-  temp_catalog.setZero();
+
 
   // Skip header info
-  for (unsigned int ii = 0; ii < hip_header_rows; ii++)
-    data.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  std::ifstream data(input_catalog_file.c_str());
+  data.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-  std::string num;
-
-  // Hipparcos input is tsv/csv with star per line. This is basically just
-  // pandas.read_csv First pass brightness check before storing
   while (std::getline(data, lstr)) {
     std::stringstream iss(lstr);
     ccnt = 0;
 
-    while (std::getline(iss, num, '\t')) {
+    while (std::getline(iss, num, ',')) {
 #ifdef DEBUG_HIP
       std::cout << std::stod(num) << " ";
 #endif
-      if (ccnt < hip_columns) {
+      if (ccnt < CATALOG_COLUMNS) {
         temp_catalog(rcnt, ccnt) = std::stod(num);
         ccnt++;
       } else {
@@ -118,10 +116,18 @@ bool StarCatalogGenerator::read_input_catalog() {
     }
 
     // If magnitude is below threshold, zero out row and continue
-    if ((ccnt > 0) && (float(temp_catalog(rcnt, HPMAG)) < magnitude_thresh)) {
+    bool mag_check = (double(temp_catalog(rcnt, HPMAG)) < magnitude_thresh);
+    bool plx_check = (double(temp_catalog(rcnt, PLX)) > plx_thresh);
+    bool col_check = ccnt > 0;
+
+    mag_dropped += (unsigned int)mag_check;
+    plx_dropped += (unsigned int)plx_check;
+    col_dropped += (unsigned int)col_check;
+
+    if (col_check && mag_check && plx_check) {
       idx.push_back(rcnt);
       rcnt++;
-    } else if (ccnt > 0) {
+    } else if (col_check) {
       temp_catalog.row(rcnt).setZero();
     } else {
       break;
@@ -129,9 +135,8 @@ bool StarCatalogGenerator::read_input_catalog() {
 
 #ifdef DEBUG_HIP
     std::cout << std::endl;
-
-    if (ccnt != hip_columns)
-      std::printf("Expected %x cols, got %x\n", hip_columns, ccnt);
+    if (ccnt != CATALOG_COLUMNS)
+      std::printf("Expected %u cols, got %u\n", CATALOG_COLUMNS, ccnt);
 #endif
   }
 
@@ -142,12 +147,10 @@ bool StarCatalogGenerator::read_input_catalog() {
   proper_motion_data.resize(total_catalog_stars, 3);
   bcrf_frame.resize(total_catalog_stars, 3);
 
-#ifdef DEBUG_HIP
-  printf("Hippo contains %d bright stars out of %ld\n", rcnt, hip_rows);
-  if (rcnt != hip_rows)
-    std::printf("Expected %x rows, got %x\n", hip_rows, rcnt);
-
-#endif
+  std::printf("Catalog contains %u bright stars out of %u\n", rcnt, catalog_rows);
+  std::printf("Number below magnitude threshold (Mag < %f) %u \n", magnitude_thresh, mag_dropped);
+  std::printf("Number above parallax threshold (Plx > %f) %u \n", plx_thresh, plx_dropped);
+  std::printf("Number above column check (cols > 0) %u \n", col_dropped);
 
   return true;
 }
@@ -170,7 +173,7 @@ void StarCatalogGenerator::sort_star_magnitudes() {
 
   std::sort(vec.begin(), vec.end(),
             [](Eigen::VectorXd const &t1, Eigen::VectorXd const &t2) {
-              return t1(HPMAG) > t2(HPMAG);
+              return t1(HPMAG) < t2(HPMAG);
             });
 
   for (int64_t i = 0; i < input_catalog_data.rows(); ++i)
@@ -184,23 +187,12 @@ void StarCatalogGenerator::sort_star_magnitudes() {
 }
 
 void StarCatalogGenerator::init_bcrf() {
-  // Initialize BCRF (Barycentric Celestial Reference System) aka observer
-  // position relative to sun
-
-  // TODO: Probably use astropy to write input file that can be injested by this
-  // script (yaml-cpp?)
-  Eigen::RowVectorXd row_bcrf_obs_pos(3);
-  // row_bcrf_obs_pos << -0.69004781, 0.64965094, 0.28184848; // 2024
-  row_bcrf_obs_pos << -0.97593161, -0.19017534, -0.08252697; // 1991.25
+  // Initialize BCRF (Barycentric Celestial Reference System) aka observer position relative to sun
   if (ut_pm) {
-    row_bcrf_obs_pos << -0.18428431, 0.88477935, 0.383819; // Earth J2000
+    bcrf_position << -0.18428431, 0.88477935, 0.383819; // Earth J2000
   }
-  // row_bcrf_obs_pos << 1.0, 0.0, 0.0; // Fuck if I know
-  // row_bcrf_obs_pos << 0.0, 0.0, 0.0; // Fuck if I know
-
-  // Simple(?) TODO: Don't be dumb with memory and just use matrix vector
-  // multiply
-  bcrf_frame = row_bcrf_obs_pos.replicate<hip_rows, 1>();
+  // TODO: Don't be dumb with memory and just use matrix vector multiply
+  bcrf_frame = bcrf_position.replicate<catalog_rows, 1>();
 }
 
 double angleBetweenVectors(const Eigen::Vector3d &a, const Eigen::Vector3d &b) {
@@ -255,10 +247,15 @@ void StarCatalogGenerator::correct_proper_motion() {
       (p_hat.array().colwise() * input_catalog_data.col(PMRA).array() +
        q_hat.array().colwise() * input_catalog_data.col(PMDE).array());
 
-  plx = bcrf_frame.array().colwise() * input_catalog_data.col(PLX).array();
+  plx = (bcrf_position.transpose() * input_catalog_data.col(PLX).transpose()).transpose();
 
-  proper_motion_data = los + proper_motion_data - plx;
-  // proper_motion_data = los; // This may be needed for Stellarium
+  if (ut_no_motion) {
+    std::cout << "Applying no Proper Motion" << std::endl;
+    proper_motion_data = los;
+  } else {
+    proper_motion_data = los + proper_motion_data - plx;
+  }
+
   proper_motion_data.rowwise().normalize();
 
   if (ut_pm) {
@@ -406,7 +403,7 @@ void StarCatalogGenerator::filter_star_separation() {
           current_star_angles.array() *
           ang_pattern_idx.topRows(ii).cast<double>().array();
       separated_pattern_indicies =
-          current_pattern_star_angles.array() > max_half_fov_dist;
+          current_pattern_star_angles.array() > max_hfov_dist;
       num_stars_in_fov = separated_pattern_indicies.cast<int>().sum();
       if (num_stars_in_fov < pattern_stars_per_fov) {
         ang_verify_idx(ii) = true;
@@ -434,7 +431,7 @@ void StarCatalogGenerator::filter_star_separation() {
           current_star_angles.array() *
           ang_verify_idx.topRows(ii).cast<double>().array();
       separated_verify_indicies =
-          current_verify_star_angles.array() > max_half_fov_dist;
+          current_verify_star_angles.array() > max_hfov_dist;
       double num_stars_in_fov = separated_verify_indicies.cast<int>().sum();
       if (num_stars_in_fov < catalog_stars_per_fov) {
         ang_verify_idx(ii) = true;
@@ -644,19 +641,41 @@ void StarCatalogGenerator::init_output_catalog() {
 
 // Debug IO
 #ifdef DEBUG_HASH
-  const Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ");
+  const Eigen::IOFormat fmt(Eigen::FullPrecision, Eigen::DontAlignCols, ", ");
+  fs::remove(debug_hash_file);
+  std::ofstream ofs(debug_hash_file);
+  ofs.close();
+  YAML::Node node;
+  std::ofstream fout(debug_hash_file.c_str());
+
+  std::stringstream ss;
 #endif
 
   for (int ii = 0; ii < codes.rows(); ii++) {
 #ifdef DEBUG_HASH
-    std::cout << "Star Table Row: " << star_table.row(ii).format(fmt)
-              << std::endl;
-    std::cout << "Codes Row: " << codes.row(ii).format(fmt) << std::endl;
+    // std::cout << "Star Table Row: " << star_table.row(ii).format(fmt) << std::endl;
+    // std::cout << "Codes Row: " << codes.row(ii).format(fmt) << std::endl;
+
+    for (int jj = 0; jj < codes.cols(); jj++) {
+      ss << codes(ii, jj);
+      if (jj < codes.cols() - 1) {
+        ss << ", ";
+      }
+    }
+
+    std::cout << ss.str() << std::endl;
+
+  node[ss.str()].push_back(std::to_string(ii));
+  ss.str("");
 #endif
+
     coarse_sky_map[codes.row(ii)].push_back(ii);
   }
 
 #ifdef DEBUG_HASH
+  fout << node;
+  fout.close();
+
   Eigen::Vector3i test(3, 1);
   test = ((double)intermediate_star_bins * (star_table.row(0).array() + 1)).cast<int>();
   std::cout << "List: ";
@@ -780,6 +799,10 @@ void StarCatalogGenerator::generate_output_catalog() {
   // output_hdf5(output_catalog_file, "proper_motion_data", proper_motion_data);
 
 #ifdef DEBUG_PATTERN_CATALOG
+  fs::path debug_table = output_catalog_file.parent_path() /
+                           ("star_table" + year_str + ".csv");
+  write_to_csv(debug_table, star_table);
+
   fs::path debug_catalog = output_catalog_file.parent_path() /
                            ("pattern_catalog" + year_str + ".csv");
   write_to_csv(debug_catalog, pattern_catalog);
