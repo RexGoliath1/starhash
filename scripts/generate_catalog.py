@@ -4,15 +4,25 @@ import os
 from tqdm import tqdm
 import itertools
 import yaml
+import argparse
 
 default_input = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "hipparcos.csv")
 default_output= os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+default_scg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results")
 
 _MAGIC_RAND = 2654435761
 
 class tetra():
-    def __init__(self, input_catalog: str = default_input, output_path: str = default_output):
-        self.output_path            = output_path
+    """
+        ---------------------------------- VALIDATION ONLY ----------------------------------
+        A copy of the original ESA Tetra baseline to spotcheck StarCatalogGenerator.
+        Tests that coarse sky map, star_table, and pattern_catalog are 1:1.
+        Significantly slower in python due to list / array appending. Not intended to produce FSW Catalog.
+        ---------------------------------- VALIDATION ONLY ----------------------------------
+    """
+    def __init__(self, args):
+        self.output_path            = args.output_path
+        self.input_catalog          = args.input_catalog
         self.max_fov                = 20.0
         self.pattern_stars_per_fov  = 5 # 10
         self.catalog_stars_per_fov  = 10 # 20
@@ -21,9 +31,13 @@ class tetra():
         self.pattern_size           = 4
         self.pattern_bins           = 25
         self.min_brightness         = 6.0
+        self.scg_path               = args.scg_path
+        self.coarse_only            = args.coarse_only
 
         self.max_fov = np.deg2rad(float(self.max_fov))
-        self.filter_input_cat(input_catalog)
+
+        self.filter_input_cat()
+        self.verify_star_table()
 
     def _key_to_index(self, key, bin_factor, max_index):
         """Get hash index for a given key."""
@@ -32,8 +46,8 @@ class tetra():
         # Randomise by magic constant and modulo to maximum index
         return (index * _MAGIC_RAND) % max_index
 
-    def filter_input_cat(self, input_catalog: str):
-        star_table = pd.read_csv(input_catalog)
+    def filter_input_cat(self):
+        star_table = pd.read_csv(self.input_catalog)
         idx = star_table["Hpmag"] < self.min_brightness
         star_table = star_table[idx]
         idx = star_table["Plx"] > 0.0
@@ -44,6 +58,7 @@ class tetra():
         star_table["x"] = np.cos(ra) * np.cos(dec)
         star_table["y"] = np.sin(ra) * np.cos(dec)
         star_table["z"] = np.sin(dec)
+
         idx = np.argsort(star_table["Hpmag"])
         star_table = star_table.iloc[idx] 
 
@@ -54,9 +69,10 @@ class tetra():
         all_star_vectors = star_table[["x", "y", "z"]].transpose()
 
         # Keep the first one and skip index 0 in loop
-        keep_for_patterns[0] = True
-        keep_for_verifying[0] = True
+        keep_for_patterns[np.int32(0)] = True
+        keep_for_verifying[np.int32(0)] = True
         for star_ind in tqdm(range(1, num_stars)):
+            star_ind = np.uint32(star_ind)
             vector = star_table[["x", "y", "z"]].iloc[star_ind]
             # Angle to all stars we have kept
             angs_patterns = np.dot(vector, all_star_vectors.loc[:, keep_for_patterns])
@@ -90,36 +106,56 @@ class tetra():
         for star_id in tqdm(pattern_stars):
             vector = star_table[["x", "y", "z"]].iloc[star_id]
             # find which partition the star occupies in the hash table
-            hash_code = tuple(((vector+1)*temp_bins).astype(np.int32))
+
+            # `np.int` was a deprecated alias for the builtin `int`. 
+            # To avoid this error in existing code, use `int` by itself.
+            hash_code = tuple(((vector+1)*temp_bins).astype(int))
             # if the partition is empty, create a new list to hold the star
             # if the partition already contains stars, add the star to the list
             temp_coarse_sky_map[hash_code] = temp_coarse_sky_map.pop(hash_code, []) + [star_id]
 
-        def np_rep(dumper, data):
-            return dumper.represent_list(data.tolist())
-        def tup_rep(dumper, data):
-            return dumper.represent_list(list(data))
-
-
-        yaml.add_representer(np.ndarray, np_rep)
-        yaml.add_representer(tuple, tup_rep)
+        def np_int32_to_int(value):
+            if isinstance(value, np.int32):
+                return int(value)
+            if isinstance(value, np.int64):
+                # This is not safe for star id's > 2**31
+                return int(value)
+            return value
         
         def convert_to_serializable(obj):
             if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, dict):
-                return {key: convert_to_serializable(value) for key, value in obj.items()}
+                # Convert the entire array to a list of ints
+                return obj.astype(int).tolist()
+            elif isinstance(obj, tuple):
+                # Convert tuple to a string representation
+                return ', '.join(map(str, obj))
+                # Convert tuple elements to ints
+                # return tuple(np_int32_to_int(item) for item in obj)
             elif isinstance(obj, list):
-                return [convert_to_serializable(item) for item in obj]
+                # Convert list elements to ints
+                return [np_int32_to_int(item) for item in obj]
+            elif isinstance(obj, dict):
+                # Apply conversion to both keys and values in the dictionary
+                return {convert_to_serializable(key): convert_to_serializable(value) for key, value in obj.items()}
             else:
                 return obj
-
+        
+        # Register a representer for numpy int32 to convert it to int
+        yaml.add_representer(np.int32, lambda dumper, data: dumper.represent_int(int(data)))
+        
+        # Convert your data structure to a serializable format
         serializable_data = convert_to_serializable(temp_coarse_sky_map)
+        
+        # Now dump the serializable data to a file
+        yml_file = os.path.join(self.output_path, "pycoarse_sky_map.yaml")
+        serial_yml_file = os.path.join(self.output_path, "serial_pycoarse_sky_map.yaml")
+        with open(yml_file, 'w') as outfile:
+            yaml.dump(temp_coarse_sky_map, outfile, default_flow_style=False)
+        with open(serial_yml_file, 'w') as outfile:
+            yaml.dump(serializable_data, outfile, default_flow_style=False)
 
-        csm = os.path.join(default_output, "pycoarse_sky_map.yaml")
-        with open(csm, 'w') as outfile:
-            # yaml.dump(temp_coarse_sky_map, outfile)
-            yaml.dump(serializable_data, outfile)
+        if self.coarse_only:
+            return
 
         def temp_get_nearby_stars(vector, radius):
             """Get nearby from temporary hash table."""
@@ -155,17 +191,8 @@ class tetra():
                 vectors = star_table[["x", "y", "z"]].iloc[pattern].values
                 # verify that the pattern fits within the maximum field-of-view
                 # by checking the distances between every pair of stars in the pattern
-                # all_good = True
-                # for star_pair in itertools.combinations(vectors, 2):
-                #     if not np.dot(*star_pair) > np.cos(self.max_fov):
-                #         all_good = False
-
-                # if all_good:
-                #     pattern_list.append(pattern.copy())
-
                 if all(np.dot(*star_pair) > np.cos(self.max_fov) for star_pair in itertools.combinations(vectors, 2)):
                     pattern_list.append(pattern.copy())
-
 
         print(f"Found {len(pattern_list)} patterns. Building catalogue.")
         catalog_length = 2 * len(pattern_list)
@@ -201,6 +228,42 @@ class tetra():
 
         print("Done!")
 
+    def verify_star_table(self):
+        """ Validates coarse map, star table, and pattern_catalog """
+        py_yml_file = os.path.join(self.output_path, "serial_pycoarse_sky_map.yaml")
+        # Load the python version of coarse sky map
+        with open(py_yml_file, 'r') as file:
+            pydata = yaml.safe_load(file)
+
+        # Load the cpp version of coarse sky map
+        scg_yml_file = os.path.join(self.scg_path, "coarse_sky_map.yaml")
+        with open(scg_yml_file, 'r') as file:
+            scgdata = yaml.safe_load(file)
+
+        s1 = set(pydata.keys())
+        s2 = set(scgdata.keys())
+        pydiff = s1.difference(s2)
+        scgdiff = s2.difference(s1)
+        print(f"Number of sets in python different: {len(pydiff)}")
+        print(f"Number of sets in SCG different: {len(scgdiff)}")
+
+        assert(set(scgdata.keys()) == set(pydata.keys()))
+
+        for key in scgdata.key():
+            assert(scgdata[key] == pydata[key])
 
 if __name__ == "__main__":
-    cat = tetra()
+    def valid_path(s):
+        if os.path.exists(s):
+            return s
+        else:
+            raise NotADirectoryError(s)
+
+    parser = argparse.ArgumentParser(description="Python catalog generation validation code. Used to check against Star Catalog Generator ")
+    parser.add_argument("--input_catalog", default=default_input, type=valid_path, help="")
+    parser.add_argument("--output_path", default=default_output, type=valid_path, help="")
+    parser.add_argument("--scg_path", default=default_scg_path, type=valid_path, help="")
+    parser.add_argument("--coarse_only", default=True, type=bool, help="")
+    args = parser.parse_args()
+
+    cat = tetra(args)

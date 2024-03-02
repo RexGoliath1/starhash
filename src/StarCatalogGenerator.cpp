@@ -250,7 +250,7 @@ void StarCatalogGenerator::correct_proper_motion() {
   plx = (bcrf_position.transpose() * input_catalog_data.col(PLX).transpose()).transpose();
 
   if (ut_no_motion) {
-    std::cout << "Applying no Proper Motion" << std::endl;
+    std::cout << "Applying no Proper Motion or Parallax" << std::endl;
     proper_motion_data = los;
   } else {
     proper_motion_data = los + proper_motion_data - plx;
@@ -441,6 +441,7 @@ void StarCatalogGenerator::filter_star_separation() {
   }
 
   star_table = proper_motion_data(verification_stars, Eigen::all);
+  pat_star_table = star_table(pattern_stars, Eigen::all);
   // input_catalog_data = input_catalog_data(verification_stars, Eigen::all);
   std::cout << "Found " << star_table.rows()
             << " verification stars for catalog." << std::endl;
@@ -636,8 +637,8 @@ void StarCatalogGenerator::get_nearby_star_patterns(
 }
 
 void StarCatalogGenerator::init_output_catalog() {
-  Eigen::MatrixXi codes = Eigen::MatrixXi(star_table.cols(), star_table.rows());
-  codes = ((double)intermediate_star_bins * (star_table.array() + 1)).cast<int>();
+  Eigen::MatrixXi codes = Eigen::MatrixXi(pat_star_table.cols(), pat_star_table.rows());
+  codes = (static_cast<double>(intermediate_star_bins) * (pat_star_table.array() + 1)).cast<int>();
 
 // Debug IO
 #ifdef DEBUG_HASH

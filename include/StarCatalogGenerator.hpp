@@ -118,6 +118,7 @@ private:
 
   // @brief Post star separation check table with PM corrected ICRS
   Eigen::MatrixXd star_table; 
+  Eigen::MatrixXd pat_star_table; 
   // @brief Vector of "Pattern stars" satisfying separation thresholds
   std::vector<int> pattern_stars; 
   CoarseSkyMap coarse_sky_map;
