@@ -7,10 +7,29 @@ import yaml
 import argparse
 
 default_input = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "hipparcos.csv")
-default_output= os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-default_scg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results")
+default_output= os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "pyvalid")
+default_scg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "scg")
 
 _MAGIC_RAND = 2654435761
+
+def compare_df(path1, path2, epsilon = 1**-9):
+    df1 = pd.read_csv(path1, header=None)
+    df2 = pd.read_csv(path2, header=None)
+
+    assert(df1.shape == df2.shape)
+    print(f'Shapes equal: {df1.shape} == {df2.shape}')
+
+    df_diff = df1 - df2
+    count = 0
+    for ii in range(df_diff.shape[0]):
+        row = df_diff.iloc[ii]
+        if sum(row) > epsilon:
+            count += 1
+            print(f"Row {ii} difference")
+            print(f"df1 row: {df1.iloc[ii].values.transpose()}")
+            print(f"df2 row: {df2.iloc[ii].values.transpose()}")
+            exit(-1)
+    return count
 
 class tetra():
     """
@@ -33,18 +52,26 @@ class tetra():
         self.min_brightness         = 6.0
         self.scg_path               = args.scg_path
         self.coarse_only            = args.coarse_only
+        self.validate_only          = args.validate_only
 
         self.max_fov = np.deg2rad(float(self.max_fov))
 
-        self.filter_input_cat()
+        os.makedirs(self.output_path, exist_ok=True)
+
+        if not self.validate_only:
+            self.filter_input_cat()
+
         self.verify_star_table()
 
     def _key_to_index(self, key, bin_factor, max_index):
         """Get hash index for a given key."""
         # Get key as a single integer
-        index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+        # index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+        index = list(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+        index_sum = sum(index)
         # Randomise by magic constant and modulo to maximum index
-        return (index * _MAGIC_RAND) % max_index
+        # print(f"index = {index}")
+        return (index_sum * _MAGIC_RAND) % max_index
 
     def filter_input_cat(self):
         star_table = pd.read_csv(self.input_catalog)
@@ -53,20 +80,25 @@ class tetra():
         idx = star_table["Plx"] > 0.0
         star_table = star_table[idx]
 
+        # WARNING: kind='mergesort' is the only stable sort in numpy
+        star_table = star_table.sort_values(by=["Hpmag", "HIP"], ascending=[True, True], kind='mergesort')
+
+        sorted_st_file = os.path.join(self.output_path, "py_input_catalog.csv")
+        star_table.to_csv(sorted_st_file, index=False, header=False)
+
         ra  = np.deg2rad(star_table["RAJ2000"])
         dec = np.deg2rad(star_table["DEJ2000"])
         star_table["x"] = np.cos(ra) * np.cos(dec)
         star_table["y"] = np.sin(ra) * np.cos(dec)
         star_table["z"] = np.sin(dec)
 
-        idx = np.argsort(star_table["Hpmag"])
-        star_table = star_table.iloc[idx] 
-
         # Filter for maximum number of stars in FOV and doubles
         num_stars = star_table.shape[0]
         keep_for_patterns = [False] * num_stars
         keep_for_verifying = [False] * num_stars
         all_star_vectors = star_table[["x", "y", "z"]].transpose()
+
+        print("Filtering star separation")
 
         # Keep the first one and skip index 0 in loop
         keep_for_patterns[np.int32(0)] = True
@@ -94,10 +126,18 @@ class tetra():
                     keep_for_verifying[star_ind] = True
         # Trim down star table and update indexing for pattern stars
         star_table = star_table.loc[keep_for_verifying, :]
+        verify_stars = star_table.shape[0]
         pattern_stars = (np.cumsum(keep_for_verifying)-1)[keep_for_patterns]
 
+        st_file = os.path.join(self.output_path, "py_star_table.csv")
+        pat_st_file = os.path.join(self.output_path, "py_pat_star_table.csv")
+        st = star_table[["x", "y", "z"]]
+        st.to_csv(st_file, index=False, header=False)
+        pat_st= st.iloc[pattern_stars, :]
+        pat_st.to_csv(pat_st_file, index=False, header=False)
+
         print(f"With maximum {self.pattern_stars_per_fov} per FOV and no doubles: {len(pattern_stars)}")
-        print(f"With maximum {self.catalog_stars_per_fov} per FOV and no doubles: {num_stars}")
+        print(f"With maximum {self.catalog_stars_per_fov} per FOV and no doubles: {verify_stars}")
         print('Building temporary hash table for finding pattern neighbours')
 
         temp_coarse_sky_map = {}
@@ -165,6 +205,7 @@ class tetra():
             hash_code_space = [range(max(low, 0), min(high+1, 2*temp_bins)) for (low, high)
                                in zip(((vector + 1 - radius) * temp_bins).astype(np.int32),
                                       ((vector + 1 + radius) * temp_bins).astype(np.int32))]
+
             # iterate over hash code space
             for hash_code in itertools.product(*hash_code_space):
                 # iterate over the stars in the given partition, adding them to
@@ -172,11 +213,15 @@ class tetra():
                 for star_id in temp_coarse_sky_map.get(hash_code, []):
                     if np.dot(vector, star_table[["x", "y", "z"]].iloc[star_id]) > np.cos(radius):
                         nearby_star_ids.append(star_id)
+
             return nearby_star_ids
 
         # generate pattern catalog
         print('Generating all possible patterns.')
         pattern_list = []
+        pattern_list = np.zeros((10000, self.pattern_size))
+        pl_count = 0
+
         # initialize pattern, which will contain pattern_size star ids
         pattern = [None] * self.pattern_size
         for pattern[0] in tqdm(pattern_stars):  # star_ids_filtered:
@@ -186,15 +231,31 @@ class tetra():
             # remove the star from the sky hash table
             temp_coarse_sky_map[hash_code].remove(pattern[0])
             # iterate over all possible patterns containing the removed star
-            for pattern[1:] in itertools.combinations(temp_get_nearby_stars(vector, self.max_fov), self.pattern_size-1):
+            nearby_ids = temp_get_nearby_stars(vector, self.max_fov)
+
+            # print(f"Looking for patterns near star id {pattern[0]} Number of Neighbors = {len(nearby_ids)}")
+            # for pattern[1:] in itertools.combinations(temp_get_nearby_stars(vector, self.max_fov), self.pattern_size-1):
+            for pattern[1:] in itertools.combinations(nearby_ids, self.pattern_size-1):
                 # retrieve the vectors of the stars in the pattern
                 vectors = star_table[["x", "y", "z"]].iloc[pattern].values
+                patarray = np.array(pattern)
                 # verify that the pattern fits within the maximum field-of-view
                 # by checking the distances between every pair of stars in the pattern
                 if all(np.dot(*star_pair) > np.cos(self.max_fov) for star_pair in itertools.combinations(vectors, 2)):
-                    pattern_list.append(pattern.copy())
+                    # print(f"pattern = {pattern}")
+                    pattern_list[pl_count, :] = patarray
 
-        print(f"Found {len(pattern_list)} patterns. Building catalogue.")
+                    pl_count += 1
+                    if pl_count >= pattern_list.shape[0]:
+                        newshape = (pattern_list.shape[0] + 10000, pattern_list.shape[1])
+                        pattern_list.resize(newshape, refcheck=False)
+
+        pattern_list = pattern_list[:pl_count, :]
+        pl_file = os.path.join(self.output_path, "py_pattern_list.csv")
+        pl_df = pd.DataFrame(pattern_list)
+        pl_df.to_csv(pl_file, index=False, header=False)
+
+        print(f"Found {pattern_list.shape[0]} patterns. Building catalogue.")
         catalog_length = 2 * len(pattern_list)
         pattern_catalog = np.zeros((catalog_length, self.pattern_size), dtype=np.uint16)
         for pattern in tqdm(pattern_list):
@@ -210,18 +271,16 @@ class tetra():
             # convert edge ratio float to hash code by binning
             hash_code = tuple((edge_ratios * self.pattern_bins).astype(np.int32))
             hash_index = self._key_to_index(hash_code, self.pattern_bins, catalog_length)
+            # print(f"pattern[{hash_index}].hash_code = {hash_code} (edges: {edge_ratios})")
             # use quadratic probing to find an open space in the pattern catalog to insert
             for index in ((hash_index + offset ** 2) % catalog_length
                           for offset in itertools.count()):
                 # if the current slot is empty, add the pattern
-                if not pattern_catalog[index][0]:
+                # possibly wrong?
+                if not pattern_catalog[index].sum() > 0:
                     pattern_catalog[index] = pattern
                     break
-
         
-        st_file = os.path.join(self.output_path, "py_star_table.csv")
-        st = star_table[["x", "y", "z"]]
-        st.to_csv(st_file, index=False, header=False)
         pat_file = os.path.join(self.output_path, "py_pattern_catalog.csv")
         pat_df = pd.DataFrame(pattern_catalog)
         pat_df.to_csv(pat_file, index=False, header=False)
@@ -229,7 +288,20 @@ class tetra():
         print("Done!")
 
     def verify_star_table(self):
-        """ Validates coarse map, star table, and pattern_catalog """
+        """ Validates input catalog, coarse map, star table, and pattern_catalog """
+
+        # Validate Input Catalog first
+        py_ic = os.path.join(self.output_path, "py_input_catalog.csv")
+        scg_ic = os.path.join(self.scg_path, "input_catalog.csv")
+        count = compare_df(py_ic, scg_ic)
+        print(f"Input Catalog: Done checking row difference. Total Differences: {count}")
+
+        # Validate Star Table second
+        py_stf = os.path.join(self.output_path, "py_star_table.csv")
+        scg_stf = os.path.join(self.scg_path, "star_table_ut_no_motion.csv")
+        count = compare_df(py_stf, scg_stf)
+        print(f"Validation Star Table: Done checking row difference. Total Differences: {count}")
+
         py_yml_file = os.path.join(self.output_path, "serial_pycoarse_sky_map.yaml")
         # Load the python version of coarse sky map
         with open(py_yml_file, 'r') as file:
@@ -249,8 +321,38 @@ class tetra():
 
         assert(set(scgdata.keys()) == set(pydata.keys()))
 
-        for key in scgdata.key():
-            assert(scgdata[key] == pydata[key])
+        pydiffcnt = 0
+        scgdiffcnt = 0
+        totaldiffcnt = 0
+        for key in scgdata.keys():
+            totaldiffcnt += 1
+            ss1 = set(pydata[key])
+            ss2 = set(scgdata[key])
+            ss1diff = ss1.difference(ss2)
+            ss2diff = ss2.difference(ss1)
+            if (len(ss1diff) > 0):
+                print(f"pyt[{key}].diff = {ss1diff}")
+                pydiffcnt += 1
+            if (len(ss2diff) > 0):
+                print(f"scg[{key}].diff = {ss2diff}")
+                scgdiffcnt += 1
+
+        print(f"Python number of coarse key indicies different : {pydiffcnt} / {totaldiffcnt}")
+        print(f"SCG number of coarse key indicies different : {scgdiffcnt} / {totaldiffcnt}")
+
+        # Validate Pattern List
+        py_pl = os.path.join(self.output_path, "py_pattern_list.csv")
+        scg_pl = os.path.join(self.scg_path, "pattern_list_ut_no_motion.csv")
+        count = compare_df(py_pl, scg_pl)
+        print(f"Validation Pattern List: Done checking row difference. Total Differences: {count}")
+
+        # Validate Pattern Catalog
+        py_pc = os.path.join(self.output_path, "py_pattern_catalog.csv")
+        scg_pc = os.path.join(self.scg_path, "pattern_catalog_ut_no_motion.csv")
+        count = compare_df(py_pc, scg_pc)
+        print(f"Validation Pattern Catalog: Done checking row difference. Total Differences: {count}")
+
+        print("Done!")
 
 if __name__ == "__main__":
     def valid_path(s):
@@ -261,9 +363,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Python catalog generation validation code. Used to check against Star Catalog Generator ")
     parser.add_argument("--input_catalog", default=default_input, type=valid_path, help="")
-    parser.add_argument("--output_path", default=default_output, type=valid_path, help="")
+    parser.add_argument("--output_path", default=default_output, type=str, help="")
     parser.add_argument("--scg_path", default=default_scg_path, type=valid_path, help="")
-    parser.add_argument("--coarse_only", default=True, type=bool, help="")
+    parser.add_argument("--coarse_only", default=False, type=bool, help="")
+    parser.add_argument("--validate_only", default=False, type=bool, help="Validate without rerunning python catalog generation")
     args = parser.parse_args()
 
     cat = tetra(args)

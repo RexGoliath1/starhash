@@ -1,30 +1,63 @@
 catalog:
+  # Regenerate catalog (if true, overwrites same target epoch outputs)
   regenerate: true
+  # Target epooch to propagate to
   target_jyear: 2024.0903490759754
+  # Catalog julian date (TODO: break out HIP / GAIA / UCAC4 / Etc)
   catalog_jyear: 2000.0
+  # Vehicle Barycentric Position (parallax, should be updated every mission)
+  # TODO: Make internal propagator of earth position?
   target_bcrf_position: [-0.97593161, -0.19017534, -0.08252697]
+  # Input catalog (TODO: break out HIP / GAIA / UCAC4 / Etc)
   input_catalog_file: "data/hipparcos.csv"
-  output_catalog_file: "results/output.h5"
+  # Output directory
+  output_directory: "results/scg/"
+  # Output catalog
+  output_catalog_file: "output.h5"
+  # Output catalog pattern size
   pattern_size: 4
+  # Constraint on pattern stars per FOV
   pattern_stars_per_fov: 5 # 10
+  # Constraint on catalog / validation stars per FOV
   catalog_stars_per_fov: 10 # 20
+  # Constraint on magnitude
   magnitude_thresh: 6.0
+  # Constraint on parallax (TODO: Use ESA paper to adjust <0 plx entries)
   plx_thresh: 0.0
-  max_fov_angle: 20.0
-  intermediate_star_bins: 4
-  pattern_bins: 25
+  # Constraint on minimum separation angle 
+  # Should be tied to expected centroid errors / camera parameters
   min_separation_angle: 0.05
+  # Estimated FOV
+  max_fov_angle: 20.0
+  # Temporary hash map number of bins
+  intermediate_star_bins: 4
+  # Temporary hash map number of bins
+  pattern_bins: 25
 debug:
+  # Coarse sky map
+  debug_hash_file: "coarse_sky_map.yaml"
+  # TODO: Remove macros in place of catalog input
   input_catalog: true
+  # TODO: Remove macros in place of catalog input
   proper_motion: true
+  # TODO: Remove macros in place of catalog input
   hash_function: false
-  debug_hash_file: "results/coarse_sky_map.yaml"
+  # TODO: Remove macros in place of catalog input
   nearby_stars: false
+  # TODO: Remove macros in place of catalog input
   nearby_star_patterns: false
+  # TODO: Remove macros in place of catalog input
   pattern_catalog: false
+  # Dynamic memory growth
   pattern_list_growth: 20000
+  # Hash indexing debug output frequency
   index_pattern_debug_freq: 10000
+  # Star separation debug output frequency
   separation_debug_freq: 10000
 unit_test:
+  # Unit Test proper motion by setting time delta to J2000
+  # Using to compare to Vizier calculations
   proper_motion: false
+  # Set to remove proper motion / parallax calculations 
+  # RA/DEC will appear at catalog epochs
   no_motion: true

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <numeric>
 #include <sstream>
+#include <limits>
 
 StarCatalogGenerator::StarCatalogGenerator() {
   // First let's get the catalog length
@@ -12,10 +13,6 @@ StarCatalogGenerator::StarCatalogGenerator() {
 
   // Config dependant variables
   num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
-
-  std::ostringstream stream;
-  stream << std::fixed << std::setprecision(2) << target_jyear;
-  year_str = stream.str();
 
   edges.resize(num_pattern_angles);
   edges.setZero();
@@ -39,16 +36,17 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   // TODO: Extend to multiple input catalogs
   input_catalog_file = config["catalog"]["input_catalog_file"].as<std::string>();
   input_catalog_file = base_path / input_catalog_file;
-  assert(fs::exists(input_catalog_file));
+  output_directory = config["catalog"]["output_directory"].as<std::string>();
+  output_directory = base_path / output_directory;
   output_catalog_file = config["catalog"]["output_catalog_file"].as<std::string>();
-  output_catalog_file = base_path / output_catalog_file;
+  output_catalog_file = output_directory / output_catalog_file;
   pattern_size = config["catalog"]["pattern_size"].as<unsigned int>();
   pattern_stars_per_fov = config["catalog"]["pattern_stars_per_fov"].as<unsigned int>();
   catalog_stars_per_fov = config["catalog"]["catalog_stars_per_fov"].as<unsigned int>();
   magnitude_thresh = config["catalog"]["magnitude_thresh"].as<double>();
-  double max_fov_angle = config["catalog"]["max_fov_angle"].as<double>();
-  max_fov_dist = std::cos(max_fov_angle * deg2rad);
-  max_hfov_dist = std::cos(max_fov_angle * deg2rad / 2.0);
+  max_fov = deg2rad * config["catalog"]["max_fov_angle"].as<double>();
+  max_fov_dist = std::cos(max_fov);
+  max_hfov_dist = std::cos(max_fov / 2.0);
   intermediate_star_bins = config["catalog"]["intermediate_star_bins"].as<unsigned int>();
   pattern_bins = config["catalog"]["pattern_bins"].as<int>();
   double min_separation_angle = config["catalog"]["min_separation_angle"].as<double>();
@@ -58,10 +56,27 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
   separation_debug_freq = config["debug"]["separation_debug_freq"].as<int>();
   debug_hash_file = config["debug"]["debug_hash_file"].as<std::string>();
-  debug_hash_file = base_path / debug_hash_file;
+  debug_hash_file = output_directory / debug_hash_file;
 
   ut_pm = config["unit_test"]["proper_motion"].as<bool>();
   ut_no_motion = config["unit_test"]["no_motion"].as<bool>();
+
+  // Check if the directory exists and create it if not
+  if (!fs::exists(output_directory)) {
+    fs::create_directories(output_directory);
+  }
+
+  // Checks for valid inputs
+  assert(fs::exists(input_catalog_file));
+  assert(pattern_size >= 4);
+
+  if (ut_no_motion) {
+    year_str = "ut_no_motion";
+  } else {
+    std::ostringstream stream;
+    stream << std::fixed << std::setprecision(2) << target_jyear;
+    year_str = stream.str();
+  }
 }
 
 bool StarCatalogGenerator::load_pattern_catalog() {
@@ -166,18 +181,47 @@ void StarCatalogGenerator::convert_hipparcos() {
   input_catalog_data.col(PLX) *= mas2rad;
 }
 
-void StarCatalogGenerator::sort_star_magnitudes() {
-  std::vector<Eigen::VectorXd> vec;
-  for (int64_t i = 0; i < input_catalog_data.rows(); ++i)
-    vec.push_back(input_catalog_data.row(i));
+// Static members must be declared inside of the class cpp
+column StarCatalogGenerator::g_sort_column;
 
-  std::sort(vec.begin(), vec.end(),
-            [](Eigen::VectorXd const &t1, Eigen::VectorXd const &t2) {
-              return t1(HPMAG) < t2(HPMAG);
+int StarCatalogGenerator::sort_compare(const void* a, const void* b) {
+    const Eigen::VectorXd* vec_a = static_cast<const Eigen::VectorXd*>(a);
+    const Eigen::VectorXd* vec_b = static_cast<const Eigen::VectorXd*>(b);
+    if ((*vec_a)(g_sort_column) < (*vec_b)(g_sort_column)) return -1;
+    if ((*vec_a)(g_sort_column) > (*vec_b)(g_sort_column)) return 1;
+    return 0;
+}
+
+void StarCatalogGenerator::sort_star_columns(column col) {
+  std::vector<Eigen::VectorXd> vec(input_catalog_data.rows());
+  g_sort_column = col;
+
+  for (int64_t i = 0; i < input_catalog_data.rows(); ++i) {
+      vec[i] = input_catalog_data.row(i);
+  }
+
+  // // Use qsort to sort the vector
+  // qsort(vec.data(), vec.size(), sizeof(Eigen::VectorXd), sort_compare);
+
+  // // Assuming input_catalog_data can be accessed via non-const references
+  // for (int64_t i = 0; i < input_catalog_data.rows(); i++) {
+  //   input_catalog_data.row(i) = vec[i];
+  // }
+
+  // for (int64_t i = 0; i < input_catalog_data.rows(); i++)
+  //   vec.push_back(input_catalog_data.row(i));
+
+  std::stable_sort(vec.begin(), vec.end(),
+            [col](Eigen::VectorXd const &t1, Eigen::VectorXd const &t2) {
+              return t1(col) < t2(col);
             });
 
-  for (int64_t i = 0; i < input_catalog_data.rows(); ++i)
+  // for (int64_t i = 0; i < input_catalog_data.rows(); i++)
+  //   input_catalog_data.row(i) = vec[i];
+  // Assuming input_catalog_data can be accessed via non-const references
+  for (int64_t i = 0; i < input_catalog_data.rows(); i++) {
     input_catalog_data.row(i) = vec[i];
+  }
 
 #ifdef DEBUG_INPUT_CATALOG
   fs::path debug_input =
@@ -393,18 +437,28 @@ void StarCatalogGenerator::filter_star_separation() {
         (separated_star_indicies && ang_pattern_idx.topRows(ii)) ||
         !ang_pattern_idx.topRows(ii);
 
+    // Explanation: Apply min_sep check to only marked verification stars
+    ArrayXb separated_verify_indicies =
+        (separated_star_indicies && ang_verify_idx.topRows(ii)) ||
+        !ang_verify_idx.topRows(ii);
+
     // Pattern test: Limit "close stars" by number of stars used for pattern
     // matching per FOV
 
     // Check that all pattern stars are close
     if (separated_pattern_indicies.all()) {
+
       // separated_pattern_indicies is reused to count number of close stars
+      // Multiplied by zero if non-pattern star to separate out non-patterns.
       Eigen::ArrayXd current_pattern_star_angles =
           current_star_angles.array() *
           ang_pattern_idx.topRows(ii).cast<double>().array();
+
       separated_pattern_indicies =
           current_pattern_star_angles.array() > max_hfov_dist;
+
       num_stars_in_fov = separated_pattern_indicies.cast<int>().sum();
+
       if (num_stars_in_fov < pattern_stars_per_fov) {
         ang_verify_idx(ii) = true;
         ang_pattern_idx(ii) = true;
@@ -419,20 +473,19 @@ void StarCatalogGenerator::filter_star_separation() {
       }
     }
 
-    // Explanation: Apply min_sep check to only marked verification stars
-    ArrayXb separated_verify_indicies =
-        (separated_star_indicies && ang_verify_idx.topRows(ii)) ||
-        !ang_verify_idx.topRows(ii);
-
     // Verification test: Limit number of "close stars" used for further
     // verification per FOV
     if (separated_verify_indicies.all()) {
+
       Eigen::ArrayXd current_verify_star_angles =
           current_star_angles.array() *
           ang_verify_idx.topRows(ii).cast<double>().array();
+
       separated_verify_indicies =
           current_verify_star_angles.array() > max_hfov_dist;
-      double num_stars_in_fov = separated_verify_indicies.cast<int>().sum();
+
+      num_stars_in_fov = separated_verify_indicies.cast<int>().sum();
+
       if (num_stars_in_fov < catalog_stars_per_fov) {
         ang_verify_idx(ii) = true;
         verification_stars.push_back(ii);
@@ -447,45 +500,74 @@ void StarCatalogGenerator::filter_star_separation() {
             << " verification stars for catalog." << std::endl;
   std::cout << "Found " << pattern_stars.size() << " pattern stars for catalog."
             << std::endl;
+#ifdef DEBUG_STAR_TABLE
+  fs::path debug_table;
+  debug_table = output_catalog_file.parent_path() / 
+    ("star_table_" + year_str + ".csv");
+  write_to_csv(debug_table, star_table);
+#endif 
 }
 
 void StarCatalogGenerator::get_nearby_stars(Eigen::Vector3d star_vector,
                                             std::vector<int> &nearby_stars) {
   // Vector to fill in with hash codes for indexing
   Eigen::Vector3i low_codes, high_codes;
-  Eigen::Vector3i codes;
+  // Eigen::MatrixXi codes = Eigen::MatrixXi(pat_star_table.cols(), pat_star_table.rows());
+
   Eigen::Vector3i zeros = Eigen::Vector3i::Zero();
   Eigen::Vector3i bin_limit = int(2 * intermediate_star_bins) * Eigen::Vector3i::Ones();
   std::vector<int> star_ids;
+  std::vector<int> all_star_ids;
 
-  low_codes =
-      (intermediate_star_bins * (star_vector.array() + 1.0 - max_fov_dist)).cast<int>();
-  low_codes.array().max(zeros.array());
-  high_codes =
-      (intermediate_star_bins * (star_vector.array() + 1.0 + max_fov_dist)).cast<int>();
-  high_codes.array().min(bin_limit.array());
+  // TODO: Why the fuck do we use radians here for radius error ...
+  low_codes = (intermediate_star_bins * (star_vector.array() + 1.0 - max_fov)).cast<int>();
+  low_codes = low_codes.array().max(zeros.array());
+  high_codes = (1 + (intermediate_star_bins * (star_vector.array() + 1.0 + max_fov))).cast<int>();
+  high_codes = high_codes.array().min(bin_limit.array());
+
+#ifdef DEBUG_GET_NEARBY_STARS
+  std::cout << "Low Codes: " << low_codes.transpose() << std::endl;
+  std::cout << "High Codes: " << high_codes.transpose() << std::endl;
+#endif
 
   // For all nearby star hash codes (+/- FOV) get list of nearby stars for new
   // hash map
   // TODO: Codes should never be negative. May want to cast all associated
   // hashes to unsigned
-  for (int ii = low_codes(0); ii <= high_codes(0); ii++) {
-    for (int jj = low_codes(1); jj <= high_codes(1); jj++) {
-      for (int kk = low_codes(2); kk <= high_codes(2); kk++) {
-        codes[0] = ii;
-        codes[1] = jj;
-        codes[2] = kk;
+  for (int ii = low_codes(0); ii < high_codes(0); ii++) {
+    for (int jj = low_codes(1); jj < high_codes(1); jj++) {
+      for (int kk = low_codes(2); kk < high_codes(2); kk++) {
+        Eigen::Vector3i code;
+        code[0] = ii;
+        code[1] = jj;
+        code[2] = kk;
 
         // TODO: temp_coarse_sky_map[hash_code].remove(pattern[0])
         // Do we need to remove stars from the unordered map?
-        star_ids = coarse_sky_map[codes];
+        //
+        star_ids = coarse_sky_map[code];
 
-        for (const int &star_id : star_ids) {
+#ifdef DEBUG_GET_NEARBY_STARS
+        std::cout << "coarse_sky_map[" << code.transpose() << "]: [";
+#endif
+
+        for (const int star_id : star_ids) {
+
+#ifdef DEBUG_GET_NEARBY_STARS
+          std::printf("%d, ", star_id);
+#endif
+
+          all_star_ids.push_back(star_id);
           double dp = star_vector.dot(star_table.row(star_id));
-          if ((dp > max_fov_dist) && (dp < min_separation)) {
+          if ((dp > max_fov_dist)) {
+          //if ((dp > max_fov_dist) && (dp < min_separation)) {
             nearby_stars.push_back(star_id);
           }
         }
+
+#ifdef DEBUG_GET_NEARBY_STARS
+        std::cout << "]" << std::endl;
+#endif
       }
     }
   }
@@ -494,7 +576,10 @@ void StarCatalogGenerator::get_nearby_stars(Eigen::Vector3d star_vector,
 bool StarCatalogGenerator::is_star_pattern_in_fov(
     Eigen::MatrixXi &pattern_list, std::vector<int> nearby_star_pattern) {
   // Make sure passed in Star ID combination matches pattern_size
-  assert(nearby_star_pattern.size() == pattern_size);
+  if (nearby_star_pattern.size() != pattern_size) {
+    std::cout << "nearby_star_pattern.size() : " << nearby_star_pattern.size() << std::endl;
+    return false;
+  }
 
   // Checking all pair angles
   std::vector<int> star_pair, selector(pattern_size);
@@ -510,8 +595,7 @@ bool StarCatalogGenerator::is_star_pattern_in_fov(
   do {
     // Check if number checked exceeds number of actual permutations
     if (cnt > num_pattern_angles)
-      throw std::runtime_error(
-          "Star FOV check exceeded expected permutations\n");
+      throw std::runtime_error("Star FOV check exceeded expected permutations\n");
 
     for (unsigned int ii = 0; ii < pattern_size; ii++) {
       if (selector[ii]) {
@@ -520,8 +604,8 @@ bool StarCatalogGenerator::is_star_pattern_in_fov(
     }
 
     // Filter out stars outsid>e FOV and compute edges
-    star_vector_1 = proper_motion_data.row(star_pair[0]);
-    star_vector_2 = proper_motion_data.row(star_pair[1]);
+    star_vector_1 = star_table.row(star_pair[0]);
+    star_vector_2 = star_table.row(star_pair[1]);
     dot_p = star_vector_1.dot(star_vector_2);
 
     if (dot_p < max_fov_dist) {
@@ -563,8 +647,8 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
     }
 
     // Filter out stars outside FOV and compute edges
-    star_vector_1 = proper_motion_data.row(star_pair[0]);
-    star_vector_2 = proper_motion_data.row(star_pair[1]);
+    star_vector_1 = star_table.row(star_pair[0]);
+    star_vector_2 = star_table.row(star_pair[1]);
     dot_p = star_vector_1.dot(star_vector_2);
 
     star_vector_1 -= star_vector_2;
@@ -574,6 +658,7 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
     // pattern_list creation
     assert(dot_p > max_fov_dist);
 
+
     star_pair.clear();
     cnt++;
   } while (std::prev_permutation(selector.begin(), selector.end()));
@@ -581,26 +666,32 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
   // If edge count != num_pattern_angles, expected combination not correct
   assert(cnt == num_pattern_angles);
 
-  std::sort(edges.begin(), edges.end());
+  std::stable_sort(edges.begin(), edges.end());
   edges /= edges.maxCoeff();
 }
 
-int StarCatalogGenerator::key_to_index(Eigen::VectorXi hash_code,
+// TODO: May have to go through and convert all integers into uint64_t
+uint64_t StarCatalogGenerator::key_to_index(Eigen::VectorXi hash_code,
                                        const unsigned int pattern_bins,
                                        const unsigned int catalog_length) {
   const unsigned int rng_size = hash_code.size();
   Eigen::VectorXi key_range =
       Eigen::VectorXi::LinSpaced(rng_size, 0, rng_size - 1);
   Eigen::VectorXi pat_bin_cast = pattern_bins * Eigen::VectorXi::Ones(rng_size);
-  Eigen::VectorXi index =
-      hash_code.array() * Eigen::pow(pat_bin_cast.array(), key_range.array());
+  Eigen::VectorXi indicies = hash_code.array() * Eigen::pow(pat_bin_cast.array(), key_range.array());
+
+  uint64_t sum = 0;
+  for (auto index: indicies) {
+    sum += static_cast<uint64_t>(index);
+  }
 
   // TODO: Carefully check python types to see if this matches TETRA Logic
-  return (int(index.sum() * magic_number) % catalog_length);
+  return ((sum * magic_number) % static_cast<uint64_t>(catalog_length));
 }
 
 void StarCatalogGenerator::get_nearby_star_patterns(
     Eigen::MatrixXi &pattern_list, std::vector<int> nearby_stars, int star_id) {
+
   int n = nearby_stars.size();
   std::vector<int> nearby_star_pattern;
   std::vector<int> selector(n);
@@ -616,7 +707,16 @@ void StarCatalogGenerator::get_nearby_star_patterns(
       }
     }
 
+
     if (is_star_pattern_in_fov(pattern_list, nearby_star_pattern)) {
+#ifdef DEBUG_GET_NEARBY_STAR_PATTERNS
+      std::cout << "nearby_star_pattern = ";
+      for (auto pat: nearby_star_pattern) {
+        std::cout << pat << ", ";
+      }
+      std::cout << std::endl;
+#endif
+
       int *pat_ptr = &nearby_star_pattern[0];
       Eigen::Map<Eigen::VectorXi> star_pattern_vec(pat_ptr,
                                                    nearby_star_pattern.size());
@@ -666,11 +766,11 @@ void StarCatalogGenerator::init_output_catalog() {
 
     std::cout << ss.str() << std::endl;
 
-  node[ss.str()].push_back(std::to_string(ii));
+  node[ss.str()].push_back(std::to_string(pattern_stars[ii]));
   ss.str("");
 #endif
 
-    coarse_sky_map[codes.row(ii)].push_back(ii);
+    coarse_sky_map[static_cast<Eigen::Vector3i>(codes.row(ii))].push_back(pattern_stars[ii]);
   }
 
 #ifdef DEBUG_HASH
@@ -689,6 +789,12 @@ void StarCatalogGenerator::init_output_catalog() {
     std::cout << '\n';
   }
 #endif
+}
+
+void pop_vector(std::vector<int>& vec, int value) {
+    auto it = std::find(vec.begin(), vec.end(), value);
+    assert(it != vec.end());
+    vec.erase(it);
 }
 
 void StarCatalogGenerator::generate_output_catalog() {
@@ -712,7 +818,9 @@ void StarCatalogGenerator::generate_output_catalog() {
     star_id = pattern_stars[ii];
     star_vector = star_table.row(star_id);
 
-    std::cout << "Looking for patterns near star id " << star_id;
+    Eigen::Vector3i code = ((intermediate_star_bins) * (star_vector.array() + 1.0)).cast<int>();
+    // TODO: Matching Tetra here, but doesn't this completely remove the star from further patterns?
+    pop_vector(coarse_sky_map[code], star_id);
 
 #ifdef DEBUG_GET_NEARBY_STARS
     tstart = time(0);
@@ -721,7 +829,11 @@ void StarCatalogGenerator::generate_output_catalog() {
     // stars in FOV
     get_nearby_stars(star_vector, nearby_stars);
 
+    std::cout << "Looking for patterns near star id " << star_id;
     std::cout << ", Number of Neighbors = " << nearby_stars.size() << std::endl;
+
+    if (nearby_stars.size() < (pattern_size - 1))
+      continue;
 
 #ifdef DEBUG_GET_NEARBY_STARS
     std::cout << "get_nearby_stars took " << difftime(time(0), tstart)
@@ -743,6 +855,16 @@ void StarCatalogGenerator::generate_output_catalog() {
 
   pattern_list.conservativeResize(pattern_list_size, Eigen::NoChange);
 
+#ifdef DEBUG_GET_NEARBY_STAR_PATTERNS
+  std::printf("Found %d patterns \n", pattern_list_size);
+#endif
+
+#ifdef DEBUG_PATTERN_LIST
+  fs::path debug_pl = output_catalog_file.parent_path() /
+                      ("pattern_list_" + year_str + ".csv");
+  write_to_csv(debug_pl, pattern_list);
+#endif
+
   // TODO: Move this into higher level Class / Structure. This is our catalog
   int catalog_length = 2 * pattern_list.rows();
   // WARNING: This is not how Tetra does this. They init to zeros.. But that is
@@ -752,46 +874,54 @@ void StarCatalogGenerator::generate_output_catalog() {
   // Other TODO: May want to copy unordered map logic for output
   // pattern_catalog. Could reduce lookup timing. (currently sparse quad probing
   // of large matrix)
-  Eigen::MatrixXi pattern_catalog =
-      -1 * Eigen::MatrixXi::Ones(catalog_length, pattern_size);
+  Eigen::MatrixXi pattern_catalog = Eigen::MatrixXi(catalog_length, pattern_size).setZero();
+  // Eigen::MatrixXi pattern_catalog = -1 * Eigen::MatrixXi::Ones(catalog_length, pattern_size);
 
   // For all patterns in pattern_list, find hash and insert into pattern_catalog
   for (long unsigned int ii = 0; ii < (unsigned int)pattern_list.rows(); ii++) {
     if ((ii % index_pattern_debug_freq) == 0)
-      std::cout << "Indexing pattern " << ii << " of " << pattern_list.rows()
-                << std::endl;
+      printf("Indexing pattern %lu of %lu \n", ii,  pattern_list.rows());
 
     quadprobe_count = 0;
 
-    // For each pattern, get edges
+    // For each pattern, get edges)
     pattern = pattern_list.row(ii);
     get_star_edge_pattern(pattern);
-    Eigen::VectorXi hash_code =
-        (edges(Eigen::seqN(0, edges.size() - 1)) * (double)pattern_bins)
-            .cast<int>();
-    int hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
+
+    Eigen::VectorXi hash_code = (edges(Eigen::seqN(0, edges.size() - 1)) * (double)pattern_bins).cast<int>();
+    uint64_t hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
+    // TODO: Something less dumb
+    assert(hash_index < static_cast<uint64_t>(INT_MAX));
+
+#ifdef DEBUG_PATTERN_CATALOG
+    std::printf("pattern[%llu].hash_code = [", hash_index);
+    for (auto code: hash_code) {
+      std::cout << code << ", ";
+    }
+    std::cout << "]";
+
+    std::cout << " (edges: [";
+    for (auto edge: edges) {
+      std::cout << edge << ", ";
+    }
+    std::cout << "])" << std::endl;
+    // exit(-1);
+#endif
 
     // Use quadratic probing to find an open space in the pattern catalog to
     // insert
-    // TODO: Check if quad probe bounding is required to avoid infinite loops
+    // TODO: Check if quad probe bounding is required to avoid infinite lioops
     // If quad probe is required, maybe cap this to avoid infinites (This may
     // end up as FSW?)
     while (true) {
       int index = (hash_index + (int)std::pow(quadprobe_count, 2)) %
                   (int)pattern_catalog.rows();
-      if (pattern_catalog(index, 0) == -1) {
-        // This doesn't work. Need to change from vector to array and be
-        // careful.
+      if (pattern_catalog.row(index).sum() == 0) {
         pattern_catalog.row(index) = pattern;
         break;
       }
       quadprobe_count++;
     }
-  }
-
-  // Check if the directory exists and create it if not
-  if (!fs::exists(output_catalog_file.parent_path())) {
-    fs::create_directories(output_catalog_file.parent_path());
   }
 
   output_hdf5(output_catalog_file, "star_table", star_table, true);
@@ -800,12 +930,8 @@ void StarCatalogGenerator::generate_output_catalog() {
   // output_hdf5(output_catalog_file, "proper_motion_data", proper_motion_data);
 
 #ifdef DEBUG_PATTERN_CATALOG
-  fs::path debug_table = output_catalog_file.parent_path() /
-                           ("star_table" + year_str + ".csv");
-  write_to_csv(debug_table, star_table);
-
   fs::path debug_catalog = output_catalog_file.parent_path() /
-                           ("pattern_catalog" + year_str + ".csv");
+                           ("pattern_catalog_" + year_str + ".csv");
   write_to_csv(debug_catalog, pattern_catalog);
 #endif
 }
@@ -818,11 +944,14 @@ void StarCatalogGenerator::run() {
     std::cout << "Reading Hipparcos Catalog" << std::endl;
     assert(read_input_catalog());
 
-    std::cout << "Convert Hipparcos" << std::endl;
-    convert_hipparcos();
+    std::cout << "Sorting Stars" << std::endl;
+    sort_star_columns(column::HIP);
 
     std::cout << "Sorting Stars" << std::endl;
-    sort_star_magnitudes();
+    sort_star_columns(column::HPMAG);
+
+    std::cout << "Convert Hipparcos" << std::endl;
+    convert_hipparcos();
 
     std::cout << "Correcting Proper Motion" << std::endl;
     correct_proper_motion();

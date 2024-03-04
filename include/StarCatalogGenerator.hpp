@@ -18,6 +18,8 @@
 #include "Utilities.hpp"
 #include "eigen_mods.hpp"
 
+// TODO: A few references to hipparcos to generalize to Gaia / UCAC4
+
 namespace fs = std::filesystem;
 
 // Defaults
@@ -32,7 +34,7 @@ const double mas2arcsec = (1.0 / 1000.0);
 const double mas2rad    = mas2arcsec * arcsec2deg * deg2rad;
 const double au2km      = 149597870.691;
 
-enum {
+typedef enum {
   HIP,
   RArad,
   DErad,
@@ -54,16 +56,18 @@ enum {
   RA_ICRS,
   DE_ICRS,
   CATALOG_COLUMNS
-};
+} column;
 
-// Some macro defines to debug various functions before valgrid setup
+// Debugging functions used for validation (TODO: Move to config)
 // #define DEBUG_HIP
-#define DEBUG_INPUT_CATALOG
-#define DEBUG_PM
-#define DEBUG_HASH
+// #define DEBUG_INPUT_CATALOG
+// #define DEBUG_PM
+// #define DEBUG_HASH
 // #define DEBUG_GET_NEARBY_STARS
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
-#define DEBUG_PATTERN_CATALOG
+// #define DEBUG_STAR_TABLE
+// #define DEBUG_PATTERN_LIST
+// #define DEBUG_PATTERN_CATALOG
 
 
 const unsigned int catalog_rows = 117955;
@@ -112,6 +116,7 @@ public:
 
 private:
   fs::path input_catalog_file;
+  fs::path output_directory;
   fs::path output_catalog_file;
   Eigen::MatrixXd input_catalog_data;
   Eigen::MatrixXd proper_motion_data;
@@ -148,6 +153,8 @@ private:
   unsigned int pattern_stars_per_fov;
   // @brief Max Catalog stars per fov
   unsigned int catalog_stars_per_fov;
+  // @brief Max Expected FOV (Radians)
+  double max_fov;
   // @brief Max Expected FOV (Distance)
   double max_fov_dist;
   // @brief Max Expected Half FOV (Distance)
@@ -155,7 +162,7 @@ private:
   // @brief Intermediate hash number of bins
   unsigned int intermediate_star_bins;
   // @brief TODO: check why int
-  int pattern_bins;
+  uint64_t pattern_bins;
 
   // @brief Global counter for pattern_list
   int pattern_list_size = 0;
@@ -171,19 +178,19 @@ private:
 
   // TODO: Inspect if python is doing things with this.. Currently > INT_MAX so
   // modulo is of -1640531535
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-  // @brief magic hash number
-  const int magic_number = 2654435761;
-#pragma GCC diagnostic pop
+  // @brief magic hash number TODO: Check GMP or Boost::Multiprecision
+  const uint64_t magic_number = 2654435761;
+
+  // Sort column used for HIP and HpMag
+  static column g_sort_column;
 
   void read_yaml(fs::path config_path = default_config_path);
 
   // Initial catalog transforms
   bool read_input_catalog();
   void convert_hipparcos();
-  void sort_star_magnitudes();
+  static int sort_compare(const void* a, const void* b);
+  void sort_star_columns(column col);
   void init_bcrf();
   void correct_proper_motion();
 
@@ -197,7 +204,7 @@ private:
   void init_output_catalog();
 
   // Final star edge pattern hash table (from paper / code)
-  int key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length);
+  uint64_t key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length);
   void generate_output_catalog();
 
   template <typename Derived>

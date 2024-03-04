@@ -25,8 +25,6 @@ bool create_out_directory(fs::path dir_name) {
 
 int main(int argc, char **argv) {
   fs::path base_path, data_path, hipparcos_file, output_path, p_cat_out_file;
-  // fs::path test_image = fs::current_path() / ".." / "data" /
-  // "star_tracker_image.jpeg";
   fs::path test_image =
       fs::current_path() / ".." / "data" / "large_star_image.JPG";
 
@@ -52,7 +50,7 @@ int main(int argc, char **argv) {
   StarSolver solver(max_contours, max_points_per_contour, output_path);
   solver.load_image(test_image);
   // solver.get_centroids();
-  solver.get_gauss_centroids();
+  // solver.get_gauss_centroids();
 
   return 0;
 }
