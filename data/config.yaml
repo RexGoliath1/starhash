@@ -7,7 +7,7 @@ catalog:
   catalog_jyear: 2000.0
   # Vehicle Barycentric Position (parallax, should be updated every mission)
   # TODO: Make internal propagator of earth position?
-  target_bcrf_position: [-0.97593161, -0.19017534, -0.08252697]
+  target_bcrf_position: [-0.97593161, -0.19017534, -0.08252697] # 2024.0903490759754
   # Input catalog (TODO: break out HIP / GAIA / UCAC4 / Etc)
   input_catalog_file: "data/hipparcos.csv"
   # Output directory
@@ -17,11 +17,11 @@ catalog:
   # Output catalog pattern size
   pattern_size: 4
   # Constraint on pattern stars per FOV
-  pattern_stars_per_fov: 5 # 10
+  pattern_stars_per_fov: 10
   # Constraint on catalog / validation stars per FOV
-  catalog_stars_per_fov: 10 # 20
+  catalog_stars_per_fov: 20
   # Constraint on magnitude
-  magnitude_thresh: 6.0
+  magnitude_thresh: 9.0
   # Constraint on parallax (TODO: Use ESA paper to adjust <0 plx entries)
   plx_thresh: 0.0
   # Constraint on minimum separation angle 
@@ -60,4 +60,4 @@ unit_test:
   proper_motion: false
   # Set to remove proper motion / parallax calculations 
   # RA/DEC will appear at catalog epochs
-  no_motion: true
+  no_motion: false

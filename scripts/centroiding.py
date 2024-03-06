@@ -9,7 +9,6 @@ from tqdm import tqdm
 import argparse
 import yaml
 from glob import iglob, glob
-from datetime import datetime
 from scipy.spatial import cKDTree
 import re
 import json
@@ -23,6 +22,7 @@ sys.path.append(str(lib_path))
 
 from transform_utils import rotation_vector_from_matrices, vectors_to_angle
 from attitude_determination import quest, davenport, triad, foma, svd, esoq2
+from stellar_utils import StellarUtils
 
 # Default Paths
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
@@ -50,18 +50,6 @@ truth_kwargs = {
     "thickness": 1,
 }
 
-def parameter_override(args):
-    # Override parameters provided in the config
-    if args.config_path and os.path.exists(args.config_path):
-        with open(args.config_path, 'r') as stream:
-            config = yaml.safe_load(stream)
-
-            for param in config.keys():
-                if param in config and hasattr(args, param):
-                    setattr(args, param, config[param])
-    return args
-
-
 def group_poi_stats(flat_image, snr, stats, args):
     poi_subs = []
     poi_stats = []
@@ -81,17 +69,34 @@ def group_poi_stats(flat_image, snr, stats, args):
 
     return poi_subs, poi_stats, poi_snrs
 
+def process_params(args):
+    # Override parameters provided in the config
+    if args.config_path and os.path.exists(args.config_path):
+        with open(args.config_path, 'r') as stream:
+            config = yaml.safe_load(stream)
+
+            for param in config.keys():
+                if param in config and hasattr(args, param):
+                    setattr(args, param, config[param])
+
+    os.makedirs(args.output_path, exist_ok=True)
+    assert (os.path.exists(args.input_path))
+    assert (os.path.exists(args.output_path))
+
+
 def centroiding_pipeline(image_path, args):
     """ Centroiding Loop """
-    np.random.seed(args.seed)
+    process_params(args)
     img = cv2.imread(image_path)
+
+    np.random.seed(args.seed)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     centroid_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     image_name = os.path.splitext(os.path.basename(image_path))
-    output_path = os.path.join(args.output_path, image_name[0])
+    args.image_output_path = os.path.join(args.output_path, image_name[0])
 
     if args.output_plots:
-        os.makedirs(output_path, exist_ok=True)
+        os.makedirs(args.image_output_path, exist_ok=True)
         for ii in range(args.truth_coords.shape[1]):
             [x,y] = args.truth_coords[:, ii]
             centroid_img = cv2.circle(centroid_img, (int(x), int(y)), **truth_kwargs)
@@ -126,7 +131,7 @@ def centroiding_pipeline(image_path, args):
     poi_subs, poi_stats, poi_snr = group_poi_stats(flat_image, snr, stats, args)
 
     # initialize lists for output
-    star_points = []
+    star_centroids = []
     star_illums = []
     star_psfs = []
     out_stats = []
@@ -160,7 +165,7 @@ def centroiding_pipeline(image_path, args):
                 dx = x0 - (center[0] - args.centroid_size)
                 dy = y0 - (center[1] - args.centroid_size)
                 if (np.abs(np.asarray(center) - np.asarray([x0, y0]).flatten()) <= 3).all():
-                    star_points.append([x0, y0])
+                    star_centroids.append([x0, y0])
                     star_illums.append(gray[tuple(center[::-1])])
                     # star_psfs.append(psf)
                     if stats is not None:
@@ -171,7 +176,7 @@ def centroiding_pipeline(image_path, args):
                     centroid_img = cv2.circle(centroid_img, (int(x0), int(y0)), **gauss_kwargs)
 
             if args.output_plots and args.output_individual_blobs:
-                fig_name = os.path.join(output_path, f"blob_{ind}.png")
+                fig_name = os.path.join(args.image_output_path, f"blob_{ind}.png")
                 if (x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any()):
                     plt.imshow(roi, 'gray')
                     plt.title(f"No fit: Blob {ind}: {x0}, {y0}")
@@ -219,10 +224,10 @@ def centroiding_pipeline(image_path, args):
         plt.imshow(centroid_img)
         plt.title(f"Full Solution Blob Gaussian Percent: {pct:2f}")
         plt.draw()
-        fig_name = os.path.join(output_path, f"full_solution.png")
+        fig_name = os.path.join(args.image_output_path, f"full_solution.png")
         plt.savefig(fig_name)
 
-    return star_points
+    return star_centroids
 
 
 def get_outliers(samples, sigma_cutoff=4):
@@ -299,135 +304,49 @@ def gaussian_fit(x, y, z):
 
     return x0, y0, z0, residuals, covariance
 
-if __name__ == "__main__":
-    """ Simple Star Centroiding """
-    print("Starting....")
-    parser = argparse.ArgumentParser(description="Overlay OpenCV blob detection on an image")
-    parser.add_argument("--input_path", default=IMAGE_DIRECTORY, type=str, help="")
-    # parser.add_argument("--coord_path", default=COORD_DIRECTORY, type=str, help="")
-    parser.add_argument("--use_latest", default=True, type=bool, help="")
-    parser.add_argument("--input_pattern", default="stellarium*.png", type=str, help="")
-    parser.add_argument("--coords_pattern", default="_data", type=str, help="")
-    parser.add_argument("--output_path", default=OUTPUT_DIRECTORY ,type=str, help="")
-    parser.add_argument("--config_path", default=DEFAULT_CONFIG,type=str, help="")
-    parser.add_argument("--output_plots", type=bool, default=True, help="")
-    parser.add_argument("--output_individual_blobs", type=bool, default=False, help="")
-    parser.add_argument("--display_blob_centroids", type=bool, default=True, help="")
-    parser.add_argument("--display_gauss_centroids", type=bool, default=True, help="")
-    parser.add_argument("--denoise", type=bool, default=False, help="")
-    parser.add_argument("--size_denoise", type=int, default=3, help="")
-    parser.add_argument("--flatten", type=bool, default=True, help="")
-    parser.add_argument("--size_median", type=int, default=9, help="")
-    parser.add_argument("--distance_threshold", type=int, default=31, help="")
-    parser.add_argument("--num_blobs", type=int, default=5, help="")
-    parser.add_argument("--snr_threshold", type=int, default=50000, help="")
-    parser.add_argument("--poi_max_size", type=int, default=50, help="")
-    parser.add_argument("--poi_min_size", type=int, default=2, help="")
-    parser.add_argument("--reject_saturation", type=bool, default=True, help="")
-    parser.add_argument("--centroid_size", type=int, default=1, help="")
-    parser.add_argument("--seed", type=int, default=1337, help="")
-
-    args = parser.parse_args()
-    args = parameter_override(args)
-    os.makedirs(args.output_path, exist_ok=True)
-    
-    assert (os.path.exists(args.input_path))
-    assert (os.path.exists(args.output_path))
-
-    if args.use_latest:
-        default_date = datetime.strptime('20181110-105531', "%Y%m%d-%H%M%S")
-        most_recent = default_date
-        for res_folder in os.listdir(args.input_path):
-            try:
-                date = datetime.strptime(res_folder, "%Y%m%d-%H%M%S")
-            except:
-                continue
-
-            if date is None:
-                continue
-            elif date > most_recent:
-                most_recent = date
-
-        if most_recent == default_date:
-            raise Exception("No recent folders found!")
-
-        mr_folder = most_recent.strftime("%Y%m%d-%H%M%S")
-        args.coords_path= os.path.join(args.input_path, mr_folder, "data")
-        args.input_path= os.path.join(args.input_path, mr_folder, "images")
-
-    #temp_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
-    #image_path = "/Users/stevengonciar/git/starhash/stellarscript/results/20240206-071258/images"
-    # Read in the K Matrix
-    for image_path in iglob(os.path.join(args.input_path, args.input_pattern)):
-        num_test = 1
-        test = np.zeros(num_test)
-        img_name = os.path.basename(image_path)
-
-        match = re.search(r"\d+", img_name)
-        if match is None:
-            print("Something happened. File not there")
+def run_pipeline(args, stel):
+    for image_path in iglob(os.path.join(stel.image_path, args.image_pattern)):
+        if not stel.get_stel_data(image_path):
             continue
 
-        number = int(match.group())
-        if number is None:
-            print("Something happened. File not there")
-            continue
+        # Block for repeatedly running centroiding for runtime performance checks
+        if args.test_runtime:
+            num_test = 1
+            test = np.zeros(num_test)
 
-        coord_file = os.path.join(args.coords_path, str(number) + args.coords_pattern + ".json")
+            for ii in range(num_test):
+                t1 = time()
+                star_centroids = centroiding_pipeline(image_path, args)
+                test[ii] = time() - t1
+            print(f"Took {np.mean(test):.2f} seconds on average. Std: {np.std(test):.2f}. {num_test} samples")
+        else:
+            star_centroids = centroiding_pipeline(image_path, args)
+            num_centroids = len(star_centroids)
+            if num_centroids == 0:
+                print(f"No centroids found for {image_path}")
+                continue
 
-        with open(coord_file, 'r') as fp:
-            jl = json.load(fp)
-            E = jl["E"]
-            K = jl["K"]
-            E = np.array(E)
-            K = np.array(K)
-            K_inv = np.linalg.inv(K)
-            T_cam_to_j2000 = E[:,:3]
-            truth_stars = jl["stars"]
-
-        num_stars = len(truth_stars.keys())
-        star_names = list(truth_stars.keys())
-        truth_coords = np.zeros([2, num_stars])
-        truth_vectors = np.zeros([3, num_stars])
-        truth_body_vectors = np.zeros([3, num_stars])
-
-        truth_coords_list = []
-        for ii in range(num_stars):
-            star_name = star_names[ii]
-            # truth_coords[:, ii] = truth_stars[star_name]["vec_inertial"]
-            truth_coords[:, ii] = truth_stars[star_name]["pixel"]
-            truth_coords_list.append(truth_stars[star_name]["pixel"])
-            truth_vectors[:, ii] = truth_stars[star_name]["vec_inertial"]
-            truth_body_vectors[:, ii] = truth_stars[star_name]["vec_camera"]
-
-        args.truth_coords = truth_coords
-
-        for ii in range(num_test):
-            t1 = time()
-            star_points = centroiding_pipeline(image_path, args)
-            test[ii] = time() - t1
-
-            measured_coords = np.zeros([2, len(star_points)])
-            measured_vectors = np.zeros([3, len(star_points)])
-            for jj, star_point in enumerate(star_points):
-                [u,v] = star_point
+            measured_coords = np.zeros([2, num_centroids])
+            measured_vectors = np.zeros([3, num_centroids])
+            for jj, star_centroid in enumerate(star_centroids):
+                [u,v] = star_centroid
                 pc = np.array([[u, v, 1]],).T
-                vc = K_inv @ pc
+                vc = stel.K_inv @ pc
                 vc[2] = np.sqrt(1 - vc[0]**2 -vc[1]**2)
                 measured_vectors[:, jj] = vc.T
-                measured_coords[:, jj] = star_point
+                measured_coords[:, jj] = star_centroid
 
             # For now, we will use a KDTree / Hungarian Algorithm to map our centriods to true pixel locations
             threshold = 10.0
             max_cost = threshold * 1000
-            assert(threshold < max_cost)
-            tree = cKDTree(truth_coords_list)
-            idx = tree.query_ball_point(x=star_points, r=threshold, p=2)
-            cost_matrix = np.full((len(star_points), len(truth_coords_list)), max_cost)
+            assert(threshold p< max_cost)
+            tree = cKDTree(stel.truth_coords_list)
+            idx = tree.query_ball_point(x=star_centroids, r=threshold, p=2)
+            cost_matrix = np.full((len(star_centroids), len(stel.truth_coords_list)), max_cost)
 
             for i, indices in enumerate(idx):
                 for truth_index in indices:
-                    distance = np.linalg.norm(np.array(truth_coords_list[truth_index]) - np.array(star_points[i]))
+                    distance = np.linalg.norm(np.array(stel.truth_coords_list[truth_index]) - np.array(star_centroids[i]))
                     cost_matrix[i, truth_index] = distance
 
             measured_indicies, truth_indices = linear_sum_assignment(cost_matrix)
@@ -439,13 +358,13 @@ if __name__ == "__main__":
             # If successful, vb and vi should be the 1:1 mapping of centroid vectors to inertial truth
             vb = measured_vectors[:, measured_indicies]
             mc = measured_coords[:, measured_indicies]
-            vi = truth_vectors[:, truth_indices]
-            tc = truth_coords[:, truth_indices]
+            vi = stel.truth_vectors[:, truth_indices]
+            tc = stel.truth_coords[:, truth_indices]
 
-            vc_truth = truth_body_vectors[:, truth_indices]
+            vc_truth = stel.truth_body_vectors[:, truth_indices]
 
             # Sanity checks
-            for vnum in range(0, len(truth_vectors)):
+            for vnum in range(0, len(stel.truth_vectors)):
                 print(f"Truth: ({tc[:, vnum]}) ; Measured: ({mc[:, vnum]})")
                 print(f"Truth Vector : ({vc_truth[:, vnum]}) ; Measured Vector: ({vb[:, vnum]})")
                 ang = np.degrees(vectors_to_angle(vc_truth[:, vnum], vb[:, vnum]))
@@ -462,7 +381,7 @@ if __name__ == "__main__":
             w = np.ones(vb.shape[1])
             C_opt, q_opt = quest(vb, vi, w)
             # TODO: Nope, this is broken somewhere, the E matrix looks transposed, but no combinations work
-            rot_vec_error = rotation_vector_from_matrices(T_cam_to_j2000, C_opt)
+            rot_vec_error = rotation_vector_from_matrices(stel.T_cam_to_j2000, C_opt)
             rv_deg = np.degrees(rot_vec_error)
             rv_as = rv_deg * 3600
             rv_mas = 1000 * rv_as
@@ -473,4 +392,32 @@ if __name__ == "__main__":
 
             print("Finished matching!")
 
-        print(f"Took {np.mean(test):.2f} seconds on average. Std: {np.std(test):.2f}. {num_test} samples")
+if __name__ == "__main__":
+    """ Simple Star Centroiding """
+    print("Starting....")
+    parser = argparse.ArgumentParser(description="Overlay OpenCV blob detection on an image")
+    parser.add_argument("--input_path", default=IMAGE_DIRECTORY, type=str, help="")
+    parser.add_argument("--image_pattern", default="stellarium*.png", type=str, help="")
+    parser.add_argument("--output_path", default=OUTPUT_DIRECTORY ,type=str, help="")
+    parser.add_argument("--config_path", default=DEFAULT_CONFIG,type=str, help="")
+    parser.add_argument("--denoise", type=bool, default=False, help="")
+    parser.add_argument("--size_denoise", type=int, default=3, help="")
+    parser.add_argument("--flatten", type=bool, default=True, help="")
+    parser.add_argument("--size_median", type=int, default=9, help="")
+    parser.add_argument("--distance_threshold", type=int, default=31, help="")
+    parser.add_argument("--num_blobs", type=int, default=5, help="")
+    parser.add_argument("--snr_threshold", type=int, default=50000, help="")
+    parser.add_argument("--poi_max_size", type=int, default=50, help="")
+    parser.add_argument("--poi_min_size", type=int, default=2, help="")
+    parser.add_argument("--reject_saturation", type=bool, default=True, help="")
+    parser.add_argument("--centroid_size", type=int, default=1, help="")
+    parser.add_argument("--seed", type=int, default=1337, help="")
+    parser.add_argument("--output_plots", type=bool, default=True, help="")
+    parser.add_argument("--output_individual_blobs", type=bool, default=False, help="")
+    parser.add_argument("--display_blob_centroids", type=bool, default=True, help="")
+    parser.add_argument("--display_gauss_centroids", type=bool, default=True, help="")
+    parser.add_argument("--test_runtime", type=bool, default=False, help="")
+    args = parser.parse_args()
+
+    stel = StellarUtils(args.input_path)
+    run_pipeline(args, stel)
