@@ -671,6 +671,8 @@ class Stellarium():
             self.get_extrinsic()
 
             data = {}
+            data["width"] = self.width
+            data["height"] = self.height
             data["ra"] = self.ra
             data["dec"] = self.dec
             data["E"] = self.E.tolist()

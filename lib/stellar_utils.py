@@ -3,6 +3,8 @@ import os
 import numpy as np
 import json
 from datetime import datetime
+import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 DEFAULT_DATE = datetime.strptime('20181110-105531', "%Y%m%d-%H%M%S")
 
@@ -55,11 +57,17 @@ class StellarUtils():
 
         with open(coord_file, 'r') as fp:
             jl = json.load(fp)
-            E = jl["E"]
-            K = jl["K"]
-            self.E = np.array(E)
-            self.K = np.array(K)
-            self.K_inv = np.linalg.inv(K)
+            self.E = np.array(jl["E"])
+            self.K = np.array(jl["K"])
+            self.width  = jl["width"]
+            self.height = jl["height"]
+            self.fx = self.K[0, 0]
+            self.fy = self.K[1, 1]
+            self.cx = self.K[2, 0]
+            self.cy = self.K[2, 1]
+            self.hfov = 2 * np.arctan2(self.width / 2.0, self.fx)
+            self.vfov = 2 * np.arctan2(self.height / 2.0, self.fy)
+            self.K_inv = np.linalg.inv(self.K)
             self.T_cam_to_j2000 = self.E[:,:3]
             truth_stars = jl["stars"]
 

@@ -1,9 +1,10 @@
 import numpy as np
 from transform_utils import quaternion_to_dcm, dcm_to_quaternion
 
-def quest(v_b, v_i, w):
+def quest(v_b, v_i, w = None, tolerance = 1e-5):
     """Quaternion Estimator (QUEST) algorithm."""
-    tolerance = 1e-5
+    if w is None:
+        w = np.ones(v_b.shape[1])
 
     # B matrix computation
     B = v_b @ np.diag(w) @ v_i.T
@@ -44,9 +45,11 @@ def quest(v_b, v_i, w):
 
     return C_opt, q_opt
 
-def davenport(v_b, v_i, w):
+def davenport(v_b, v_i, w = None):
     # Matrix K (4x4)
-    #B = np.dot((v_b * w[:, np.newaxis]).T, v_i.T)
+    if w is None:
+        w = np.ones(v_b.shape[1])
+
     B = v_b @ np.diag(w) @ v_i.T
     Z = np.array([B[1, 2] - B[2, 1], B[2, 0] - B[0, 2], B[0, 1] - B[1, 0]])
     Z = Z.reshape(3,1)
@@ -78,8 +81,9 @@ def triad(b1, b2, r1, r2):
 
     return C_opt, q_opt
 
-def foma(v_b, v_i, w):
-    tolerance = 1e-5
+def foma(v_b, v_i, w, tolerance = 1e-5):
+    if w is None:
+        w = np.ones(v_b.shape[1])
 
     B = v_b @ np.diag(w) @ v_i.T
     det_B = np.linalg.det(B)
@@ -104,7 +108,10 @@ def foma(v_b, v_i, w):
     
     return C_opt, q_opt
 
-def svd(v_b, v_i, w):
+def svd(v_b, v_i, w = None):
+    if w is None:
+        w = np.ones(v_b.shape[1])
+
     B = v_b @ np.diag(w) @ v_i.T
     U, _, Vt = np.linalg.svd(B)
     d = np.linalg.det(U) * np.linalg.det(Vt.T)
@@ -114,8 +121,11 @@ def svd(v_b, v_i, w):
 
     return C_opt, q_opt
 
-def esoq2(v_b, v_i, w):
+def esoq2(v_b, v_i, w = None):
     # TODO: In progress
+    if w is None:
+        w = np.ones(v_b.shape[1])
+
     # Attitude profile matrix
     B = v_b @ np.diag(w) @ v_i.T
     Z = np.array([B[1, 2] - B[2, 1], B[2, 0] - B[0, 2], B[0, 1] - B[1, 0]])
@@ -170,4 +180,3 @@ def esoq2(v_b, v_i, w):
     C = quaternion_to_dcm(q)
 
     return C, q
-

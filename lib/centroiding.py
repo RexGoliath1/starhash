@@ -8,10 +8,8 @@ from time import time
 from tqdm import tqdm
 import argparse
 import yaml
-from glob import iglob, glob
+from glob import iglob
 from scipy.spatial import cKDTree
-import re
-import json
 from scipy.optimize import linear_sum_assignment
 
 # TODO: Proper Module
@@ -19,6 +17,7 @@ import sys
 from pathlib import Path
 lib_path = Path(__file__).resolve().parent.parent / 'lib'
 sys.path.append(str(lib_path))
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 from transform_utils import rotation_vector_from_matrices, vectors_to_angle
 from attitude_determination import quest, davenport, triad, foma, svd, esoq2
@@ -27,10 +26,9 @@ from stellar_utils import StellarUtils
 # Default Paths
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
-# IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "images")
 IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "stellarscript", "results")
 OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results")
-DEFAULT_CONFIG = os.path.join(CURRENT_DIRECTORY, "centroiding.yaml")
+DEFAULT_CONFIG = os.path.join(REPO_DIRECTORY, "data", "centroiding.yaml")
 
 blob_kwargs = {
     "color": (0, 255, 0),
@@ -71,13 +69,11 @@ def group_poi_stats(flat_image, snr, stats, args):
 
 def process_params(args):
     # Override parameters provided in the config
-    if args.config_path and os.path.exists(args.config_path):
+    if args.config_path is not None and os.path.exists(args.config_path):
         with open(args.config_path, 'r') as stream:
             config = yaml.safe_load(stream)
-
             for param in config.keys():
-                if param in config and hasattr(args, param):
-                    setattr(args, param, config[param])
+                setattr(args, param, config[param])
 
     os.makedirs(args.output_path, exist_ok=True)
     assert (os.path.exists(args.input_path))
@@ -218,6 +214,10 @@ def centroiding_pipeline(image_path, args):
     pct = 100.0 * blob_candidate.sum() / blob_candidates
     print(f"Centroid candidates passing Gaussian Fit: {blob_candidate.sum()} / {blob_candidates} ({pct} %)")
 
+    magnitude_idx = np.argsort(star_illums)
+    _, star_centroids = zip(*sorted(zip(magnitude_idx, star_centroids)))
+    _, star_illums = zip(*sorted(zip(magnitude_idx, star_illums)))
+
     if args.output_plots:
         pct = 100.0 * blob_candidate.sum() / blob_candidates
         plt.figure(figsize=(40, 15))
@@ -305,6 +305,7 @@ def gaussian_fit(x, y, z):
     return x0, y0, z0, residuals, covariance
 
 def run_pipeline(args, stel):
+    process_params(args)
     for image_path in iglob(os.path.join(stel.image_path, args.image_pattern)):
         if not stel.get_stel_data(image_path):
             continue
@@ -339,7 +340,7 @@ def run_pipeline(args, stel):
             # For now, we will use a KDTree / Hungarian Algorithm to map our centriods to true pixel locations
             threshold = 10.0
             max_cost = threshold * 1000
-            assert(threshold p< max_cost)
+            assert(threshold < max_cost)
             tree = cKDTree(stel.truth_coords_list)
             idx = tree.query_ball_point(x=star_centroids, r=threshold, p=2)
             cost_matrix = np.full((len(star_centroids), len(stel.truth_coords_list)), max_cost)
@@ -378,9 +379,7 @@ def run_pipeline(args, stel):
                 vb = vb[:, vectors]
                 vi = vi[:, vectors]
 
-            w = np.ones(vb.shape[1])
-            C_opt, q_opt = quest(vb, vi, w)
-            # TODO: Nope, this is broken somewhere, the E matrix looks transposed, but no combinations work
+            C_opt, q_opt = quest(vb, vi)
             rot_vec_error = rotation_vector_from_matrices(stel.T_cam_to_j2000, C_opt)
             rv_deg = np.degrees(rot_vec_error)
             rv_as = rv_deg * 3600
@@ -397,26 +396,8 @@ if __name__ == "__main__":
     print("Starting....")
     parser = argparse.ArgumentParser(description="Overlay OpenCV blob detection on an image")
     parser.add_argument("--input_path", default=IMAGE_DIRECTORY, type=str, help="")
-    parser.add_argument("--image_pattern", default="stellarium*.png", type=str, help="")
     parser.add_argument("--output_path", default=OUTPUT_DIRECTORY ,type=str, help="")
     parser.add_argument("--config_path", default=DEFAULT_CONFIG,type=str, help="")
-    parser.add_argument("--denoise", type=bool, default=False, help="")
-    parser.add_argument("--size_denoise", type=int, default=3, help="")
-    parser.add_argument("--flatten", type=bool, default=True, help="")
-    parser.add_argument("--size_median", type=int, default=9, help="")
-    parser.add_argument("--distance_threshold", type=int, default=31, help="")
-    parser.add_argument("--num_blobs", type=int, default=5, help="")
-    parser.add_argument("--snr_threshold", type=int, default=50000, help="")
-    parser.add_argument("--poi_max_size", type=int, default=50, help="")
-    parser.add_argument("--poi_min_size", type=int, default=2, help="")
-    parser.add_argument("--reject_saturation", type=bool, default=True, help="")
-    parser.add_argument("--centroid_size", type=int, default=1, help="")
-    parser.add_argument("--seed", type=int, default=1337, help="")
-    parser.add_argument("--output_plots", type=bool, default=True, help="")
-    parser.add_argument("--output_individual_blobs", type=bool, default=False, help="")
-    parser.add_argument("--display_blob_centroids", type=bool, default=True, help="")
-    parser.add_argument("--display_gauss_centroids", type=bool, default=True, help="")
-    parser.add_argument("--test_runtime", type=bool, default=False, help="")
     args = parser.parse_args()
 
     stel = StellarUtils(args.input_path)

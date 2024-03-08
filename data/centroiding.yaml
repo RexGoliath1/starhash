@@ -1,4 +1,5 @@
 # Pipeline Parameters
+image_pattern: "stellarium*.png"
 
 # Centroiding Parameters
 denoise: true
@@ -18,4 +19,4 @@ output_plots: false
 output_individual_blobs: false
 display_blob_centroids: false
 display_gauss_centroids: false
-time_test: true
+test_runtime: false

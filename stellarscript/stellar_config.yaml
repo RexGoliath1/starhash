@@ -19,7 +19,7 @@
 
 
 # Stellarium Camera Settings
-fov: 4.0 # 44.2
+fov: 20.0 # 44.2
 #aperture: 0.0125
 aperture: 1.0 # 0.0125
 # width: 6480

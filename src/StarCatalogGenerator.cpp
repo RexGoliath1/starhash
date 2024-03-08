@@ -924,9 +924,9 @@ void StarCatalogGenerator::generate_output_catalog() {
     }
   }
 
-  output_hdf5(output_catalog_file, "star_table", star_table, true);
-  output_hdf5(output_catalog_file, "pattern_catalog", pattern_catalog);
-  output_hdf5(output_catalog_file, "input_catalog_data", input_catalog_data);
+  write_eigen_to_hdf5(output_catalog_file, "input_catalog_data", input_catalog_data);
+  write_eigen_to_hdf5(output_catalog_file, "star_table", star_table);
+  write_eigen_to_hdf5(output_catalog_file, "pattern_catalog", pattern_catalog);
   // output_hdf5(output_catalog_file, "proper_motion_data", proper_motion_data);
 
 #ifdef DEBUG_PATTERN_CATALOG

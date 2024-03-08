@@ -28,11 +28,11 @@ inline fs::path base_path = app_path.parent_path();
 inline fs::path default_config_path = base_path / "data/config.yaml";
 
 // Constants
-const double deg2rad    = M_PI / 180.0;
+const double deg2rad = M_PI / 180.0;
 const double arcsec2deg = (1.0 / 3600.0);
 const double mas2arcsec = (1.0 / 1000.0);
-const double mas2rad    = mas2arcsec * arcsec2deg * deg2rad;
-const double au2km      = 149597870.691;
+const double mas2rad = mas2arcsec * arcsec2deg * deg2rad;
+const double au2km = 149597870.691;
 
 typedef enum {
   HIP,
@@ -65,10 +65,9 @@ typedef enum {
 // #define DEBUG_HASH
 // #define DEBUG_GET_NEARBY_STARS
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
-// #define DEBUG_STAR_TABLE
+#define DEBUG_STAR_TABLE
 // #define DEBUG_PATTERN_LIST
 // #define DEBUG_PATTERN_CATALOG
-
 
 const unsigned int catalog_rows = 117955;
 
@@ -122,10 +121,10 @@ private:
   Eigen::MatrixXd proper_motion_data;
 
   // @brief Post star separation check table with PM corrected ICRS
-  Eigen::MatrixXd star_table; 
-  Eigen::MatrixXd pat_star_table; 
+  Eigen::MatrixXd star_table;
+  Eigen::MatrixXd pat_star_table;
   // @brief Vector of "Pattern stars" satisfying separation thresholds
-  std::vector<int> pattern_stars; 
+  std::vector<int> pattern_stars;
   CoarseSkyMap coarse_sky_map;
   Eigen::ArrayXd edges;
   bool regenerate;
@@ -139,7 +138,8 @@ private:
   float target_jyear;
   std::string year_str;
 
-  // @brief Observer position relative to Barycentric Celestial Reference System (get_earth_ssb.py)
+  // @brief Observer position relative to Barycentric Celestial Reference System
+  // (get_earth_ssb.py)
   Eigen::RowVector3d bcrf_position;
   Eigen::MatrixXd bcrf_frame;
 
@@ -189,84 +189,63 @@ private:
   // Initial catalog transforms
   bool read_input_catalog();
   void convert_hipparcos();
-  static int sort_compare(const void* a, const void* b);
+  static int sort_compare(const void *a, const void *b);
   void sort_star_columns(column col);
   void init_bcrf();
   void correct_proper_motion();
 
   void filter_star_separation();
-  bool is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_star_pattern);
-  void get_nearby_stars(Eigen::Vector3d star_vector, std::vector<int> &nearby_stars);
+  bool is_star_pattern_in_fov(Eigen::MatrixXi &pattern_list,
+                              std::vector<int> nearby_star_pattern);
+  void get_nearby_stars(Eigen::Vector3d star_vector,
+                        std::vector<int> &nearby_stars);
   void get_star_edge_pattern(Eigen::VectorXi pattern);
-  void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list, std::vector<int> nearby_stars, int star_id);
+  void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list,
+                                std::vector<int> nearby_stars, int star_id);
 
   // Intermediate hash table functions
   void init_output_catalog();
 
   // Final star edge pattern hash table (from paper / code)
-  uint64_t key_to_index(Eigen::VectorXi hash_code, const unsigned int pattern_bins, const unsigned int catalog_length);
+  uint64_t key_to_index(Eigen::VectorXi hash_code,
+                        const unsigned int pattern_bins,
+                        const unsigned int catalog_length);
   void generate_output_catalog();
 
+  template <typename T> struct hdf5_type;
+
+  template <> struct hdf5_type<float> {
+    static H5::DataType get() { return H5::PredType::NATIVE_FLOAT; }
+  };
+
+  template <> struct hdf5_type<double> {
+    static H5::DataType get() { return H5::PredType::NATIVE_DOUBLE; }
+  };
+
+  template <> struct hdf5_type<int> {
+    static H5::DataType get() { return H5::PredType::NATIVE_INT; }
+  };
+
   template <typename Derived>
-  void output_hdf5(std::string filepath, std::string dataset, const Eigen::MatrixBase<Derived> &matrix, bool truncate = false) {
+  void write_eigen_to_hdf5(const std::string &filename,
+                              const std::string &datasetName,
+                              const Eigen::MatrixBase<Derived> &matrix) {
+    const auto &derivedMatrix = matrix.derived();
 
-    // Decide if overwritting or appending
-    H5::H5File h5_file;
-    if (truncate) {
-      h5_file = H5::H5File(filepath.c_str(), H5F_ACC_TRUNC);
-    } else {
-      h5_file = H5::H5File(filepath.c_str(), H5F_ACC_RDWR);
+    // Open or create the file
+    H5::H5File file(filename, H5F_ACC_RDWR | H5F_ACC_CREAT);
+    hsize_t dimensions[2] = {static_cast<hsize_t>(derivedMatrix.rows()), static_cast<hsize_t>(derivedMatrix.cols())};
+
+    H5::DataSpace dataspace(2, dimensions);
+    auto datatype = hdf5_type<typename Derived::Scalar>::get();
+
+    if (H5Lexists(file.getId(), datasetName.c_str(), H5P_DEFAULT)) {
+        // Delete the existing dataset
+        file.unlink(datasetName.c_str());
     }
 
-    hsize_t dim[2];
-    dim[0] = matrix.rows();
-    dim[1] = matrix.cols();
-
-    // Determine the data type
-    H5::DataType datatype;
-    if (std::is_same<typename Derived::Scalar, int>::value) {
-      datatype = H5::PredType::NATIVE_INT;
-    } else if (std::is_same<typename Derived::Scalar, double>::value) {
-      datatype = H5::PredType::NATIVE_DOUBLE;
-    } else {
-      // Handle other types or throw an error
-      throw std::runtime_error("Unknown datatype");
-    }
-
-    // Create the data array
-    auto arr = new typename Derived::Scalar *[dim[0]];
-    for (hsize_t i = 0; i < dim[0]; i++) {
-      arr[i] = new typename Derived::Scalar[dim[1]];
-    }
-
-    // Copy the data into the array
-    for (hsize_t j = 0; j < dim[1]; j++) {
-      for (hsize_t i = 0; i < dim[0]; i++) {
-        arr[i][j] = matrix(i, j);
-      }
-    }
-
-    if (h5_file.getId() < 0) {
-      // The file is not open or not valid.
-      throw std::runtime_error("Unable to open HDF5 file.");
-    }
-
-    H5::DataSpace ds(2, dim);
-    H5::DataSet pc_dataset =
-        h5_file.createDataSet(dataset.c_str(), datatype, ds);
-
-    if (!pc_dataset.getId()) {
-      // The dataset was not created successfully.
-      throw std::runtime_error("Unable to create HDF5 dataset.");
-    }
-
-    pc_dataset.write(&arr[0][0], datatype);
-
-    // Free the allocated memory
-    for (hsize_t i = 0; i < dim[0]; i++) {
-      delete[] arr[i];
-    }
-    delete[] arr;
+    H5::DataSet dataset = file.createDataSet(datasetName, datatype, dataspace);
+    dataset.write(derivedMatrix.data(), datatype);
   }
 
   // Generic Eigen 2 csv writer

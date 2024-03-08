@@ -1,0 +1,30 @@
+# Pipeline Parameters
+image_pattern: "stellarium*.png"
+
+# Centroiding Parameters
+denoise: true
+size_denoise: 3
+flatten: true
+size_median: 9
+distance_threshold: 31
+num_blobs: 31
+snr_threshold: 500
+poi_max_size: 100
+poi_min_size: 2
+reject_saturation: false
+centroid_size: 1
+seed: 1337
+# Display Parameters
+output_plots: false
+output_individual_blobs: false
+display_blob_centroids: false
+display_gauss_centroids: false
+test_runtime: false
+
+# Solver Parameters
+pattern_size: 4
+pattern_stars: -1
+coarse_bins: 4
+pattern_bins: 25
+fov_max_error: 10000
+pattern_max_error: 0.005

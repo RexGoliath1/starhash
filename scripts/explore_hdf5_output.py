@@ -5,8 +5,8 @@ import pandas as pd
 
 # Replace with your HDF5 file path
 
-hdf5_file_path = os.path.join(os.getcwd(), '../results/output.h5')
-csv_file_path = os.path.join(os.getcwd(), '../results/proper_motion_data.csv')
+hdf5_file_path = os.path.join(os.getcwd(), '../results/scg/output.h5')
+csv_file_path = os.path.join(os.getcwd(), '../results/scg/proper_motion_data.csv')
 def explore_hdf5_datasets(file_path):
     with h5py.File(file_path, 'r') as file:
         def print_dataset_info(name, obj):
@@ -22,6 +22,8 @@ test = explore_hdf5_datasets(hdf5_file_path)
 
 with h5py.File(hdf5_file_path, 'r') as hf:
     catalog_data = np.array(hf.get('input_catalog_data'))
+    pattern_catalog = np.array(hf.get('pattern_catalog'))
+    star_table= np.array(hf.get('star_table'))
 
 df = pd.read_csv(csv_file_path, header=None)
 df.columns =["x","y","z"]
