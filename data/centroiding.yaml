@@ -11,12 +11,16 @@ num_blobs: 31
 snr_threshold: 500
 poi_max_size: 100
 poi_min_size: 2
-reject_saturation: false
-centroid_size: 1
+reject_saturation: true
+centroid_size: 3
 seed: 1337
 # Display Parameters
-output_plots: false
+output_plots: true
 output_individual_blobs: false
-display_blob_centroids: false
-display_gauss_centroids: false
+display_blob_centroids: true
+display_gauss_centroids: true
+  # output_plots: false
+  # output_individual_blobs: false
+  # display_blob_centroids: false
+  # display_gauss_centroids: false
 test_runtime: false

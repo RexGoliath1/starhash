@@ -24,11 +24,11 @@ catalog:
   magnitude_thresh: 9.0
   # Constraint on parallax (TODO: Use ESA paper to adjust <0 plx entries)
   plx_thresh: 0.0
-  # Constraint on minimum separation angle 
+  # [Degrees] Constraint on minimum separation angle 
   # Should be tied to expected centroid errors / camera parameters
   min_separation_angle: 0.05
-  # Estimated FOV
-  max_fov_angle: 20.0
+  # [Degrees] Estimated FOV
+  max_fov_angle: 20.0 # Degrees
   # Temporary hash map number of bins
   intermediate_star_bins: 4
   # Temporary hash map number of bins

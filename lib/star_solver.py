@@ -65,11 +65,11 @@ class StarSolver():
                     pattern_indices[index_to_change] = pattern_indices[index_to_change - 1] + 1
             yield star_centroids[pattern_indices[1:-1]]
 
-    def pix_to_vec(self, centroid, K_inv):
+    def pix_to_vec(self, centroids, K_inv):
         """ pixel to vector in camera frame """
-        uv = np.hstack((centroid, np.ones((centroid.shape[0], 1))))
-        vec = uv @ K_inv
-        vec[:,2] = 1- vec[:,0]**2 - vec[:,1]**2
+        uv = np.hstack((centroids, np.ones((centroids.shape[0], 1))))
+        vec = uv @ K_inv.T
+        vec[:,2] = np.sqrt(1- vec[:,0]**2 - vec[:,1]**2)
         norm = np.sqrt(np.einsum('ij,ij->i', vec, vec))
         norm = norm[:, np.newaxis]
         vec = vec * (1 / norm)
@@ -116,9 +116,9 @@ class StarSolver():
         return edges[-1]
 
     def fov_error(self, params, image_centroids, cat_edges):
-        K = params
-        # cx, cy, fx, fy = params
-        # K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+        """ Optimization func for determining FOV """
+        cx, cy, fx, fy = params
+        K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
         K_inv = np.linalg.inv(K)
         star_vectors = self.pix_to_vec(image_centroids, K_inv)
         star_edges = self._get_edges(star_vectors)
@@ -128,6 +128,7 @@ class StarSolver():
         """ Solve lost in space from centroid data """
         pattern_stars = args.pattern_stars
         gen_count = 0
+        total_check_count = 0
         for pattern_centroids in self._pattern_generator(centroids[:pattern_stars], self.args.pattern_size):
             gen_count += 1
             self.pattern_centroids = pattern_centroids
@@ -148,25 +149,34 @@ class StarSolver():
                     continue
 
                 for match_row in matches:
+                    total_check_count += 1
                     cat_vectors = self.star_table[match_row]
                     cat_edges = self._get_edges(cat_vectors)
+
+                    if np.sum(cat_edges - edges) > self.args.max_edge_diff:
+                        print("Skipping for now...")
+
                     cat_ratios = cat_edges[:-1] / cat_edges[-1]
                     if (np.any(np.abs(cat_ratios - ratios) > args.pattern_max_error)):
                         continue
 
                     # Projection optimization that minimizes edge errors
-                    K = scipy.optimize.minimize(self.fov_error, self.stel.K, args=(pattern_centroids, cat_edges))
+                    estimated_params = self.stel.cx, self.stel.cy, self.stel.fx, self.stel.fy
+                    assert(not np.any([np.isnan(param) for param in estimated_params]))
+                    params = scipy.optimize.leastsq(self.fov_error, estimated_params, args=(pattern_centroids, cat_edges), full_output=True)
+                    cx, cy, fx, fy = params[0]
+                    K_opt = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
 
-                    K_opt = K[0][0]
                     fx = K_opt[0, 0]
                     fy = K_opt[1, 1]
                     hfov = np.arctan2(self.stel.width / 2.0, fx)
                     vfov = np.arctan2(self.stel.height/ 2.0, fy)
-                    hfov_error = np.abs(hfov - self.stel.hfov)
-                    vfov_error = np.abs(vfov - self.stel.vfov)
+                    hfov_error = np.rad2deg(np.abs(hfov - self.stel.hfov))
+                    vfov_error = np.rad2deg(np.abs(vfov - self.stel.vfov))
 
-                    if self.args.fov_max_error is not None and hfov_error > self.args.fov_max_error and vfov_error > self.args.fov_max_error:
+                    if self.args.fov_max_error is not None and (hfov_error > self.args.fov_max_error or vfov_error > self.args.fov_max_error):
                         print(f"Estimated HFOV / VFOV Error beyond max acceptable: {hfov_error:.2f}, {vfov_error:.2f}")
+                        continue
 
                     # Set up new intrinsics
                     self.K = K_opt
@@ -191,8 +201,10 @@ class StarSolver():
             if not self.stel.get_stel_data(image_path):
                 continue
 
-            all_centroids = centroiding_pipeline(image_path, args)
-            self.solve_from_centroids(all_centroids)
+            centroid_params = centroiding_pipeline(image_path, args, self.stel)
+            star_centroids = centroid_params["star_centroids"]
+
+            self.solve_from_centroids(star_centroids)
 
 if __name__ == "__main__":
     print("Starting....")

@@ -231,10 +231,11 @@ private:
                               const std::string &datasetName,
                               const Eigen::MatrixBase<Derived> &matrix) {
     const auto &derivedMatrix = matrix.derived();
+    Eigen::Matrix<typename Derived::Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> rowMajorMatrix = derivedMatrix;
 
     // Open or create the file
     H5::H5File file(filename, H5F_ACC_RDWR | H5F_ACC_CREAT);
-    hsize_t dimensions[2] = {static_cast<hsize_t>(derivedMatrix.rows()), static_cast<hsize_t>(derivedMatrix.cols())};
+    hsize_t dimensions[2] = {static_cast<hsize_t>(rowMajorMatrix.rows()), static_cast<hsize_t>(rowMajorMatrix.cols())};
 
     H5::DataSpace dataspace(2, dimensions);
     auto datatype = hdf5_type<typename Derived::Scalar>::get();
@@ -245,7 +246,7 @@ private:
     }
 
     H5::DataSet dataset = file.createDataSet(datasetName, datatype, dataspace);
-    dataset.write(derivedMatrix.data(), datatype);
+    dataset.write(rowMajorMatrix.data(), datatype);
   }
 
   // Generic Eigen 2 csv writer

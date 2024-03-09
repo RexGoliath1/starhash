@@ -63,8 +63,8 @@ class StellarUtils():
             self.height = jl["height"]
             self.fx = self.K[0, 0]
             self.fy = self.K[1, 1]
-            self.cx = self.K[2, 0]
-            self.cy = self.K[2, 1]
+            self.cx = self.K[0, 2]
+            self.cy = self.K[1, 2]
             self.hfov = 2 * np.arctan2(self.width / 2.0, self.fx)
             self.vfov = 2 * np.arctan2(self.height / 2.0, self.fy)
             self.K_inv = np.linalg.inv(self.K)
@@ -80,7 +80,6 @@ class StellarUtils():
         truth_coords_list = []
         for ii in range(num_stars):
             star_name = star_names[ii]
-            # truth_coords[:, ii] = truth_stars[star_name]["vec_inertial"]
             truth_coords[:, ii] = truth_stars[star_name]["pixel"]
             truth_coords_list.append(truth_stars[star_name]["pixel"])
             truth_vectors[:, ii] = truth_stars[star_name]["vec_inertial"]
