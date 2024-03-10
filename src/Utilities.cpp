@@ -1,5 +1,4 @@
 #include "Utilities.hpp"
-#include <iostream>
 
 fs::path get_executable_path() {
 #if defined(__linux__)
@@ -17,21 +16,4 @@ fs::path get_executable_path() {
 #endif
   // If we can't find the executable path, return the current path
   return fs::current_path();
-}
-
-void show_progress_bar(int progress, int total) {
-  const int barWidth = 70;
-
-  std::cout << "[";
-  int pos = barWidth * progress / total;
-  for (int ii = 0; ii < barWidth; ++ii) {
-    if (ii < pos)
-      std::cout << "=";
-    else if (ii == pos)
-      std::cout << ">";
-    else
-      std::cout << " ";
-  }
-  std::cout << "] " << int(progress * 100.0 / total) << " %\r";
-  std::cout.flush();
 }

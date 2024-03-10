@@ -1,4 +1,5 @@
 #include "StarCatalogGenerator.hpp"
+#include "ProgressBar.hpp"
 #include <algorithm>
 #include <assert.h>
 #include <iomanip>
@@ -43,7 +44,8 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   pattern_size = config["catalog"]["pattern_size"].as<unsigned int>();
   pattern_stars_per_fov = config["catalog"]["pattern_stars_per_fov"].as<unsigned int>();
   catalog_stars_per_fov = config["catalog"]["catalog_stars_per_fov"].as<unsigned int>();
-  magnitude_thresh = config["catalog"]["magnitude_thresh"].as<double>();
+  min_magnitude_thresh = config["catalog"]["min_magnitude_thresh"].as<double>();
+  max_magnitude_thresh = config["catalog"]["max_magnitude_thresh"].as<double>();
   max_fov = deg2rad * config["catalog"]["max_fov_angle"].as<double>();
   max_fov_dist = std::cos(max_fov);
   max_hfov_dist = std::cos(max_fov / 2.0);
@@ -96,7 +98,7 @@ bool StarCatalogGenerator::read_input_catalog() {
   std::string lstr, num;
   std::vector<unsigned int> idx;
   unsigned int rcnt = 0, ccnt = 0;
-  unsigned int mag_dropped = 0, plx_dropped = 0, col_dropped = 0;
+  unsigned int min_mag_dropped = 0, max_mag_dropped = 0, plx_dropped = 0, col_dropped = 0;
 
   Eigen::MatrixXd temp_catalog;
   temp_catalog.resize(catalog_rows, CATALOG_COLUMNS);
@@ -130,16 +132,19 @@ bool StarCatalogGenerator::read_input_catalog() {
       }
     }
 
-    // If magnitude is below threshold, zero out row and continue
-    bool mag_check = (double(temp_catalog(rcnt, HPMAG)) < magnitude_thresh);
+    // If magnitude is above/below threshold, zero out row and continue
+    bool min_mag_check = (double(temp_catalog(rcnt, HPMAG)) <= min_magnitude_thresh);
+    bool max_mag_check = (double(temp_catalog(rcnt, HPMAG)) >= max_magnitude_thresh);
+    // TODO: Confirm if zero is okay
     bool plx_check = (double(temp_catalog(rcnt, PLX)) > plx_thresh);
     bool col_check = ccnt > 0;
 
-    mag_dropped += (unsigned int)mag_check;
+    min_mag_dropped += (unsigned int)min_mag_check;
+    max_mag_dropped += (unsigned int)max_mag_check;
     plx_dropped += (unsigned int)plx_check;
     col_dropped += (unsigned int)col_check;
 
-    if (col_check && mag_check && plx_check) {
+    if (col_check && min_mag_check && max_mag_check && plx_check) {
       idx.push_back(rcnt);
       rcnt++;
     } else if (col_check) {
@@ -163,7 +168,8 @@ bool StarCatalogGenerator::read_input_catalog() {
   bcrf_frame.resize(total_catalog_stars, 3);
 
   std::printf("Catalog contains %u bright stars out of %u\n", rcnt, catalog_rows);
-  std::printf("Number below magnitude threshold (Mag < %f) %u \n", magnitude_thresh, mag_dropped);
+  std::printf("Number above min magnitude threshold (Mag >= %f) %u \n", min_magnitude_thresh, min_mag_dropped);
+  std::printf("Number below max magnitude threshold (Mag <= %f) %u \n", max_magnitude_thresh, max_mag_dropped);
   std::printf("Number above parallax threshold (Plx > %f) %u \n", plx_thresh, plx_dropped);
   std::printf("Number above column check (cols > 0) %u \n", col_dropped);
 
@@ -418,10 +424,9 @@ void StarCatalogGenerator::filter_star_separation() {
 
   double num_stars_in_fov = -1;
 
+  ProgressBar pb(proper_motion_data.rows());
   for (int ii = 1; ii < proper_motion_data.rows(); ii++) {
-    if ((ii % separation_debug_freq) == 0)
-      std::cout << "Checking Star Separation " << ii << " of "
-                << proper_motion_data.rows() << std::endl;
+    pb.show_progress(ii);
 
     // Determine angle between current star and all other stars
     Eigen::VectorXd current_star = proper_motion_data.row(ii);
@@ -496,10 +501,9 @@ void StarCatalogGenerator::filter_star_separation() {
   star_table = proper_motion_data(verification_stars, Eigen::all);
   pat_star_table = star_table(pattern_stars, Eigen::all);
   // input_catalog_data = input_catalog_data(verification_stars, Eigen::all);
-  std::cout << "Found " << star_table.rows()
-            << " verification stars for catalog." << std::endl;
-  std::cout << "Found " << pattern_stars.size() << " pattern stars for catalog."
-            << std::endl;
+  std::cout << std::endl;
+  std::cout << "Found " << star_table.rows() << " verification stars for catalog." << std::endl;
+  std::cout << "Found " << pattern_stars.size() << " pattern stars for catalog." << std::endl;
 #ifdef DEBUG_STAR_TABLE
   fs::path debug_table;
   debug_table = output_catalog_file.parent_path() / 
@@ -813,8 +817,13 @@ void StarCatalogGenerator::generate_output_catalog() {
   time_t tstart;
 #endif
 
+  std::cout << "Generating all patterns " << std::endl;
+  ProgressBar pb1(pattern_stars.size());
+
   for (long unsigned int ii = 0; ii < pattern_stars.size(); ii++) {
-    nearby_stars.clear(); // lol, quite important.
+    pb1.show_progress(ii);
+
+    nearby_stars.clear();
     star_id = pattern_stars[ii];
     star_vector = star_table.row(star_id);
 
@@ -828,9 +837,6 @@ void StarCatalogGenerator::generate_output_catalog() {
     // For each star kept for pattern matching and verificaiton, find all nearby
     // stars in FOV
     get_nearby_stars(star_vector, nearby_stars);
-
-    std::cout << "Looking for patterns near star id " << star_id;
-    std::cout << ", Number of Neighbors = " << nearby_stars.size() << std::endl;
 
     if (nearby_stars.size() < (pattern_size - 1))
       continue;
@@ -877,11 +883,13 @@ void StarCatalogGenerator::generate_output_catalog() {
   Eigen::MatrixXi pattern_catalog = Eigen::MatrixXi(catalog_length, pattern_size).setZero();
   // Eigen::MatrixXi pattern_catalog = -1 * Eigen::MatrixXi::Ones(catalog_length, pattern_size);
 
-  // For all patterns in pattern_list, find hash and insert into pattern_catalog
-  for (long unsigned int ii = 0; ii < (unsigned int)pattern_list.rows(); ii++) {
-    if ((ii % index_pattern_debug_freq) == 0)
-      printf("Indexing pattern %lu of %lu \n", ii,  pattern_list.rows());
+  std::cout << std::endl;
+  std::cout << "Inputting Hash into catalog" << std::endl;
 
+  // For all patterns in pattern_list, find hash and insert into pattern_catalog
+  ProgressBar pb2(pattern_list.rows());
+  for (long unsigned int ii = 0; ii < (unsigned int)pattern_list.rows(); ii++) {
+    pb2.show_progress(ii);
     quadprobe_count = 0;
 
     // For each pattern, get edges)

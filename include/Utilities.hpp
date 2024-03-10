@@ -13,6 +13,6 @@
 namespace fs = std::filesystem;
 
 fs::path get_executable_path();
-void show_progress_bar(int progress, int total);
+void show_progress_bar(int ii, int total, std::chrono::time_point<std::chrono::steady_clock> start_time);
 
 #endif // UTILITIES_SH

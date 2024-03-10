@@ -61,7 +61,7 @@ typedef enum {
 // Debugging functions used for validation (TODO: Move to config)
 // #define DEBUG_HIP
 // #define DEBUG_INPUT_CATALOG
-// #define DEBUG_PM
+#define DEBUG_PM
 // #define DEBUG_HASH
 // #define DEBUG_GET_NEARBY_STARS
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
@@ -143,8 +143,10 @@ private:
   Eigen::RowVector3d bcrf_position;
   Eigen::MatrixXd bcrf_frame;
 
-  // @brief Default magnitude thresholding parameters
-  double magnitude_thresh;
+  // @brief Default min magnitude threshold parameter
+  double min_magnitude_thresh;
+  // @brief Default max magnitude threshold parameter
+  double max_magnitude_thresh;
   // @brief Default parallax thresholding parameters
   double plx_thresh;
   // @brief Minimum angle between 2 stars (Distance)

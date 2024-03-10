@@ -10,7 +10,7 @@ import re
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-DEBUG_PROP_CATALOG = False
+DEBUG_PROP_CATALOG = True
 DEBUG_STELLAR_COORDS = True
 DEBUG_STELLAR_POSITIONS = True
 
@@ -28,13 +28,14 @@ def xyz_to_coords(E, K, width, height):
 
     in_bounds = (x_p[2] > 0) & (uv[0] >= 0) & (uv[0] < width) & (uv[1] >= 0) & (uv[1] < height)
     uv_in_bounds = uv[:, in_bounds]
-    object_names = cat_df.iloc[in_bounds]['HIP'].apply(lambda x: f'HIP {x}').tolist()
+    #object_names = cat_df.iloc[in_bounds]['HIP'].apply(lambda x: f'HIP {x}').tolist()
+    object_names = [f"HIP {num}" for num in range(0, uv_in_bounds.shape[0])]
     coords = {name: uv_in_bounds[:,i].tolist() for i, name in enumerate(object_names)}
 
     return coords
 
 # Text settings
-FONT_ENABLED = True
+FONT_ENABLED = False
 window_name = 'Image'
 font = cv2.FONT_HERSHEY_SIMPLEX
 fontScale = .5
@@ -53,11 +54,33 @@ default_date = datetime.strptime('20181110-105531', "%Y%m%d-%H%M%S")
 most_recent = default_date
 
 # TODO: Replace with something more automatic
-input_cat_file = f"/Users/stevengonciar/git/starhash/results/input_catalog.csv"
+jyear_str = "2024.09"
+input_cat_file = f"/Users/stevengonciar/git/starhash/results/scg/input_catalog.csv"
 cat_df = pd.read_csv(input_cat_file, header=None)
-cat_df.columns = ["RAJ2000", "DEJ2000", "HIP","RArad","DErad","Plx","pmRA","pmDE","Hpmag","B-V"]
+cat_df.columns = [
+    "HIP",
+    "RArad",
+    "DErad",
+    "Plx",
+    "pmRA",
+    "pmDE",
+    "Hpmag",
+    "B-V",
+    "e_Plx",
+    "e_pmRA",
+    "e_pmDE",
+    "SHP",
+    "eB-V",
+    "V_I",
+    "RAdeg",
+    "DEdeg",
+    "RA_J2000", 
+    "DE_J2000", 
+    "RA_ICRS", 
+    "DE_ICRS"
+]
 
-pm_file = f"/Users/stevengonciar/git/starhash/results/proper_motion_data.csv"
+pm_file = f"/Users/stevengonciar/git/starhash/results/scg/proper_motion_data_{jyear_str}.csv"
 pm_df = pd.read_csv(pm_file, header=None)
 pm_df.columns = ["x", "y", "z"]
 
@@ -81,7 +104,7 @@ mr_folder = most_recent.strftime("%Y%m%d-%H%M%S")
 OUTPUT_DIRECTORY = os.path.join(results_folder, mr_folder)
 IMAGE_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "images")
 POSITION_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "img_coords")
-RA_DEC_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "ra_dec")
+RA_DEC_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "data")
 OVERLAY_OUTPUT_DIRECTORY = os.path.join(OUTPUT_DIRECTORY, "overlay_images")
 os.makedirs(OVERLAY_OUTPUT_DIRECTORY, exist_ok=True)
 
@@ -101,27 +124,22 @@ for image in sorted(iglob(os.path.join(IMAGE_OUTPUT_DIRECTORY, "stellarium*.png"
 
     plt.figure(figsize=(img.shape[1] / 100, img.shape[0] / 100), dpi=100)  # Adjust dpi as needed
     
-    file = os.path.join(RA_DEC_OUTPUT_DIRECTORY, f"{number - 1}_ra_dec.json")
+    file = os.path.join(RA_DEC_OUTPUT_DIRECTORY, f"{number}_data.json")
     with open(file, 'r') as fp:
         jl = json.load(fp)
         coord = SkyCoord(ra=jl["ra"]*u.radian, dec=jl["dec"]*u.radian, frame='icrs')
         coord_hms_dms = coord.to_string('hmsdms', precision=3, pad=True, alwayssign=True)
         E = jl["E"]
         K = jl["K"]
+        stars = jl["stars"]
         E = np.array(E)
         K = np.array(K)
         fov = jl["fov"]
         ang_thresh = fov / width * 3600 # Two Pixels
+        num_stars = len(stars.keys())
 
-    # Stellarium Stars
-    if DEBUG_STELLAR_COORDS:
-        file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"camera_coordinates_{number - 1}.json")
-        with open(file, 'r') as fp:
-            jl = json.load(fp)
-            coords = {k: np.array(v) for k, v in jl.items()}
-
-        for star in coords.keys():
-            pos = coords[star].astype(np.int32)
+        for star in stars.keys():
+            pos = np.array(stars[star]["pixel"]).astype(np.int32)
             postup = (pos[0], pos[1])
             radius_size = int(radius_scale_factor * img.shape[0])
             thick_size = int(thick_scale_factor * img.shape[0])
@@ -129,37 +147,25 @@ for image in sorted(iglob(os.path.join(IMAGE_OUTPUT_DIRECTORY, "stellarium*.png"
             if FONT_ENABLED:
                 img = cv2.putText(img, star, postup, font, fontScale, color, thickness, cv2.LINE_AA)
 
-        plt.title(f"Star Field at: {coord_hms_dms} with {len(coords.keys())} HIP Stars")
+        plt.title(f"Star Field at: {coord_hms_dms} with {num_stars} HIP Stars")
 
-    # Debugging.. For every stellarium star, check the xyz postion from HIP
-    if DEBUG_STELLAR_POSITIONS:
-        file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"inertial_positions_{number - 1}.json")
-        with open(file, 'r') as fp:
-            jl = json.load(fp)
-            stellar_pos = {k: np.array(v) for k, v in jl.items()}
-
-        file = os.path.join(POSITION_OUTPUT_DIRECTORY, f"camera_positions_{number - 1}.json")
-        with open(file, 'r') as fp:
-            jl = json.load(fp)
-            camera_pos = {k: np.array(v) for k, v in jl.items()}
-
-        num_stars = len(stellar_pos.keys())
         num_stars_ae = 0 # Angle Error Stars
-        for row in range(0, pm_df.shape[0]):
-            # TODO: Replace with star names to check
-            star = f'HIP {cat_df["HIP"].loc[row]}'
-            if star in sorted(stellar_pos.keys()):
-                pos = stellar_pos[star]
-                pos = pos / np.linalg.norm(pos)
-                hpos = np.array(pm_df[["x", "y", "z"]].loc[row])
-                hpos = hpos / np.linalg.norm(hpos)
-                dangle = np.abs(np.arccos(np.dot(pos, hpos)) * 3600 * 180.0 / np.pi)
-                if dangle > ang_thresh:
-                    num_stars_ae += 1
-                    print(f"{star} Deltas Angle (arcsec): {dangle}")
+        # for row in range(0, pm_df.shape[0]):
+        #     # TODO: Replace with star names to check
+        #     # star = f'HIP {cat_df["HIP"].loc[row]}'
+        #     star = f'HIP {row}'
+        #     if star in sorted(stars.keys()):
+        #         pos = np.array(stars[star]["vec_inertial"])
+        #         pos = pos / np.linalg.norm(pos)
+        #         hpos = np.array(pm_df[["x", "y", "z"]].loc[row])
+        #         hpos = hpos / np.linalg.norm(hpos)
+        #         dangle = np.abs(np.arccos(np.dot(pos, hpos)) * 3600 * 180.0 / np.pi)
+        #         if dangle > ang_thresh:
+        #             num_stars_ae += 1
+        #             print(f"{star} Deltas Angle (arcsec): {dangle}")
 
+        # print(f"Star Outage: {num_stars_ae}/{num_stars} = {100.0 * num_stars_ae/num_stars:.2f}%")
 
-        print(f"Star Outage: {num_stars_ae}/{num_stars} = {100.0 * num_stars_ae/num_stars:.2f}%")
 
     # Propagated Catalog Stars
     if DEBUG_PROP_CATALOG:

@@ -334,10 +334,6 @@ class Stellarium():
             if x_p[2][0] < 0:
                 continue
 
-            # For extra debug only
-            #if abs(self.ra - ra) < 0.01 and abs(self.dec - dec) < 0.01:
-            #    print("Should be pretty close  ....")
-
             # For debugging, print out stars within frame
             if 0 <= uv[0] <= self.width and 0 <= uv[1] <= self.height:
                 output[obj_name] = {}
