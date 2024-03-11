@@ -69,6 +69,7 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   }
 
   // Checks for valid inputs
+  std::cout << "input: " << input_catalog_file << std::endl;
   assert(fs::exists(input_catalog_file));
   assert(pattern_size >= 4);
 

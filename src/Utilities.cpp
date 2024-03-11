@@ -1,11 +1,17 @@
 #include "Utilities.hpp"
+#include <limits>
+#include <linux/limits.h>
+#include <iostream>
 
 fs::path get_executable_path() {
 #if defined(__linux__)
   char result[PATH_MAX];
   ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+  std::cout << "result: " << result << std::endl;
+  std::cout << "parent result: " << fs::path(result).parent_path() << std::endl;
   if (count != -1) {
-    return fs::canonical(fs::path(result)).parent_path();
+    return fs::path(result).parent_path();
+    // return fs::canonical(fs::path(result)).parent_path();
   }
 #elif defined(__APPLE__)
   char path[PATH_MAX];
