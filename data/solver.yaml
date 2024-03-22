@@ -23,13 +23,13 @@ test_runtime: false
 
 # Solver Parameters
 pattern_size: 4
-pattern_stars: -1
+pattern_stars: 25
 coarse_bins: 4
 pattern_bins: 25
-fov_max_error: 1.0
+fov_max_error: 2.0
 # [--] Default 0.005 
 # Bigger for now bacause stellarium has garbage catalogs
 # min_sep = 0.05, fov = 20, max ratio = 400
 # stel_ang_error ~ 30 pix -> 0.3 degrees. oof.
-pattern_max_error: 0.3
+pattern_max_error: 0.005
 max_edge_diff: 0.1

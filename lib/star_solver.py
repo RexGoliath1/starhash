@@ -79,7 +79,7 @@ class StarSolver():
         """ Sort vectors wrt radius from vector centroid (TODO: Is this good enough, may require multiples) """
         centroid = np.mean(vectors, axis=0)
         radii = [np.linalg.norm(vector - centroid) for vector in vectors]
-        radii_idx = np.argsort(radii)
+        radii_idx = np.argsort(radii, kind="mergesort")
         return vectors[radii_idx]
 
     def _get_at_index(self, index, table):
@@ -118,6 +118,11 @@ class StarSolver():
     def fov_error(self, params, image_centroids, cat_edges):
         """ Optimization func for determining FOV """
         cx, cy, fx, fy = params
+
+        # TODO: Tweak leastsq to prevent this
+        if (np.any([np.isnan(param) for param in params])):
+            return np.inf * cat_edges
+
         K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
         K_inv = np.linalg.inv(K)
         star_vectors = self.pix_to_vec(image_centroids, K_inv)
@@ -153,8 +158,8 @@ class StarSolver():
                     cat_vectors = self.star_table[match_row]
                     cat_edges = self._get_edges(cat_vectors)
 
-                    if np.sum(cat_edges - edges) > self.args.max_edge_diff:
-                        print("Skipping for now...")
+                    # if np.sum(cat_edges - edges) > self.args.max_edge_diff:
+                    #     print("Skipping for now...")
 
                     cat_ratios = cat_edges[:-1] / cat_edges[-1]
                     if (np.any(np.abs(cat_ratios - ratios) > args.pattern_max_error)):
@@ -164,6 +169,10 @@ class StarSolver():
                     estimated_params = self.stel.cx, self.stel.cy, self.stel.fx, self.stel.fy
                     assert(not np.any([np.isnan(param) for param in estimated_params]))
                     params = scipy.optimize.leastsq(self.fov_error, estimated_params, args=(pattern_centroids, cat_edges), full_output=True)
+
+                    # TODO: Tweak leastsq to prevent this
+                    if (np.any([np.isnan(param) for param in params[0]])):
+                        continue
                     cx, cy, fx, fy = params[0]
                     K_opt = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
 
@@ -180,19 +189,21 @@ class StarSolver():
 
                     # Set up new intrinsics
                     self.K = K_opt
-                    pattern_vectors = self.pix_to_vec(pattern_centroids, self.K)
+                    K_inv = np.linalg.inv(self.K)
+                    pattern_vectors = self.pix_to_vec(pattern_centroids, K_inv)
                     pattern_vectors = self._sort_vectors(pattern_vectors)
                     cat_vectors = self._sort_vectors(cat_vectors)
-                    C_opt, q_opt = quest(pattern_vectors, cat_vectors)
+                    C_opt, q_opt = quest(pattern_vectors.T, cat_vectors.T)
                     rot_vec_error = rotation_vector_from_matrices(self.stel.T_cam_to_j2000, C_opt)
                     rv_deg = np.degrees(rot_vec_error)
                     rv_as = rv_deg * 3600
                     rv_mas = 1000 * rv_as
 
-                    print(f"rv_mag_mas: {np.linalg.norm(rv_mas):.2f} rot_vec_error: {rv_mas} (Milli Arc-Seconds)")
-                    print(f"rv_mag_as: {np.linalg.norm(rv_as):.2f} rot_vec_error: {rv_as} (Arc-Seconds)")
-                    print(f"rv_mag_deg: {np.linalg.norm(rv_deg):.2f} rot_vec_error: {rv_deg} (Degrees)")
-                    print(f"TODO: Star Error Statistics")
+                    if (np.linalg.norm(rv_deg) < 1.0):
+                        print(f"rv_mag_mas: {np.linalg.norm(rv_mas):.2f} rot_vec_error: {rv_mas} (Milli Arc-Seconds)")
+                        print(f"rv_mag_as: {np.linalg.norm(rv_as):.2f} rot_vec_error: {rv_as} (Arc-Seconds)")
+                        print(f"rv_mag_deg: {np.linalg.norm(rv_deg):.2f} rot_vec_error: {rv_deg} (Degrees)")
+                        print(f"TODO: Star Error Statistics")
 
 
 

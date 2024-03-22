@@ -14,12 +14,12 @@ DEBUG_PROP_CATALOG = True
 DEBUG_STELLAR_COORDS = True
 DEBUG_STELLAR_POSITIONS = True
 
-def xyz_to_coords(E, K, width, height):
+def xyz_to_coords(df_proper_motion, E, K, width, height):
     """ Function to convert proper motion contents to image coordinates """
     coords = {}
  
 
-    data = pm_df[["x", "y", "z"]].to_numpy()
+    data = df_proper_motion[["x", "y", "z"]].to_numpy()
     data = np.hstack([data, np.ones([data.shape[0], 1])])
     x_c = np.matmul(E, data.T)
     x_p = np.matmul(K, x_c)
@@ -29,7 +29,7 @@ def xyz_to_coords(E, K, width, height):
     in_bounds = (x_p[2] > 0) & (uv[0] >= 0) & (uv[0] < width) & (uv[1] >= 0) & (uv[1] < height)
     uv_in_bounds = uv[:, in_bounds]
     #object_names = cat_df.iloc[in_bounds]['HIP'].apply(lambda x: f'HIP {x}').tolist()
-    object_names = [f"HIP {num}" for num in range(0, uv_in_bounds.shape[0])]
+    object_names = [f"HIP {num}" for num in range(0, uv_in_bounds.shape[1])]
     coords = {name: uv_in_bounds[:,i].tolist() for i, name in enumerate(object_names)}
 
     return coords
@@ -81,8 +81,12 @@ cat_df.columns = [
 ]
 
 pm_file = f"/Users/stevengonciar/git/starhash/results/scg/proper_motion_data_{jyear_str}.csv"
+filter_file = f"/Users/stevengonciar/git/starhash/results/scg/pattern_star_table_{jyear_str}.csv"
 pm_df = pd.read_csv(pm_file, header=None)
+filter_df = pd.read_csv(filter_file, header=None)
 pm_df.columns = ["x", "y", "z"]
+filter_df.columns = ["x", "y", "z"]
+plot_filter = True
 
 for res_folder in os.listdir(results_folder):
     try:
@@ -150,37 +154,43 @@ for image in sorted(iglob(os.path.join(IMAGE_OUTPUT_DIRECTORY, "stellarium*.png"
         plt.title(f"Star Field at: {coord_hms_dms} with {num_stars} HIP Stars")
 
         num_stars_ae = 0 # Angle Error Stars
-        # for row in range(0, pm_df.shape[0]):
-        #     # TODO: Replace with star names to check
-        #     # star = f'HIP {cat_df["HIP"].loc[row]}'
-        #     star = f'HIP {row}'
-        #     if star in sorted(stars.keys()):
-        #         pos = np.array(stars[star]["vec_inertial"])
-        #         pos = pos / np.linalg.norm(pos)
-        #         hpos = np.array(pm_df[["x", "y", "z"]].loc[row])
-        #         hpos = hpos / np.linalg.norm(hpos)
-        #         dangle = np.abs(np.arccos(np.dot(pos, hpos)) * 3600 * 180.0 / np.pi)
-        #         if dangle > ang_thresh:
-        #             num_stars_ae += 1
-        #             print(f"{star} Deltas Angle (arcsec): {dangle}")
+        for row in range(0, pm_df.shape[0]):
+            # TODO: Replace with star names to check
+            # star = f'HIP {cat_df["HIP"].loc[row]}'
+            star = f'HIP {row}'
+            if star in sorted(stars.keys()):
+                pos = np.array(stars[star]["vec_inertial"])
+                pos = pos / np.linalg.norm(pos)
+                hpos = np.array(pm_df[["x", "y", "z"]].loc[row])
+                hpos = hpos / np.linalg.norm(hpos)
+                dangle = np.abs(np.arccos(np.dot(pos, hpos)) * 3600 * 180.0 / np.pi)
+                if dangle > ang_thresh:
+                    num_stars_ae += 1
+                    print(f"{star} Deltas Angle (arcsec): {dangle}")
 
-        # print(f"Star Outage: {num_stars_ae}/{num_stars} = {100.0 * num_stars_ae/num_stars:.2f}%")
+        print(f"Star Outage: {num_stars_ae}/{num_stars} = {100.0 * num_stars_ae/num_stars:.2f}%")
 
 
-    # Propagated Catalog Stars
-    if DEBUG_PROP_CATALOG:
-        pm_pos = xyz_to_coords(E, K, width, height)
-        for star in pm_pos.keys():
-            pos = pm_pos[star]
-            postup = (np.int32(pos[0]), np.int32(pos[1]))
-            radius_size = int(pm_radius_scale_factor * img.shape[0])
-            thick_size = int(thick_scale_factor * img.shape[0])
-            cv2.circle(img=img, center=postup, radius=radius_size, color=hipcolor, thickness=thick_size)
-            if FONT_ENABLED:
-                img = cv2.putText(img, star, postup, font, fontScale, hipcolor, thickness, cv2.LINE_AA)
-        plt.title(f"Star Field at: {coord_hms_dms} with {len(pm_pos.keys())} HIP Stars")
+        # Propagated Catalog Stars
+        if DEBUG_PROP_CATALOG:
+            if plot_filter:
+                input_df = filter_df
+            else:
+                input_df = pm_df
 
-    plt.imshow(img)
-    plt.savefig(os.path.join(OVERLAY_OUTPUT_DIRECTORY, image_name), bbox_inches='tight')
-    plt.close()
+            pm_pos = xyz_to_coords(input_df, E, K, width, height)
+            print(f"PM has {len(pm_pos.keys())} stars")
+            for star in pm_pos.keys():
+                pos = pm_pos[star]
+                postup = (np.int32(pos[0]), np.int32(pos[1]))
+                radius_size = int(pm_radius_scale_factor * img.shape[0])
+                thick_size = int(thick_scale_factor * img.shape[0])
+                cv2.circle(img=img, center=postup, radius=radius_size, color=hipcolor, thickness=thick_size)
+                if FONT_ENABLED:
+                    img = cv2.putText(img, star, postup, font, fontScale, hipcolor, thickness, cv2.LINE_AA)
+            plt.title(f"Star Field at: {coord_hms_dms} with {len(pm_pos.keys())} HIP Stars")
+
+        plt.imshow(img)
+        plt.savefig(os.path.join(OVERLAY_OUTPUT_DIRECTORY, image_name), bbox_inches='tight')
+        plt.close()
 

@@ -192,6 +192,7 @@ def centroiding_pipeline(image_path, args, stel):
     star_centroids = []
     star_illums = []
     out_stats = []
+    gauss_illums = []
 
     blob_candidates = len(poi_subs)
     blob_candidate = np.zeros((blob_candidates, 1))
@@ -232,6 +233,7 @@ def centroiding_pipeline(image_path, args, stel):
                 star_centroids.append([x0, y0])
                 star_illums.append(gray[tuple(center[::-1])])
                 out_stats.append(stats[ind])
+                gauss_illums.append(np.min(z0, 0).sum())
 
 
         if args.output_individual_blobs:
@@ -249,17 +251,16 @@ def centroiding_pipeline(image_path, args, stel):
     pct = 100.0 * blob_candidate.sum() / blob_candidates
     print(f"Centroid candidates passing Gaussian Fit: {blob_candidate.sum()} / {blob_candidates} ({pct} %)")
 
-    magnitude_idx = np.argsort(star_illums)
-    _, star_centroids = zip(*sorted(zip(magnitude_idx, star_centroids)))
-    _, star_illums = zip(*sorted(zip(magnitude_idx, star_illums)))
-    _, out_stats = zip(*sorted(zip(magnitude_idx, out_stats)))
+    magnitude_idx = np.argsort(gauss_illums, kind="mergesort")[::-1]
+    star_centroids = np.array(star_centroids)[magnitude_idx]
+    star_illums = np.array(star_illums)[magnitude_idx]
+    gauss_illums = np.array(gauss_illums)[magnitude_idx]
+    out_stats = np.array(out_stats)[magnitude_idx]
 
     centroid_params["star_centroids"] = star_centroids
     centroid_params["star_illums"] = star_illums
+    centroid_params["gauss_illums"] = gauss_illums
     centroid_params["out_stats"] = out_stats
-
-    # Go fetch the real ones are mark if they're close or not
-
 
     if args.output_plots:
         meas_idx, truth_idx = get_closest_points(stel.truth_coords_list, star_centroids)

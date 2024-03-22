@@ -110,8 +110,6 @@ bool StarCatalogGenerator::read_input_catalog() {
     return false;
   }
 
-
-
   // Skip header info
   std::ifstream data(input_catalog_file.c_str());
   data.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -500,15 +498,24 @@ void StarCatalogGenerator::filter_star_separation() {
 
   star_table = proper_motion_data(verification_stars, Eigen::all);
   pat_star_table = star_table(pattern_stars, Eigen::all);
-  // input_catalog_data = input_catalog_data(verification_stars, Eigen::all);
   std::cout << std::endl;
   std::cout << "Found " << star_table.rows() << " verification stars for catalog." << std::endl;
   std::cout << "Found " << pattern_stars.size() << " pattern stars for catalog." << std::endl;
 #ifdef DEBUG_STAR_TABLE
   fs::path debug_table;
-  debug_table = output_catalog_file.parent_path() / 
-    ("star_table_" + year_str + ".csv");
+  debug_table = output_directory / ("star_table_" + year_str + ".csv");
   write_to_csv(debug_table, star_table);
+
+  debug_table = output_directory / ("pattern_star_table_" + year_str + ".csv");
+  write_to_csv(debug_table, pat_star_table);
+
+  Eigen::MatrixXd verif_input_catalog_data = input_catalog_data(verification_stars, Eigen::all);
+  debug_table = output_directory / ("verif_input_catalog_" + year_str + ".csv");
+  write_to_csv(debug_table, verif_input_catalog_data);
+
+  Eigen::MatrixXd pattern_input_catalog_data = input_catalog_data(verification_stars, Eigen::all);
+  debug_table = output_directory / ("pattern_input_catalog_" + year_str + ".csv");
+  write_to_csv(debug_table, pattern_input_catalog_data);
 #endif 
 }
 

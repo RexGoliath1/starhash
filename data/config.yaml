@@ -18,13 +18,13 @@ catalog:
   # Output catalog pattern size
   pattern_size: 4
   # Constraint on pattern stars per FOV
-  pattern_stars_per_fov: 20 # 10
+  pattern_stars_per_fov: 10 # 10
   # Constraint on catalog / validation stars per FOV
-  catalog_stars_per_fov: 40 # 20
+  catalog_stars_per_fov: 20 # 20
   # Min Constraint on magnitude
   min_magnitude_thresh: 7.5
   # Max Constraint on magnitude
-  max_magnitude_thresh: 5.0
+  max_magnitude_thresh: 0.0
   # Constraint on parallax (TODO: Use ESA paper to adjust <0 plx entries)
   plx_thresh: 0.0
   # [Degrees] Constraint on minimum separation angle 
