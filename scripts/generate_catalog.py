@@ -12,6 +12,16 @@ default_scg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "res
 
 _MAGIC_RAND = 2654435761
 
+def _key_to_index(key, bin_factor, max_index):
+    """Get hash index for a given key."""
+    # Get key as a single integer
+    # index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+    index = list(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+    index_sum = sum(index)
+    # Randomise by magic constant and modulo to maximum index
+    # print(f"index = {index}")
+    return (index_sum * _MAGIC_RAND) % max_index
+
 def compare_df(path1, path2, epsilon = 1**-9):
     df1 = pd.read_csv(path1, header=None)
     df2 = pd.read_csv(path2, header=None)
@@ -30,6 +40,7 @@ def compare_df(path1, path2, epsilon = 1**-9):
             print(f"df2 row: {df2.iloc[ii].values.transpose()}")
             exit(-1)
     return count
+
 
 class tetra():
     """
@@ -63,15 +74,6 @@ class tetra():
 
         self.verify_star_table()
 
-    def _key_to_index(self, key, bin_factor, max_index):
-        """Get hash index for a given key."""
-        # Get key as a single integer
-        # index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-        index = list(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-        index_sum = sum(index)
-        # Randomise by magic constant and modulo to maximum index
-        # print(f"index = {index}")
-        return (index_sum * _MAGIC_RAND) % max_index
 
     def filter_input_cat(self):
         star_table = pd.read_csv(self.input_catalog)
@@ -270,13 +272,14 @@ class tetra():
             edge_ratios = edges[:-1] / largest_edge
             # convert edge ratio float to hash code by binning
             hash_code = tuple((edge_ratios * self.pattern_bins).astype(np.int32))
-            hash_index = self._key_to_index(hash_code, self.pattern_bins, catalog_length)
+            hash_index = _key_to_index(hash_code, self.pattern_bins, catalog_length)
             # print(f"pattern[{hash_index}].hash_code = {hash_code} (edges: {edge_ratios})")
             # use quadratic probing to find an open space in the pattern catalog to insert
             for index in ((hash_index + offset ** 2) % catalog_length
                           for offset in itertools.count()):
                 # if the current slot is empty, add the pattern
                 # possibly wrong?
+                # if not pattern_catalog[index].sum() > 0:
                 if not pattern_catalog[index].sum() > 0:
                     pattern_catalog[index] = pattern
                     break
@@ -352,7 +355,55 @@ class tetra():
         count = compare_df(py_pc, scg_pc)
         print(f"Validation Pattern Catalog: Done checking row difference. Total Differences: {count}")
 
+
+        self.index_all(py_stf, py_pc)
+
         print("Done!")
+
+    def index_all(self, stf, py_pc):
+        """ Load star table file and index into pattern catalog. Check every pattern
+
+        """
+
+        star_table = pd.read_csv(stf, header=None)
+        star_table.columns = ["x", "y", "z"]
+        pattern_catalog = pd.read_csv(py_pc, header=None)
+        pattern_catalog = pattern_catalog.to_numpy()
+        catalog_length = pattern_catalog.shape[0]
+
+        for ii in tqdm(range(pattern_catalog.shape[0])):
+            # For each row in the pattern catalog, let's find the actual pattern from star table
+            pattern = pattern_catalog[ii]
+
+            if pattern.sum() == 0:
+                continue
+            if any(pattern < 0):
+                raise Exception("Negative values in pattern catalog")
+
+            vectors = star_table[["x", "y", "z"]].iloc[pattern].values
+            # calculate and sort the edges of the star pattern
+            edges = np.sort([np.sqrt((np.subtract(*star_pair)**2).sum())
+                             for star_pair in itertools.combinations(vectors, 2)])
+            # extract the largest edge
+            largest_edge = edges[-1]
+            # divide the edges by the largest edge to create dimensionless ratios
+            edge_ratios = edges[:-1] / largest_edge
+
+            hash_code = tuple((edge_ratios * self.pattern_bins).astype(np.int32))
+            hash_index = _key_to_index(hash_code, self.pattern_bins, catalog_length)
+            assert(hash_index > 0)
+            match = False
+
+            for index in ((hash_index + offset ** 2) % catalog_length
+                          for offset in itertools.count()):
+                # Proceed with quadratic probing until we hit an empty spot
+                # TODO: WARNING, POSSIBLE BAD CHECK IN PYTHON AND C++, MAY NEED DEBUGGING
+                if pattern_catalog[index].sum() == 0:
+                    break
+                if index == ii:
+                    match = True
+
+            assert(match)
 
 if __name__ == "__main__":
     def valid_path(s):
@@ -366,7 +417,9 @@ if __name__ == "__main__":
     parser.add_argument("--output_path", default=default_output, type=str, help="")
     parser.add_argument("--scg_path", default=default_scg_path, type=valid_path, help="")
     parser.add_argument("--coarse_only", default=False, type=bool, help="")
-    parser.add_argument("--validate_only", default=False, type=bool, help="Validate without rerunning python catalog generation")
+    parser.add_argument("--validate_only", default=True, type=bool, help="Validate without rerunning python catalog generation")
     args = parser.parse_args()
+    settings = vars(args)
 
     cat = tetra(args)
+
