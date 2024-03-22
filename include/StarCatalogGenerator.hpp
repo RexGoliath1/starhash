@@ -216,18 +216,6 @@ private:
 
   template <typename T> struct hdf5_type;
 
-  template <> struct hdf5_type<float> {
-    static H5::DataType get() { return H5::PredType::NATIVE_FLOAT; }
-  };
-
-  template <> struct hdf5_type<double> {
-    static H5::DataType get() { return H5::PredType::NATIVE_DOUBLE; }
-  };
-
-  template <> struct hdf5_type<int> {
-    static H5::DataType get() { return H5::PredType::NATIVE_INT; }
-  };
-
   template <typename Derived>
   void write_eigen_to_hdf5(const std::string &filename,
                               const std::string &datasetName,
@@ -259,6 +247,18 @@ private:
     file << matrix.format(CSVFormat);
     file.close();
   }
+};
+
+template <> struct StarCatalogGenerator::hdf5_type<float> {
+  static H5::DataType get() { return H5::PredType::NATIVE_FLOAT; }
+};
+
+template <> struct StarCatalogGenerator::hdf5_type<double> {
+  static H5::DataType get() { return H5::PredType::NATIVE_DOUBLE; }
+};
+
+template <> struct StarCatalogGenerator::hdf5_type<int> {
+  static H5::DataType get() { return H5::PredType::NATIVE_INT; }
 };
 
 #endif // CATALOG_GENERATOR_SH
