@@ -2,6 +2,7 @@
 #include "ProgressBar.hpp"
 #include <algorithm>
 #include <assert.h>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <numeric>
@@ -17,6 +18,19 @@ StarCatalogGenerator::StarCatalogGenerator() {
 
   edges.resize(num_pattern_angles);
   edges.setZero();
+  pat_angles.resize(num_pattern_angles);
+  pat_angles.setZero();
+  edge_angles.resize(edges.size() - 1 + pat_angles.size() - 1);
+  code_size = edges.size() - 1 + pat_angles.size() - 1;
+  pat_bin_cast.resize(code_size); 
+  key_range.resize(code_size);
+  indicies.resize(code_size);
+  key_range = Eigen::VectorXi::LinSpaced(code_size, 0, code_size - 1).cast<uint64_t>();
+  pat_bin_cast = pattern_bins * Eigen::VectorXi::Ones(code_size).cast<uint64_t>();
+
+  double log_max = std::log(UINT64_MAX / 2.0);
+  bool will_overflow = code_size * std::log(pattern_bins) > log_max;
+  assert(!will_overflow);
 
   init_bcrf();
 }
@@ -53,6 +67,7 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   pattern_bins = config["catalog"]["pattern_bins"].as<int>();
   double min_separation_angle = config["catalog"]["min_separation_angle"].as<double>();
   min_separation = std::cos(min_separation_angle * deg2rad); 
+  catalog_size_multiple = config["catalog"]["catalog_size_multiple"].as<unsigned int>();
 
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
   index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
@@ -531,7 +546,7 @@ void StarCatalogGenerator::get_nearby_stars(Eigen::Vector3d star_vector,
   std::vector<int> star_ids;
   std::vector<int> all_star_ids;
 
-  // TODO: Why the fuck do we use radians here for radius error ...
+  // TODO: Why do we use radians here for radius error ...
   low_codes = (intermediate_star_bins * (star_vector.array() + 1.0 - max_fov)).cast<int>();
   low_codes = low_codes.array().max(zeros.array());
   high_codes = (1 + (intermediate_star_bins * (star_vector.array() + 1.0 + max_fov))).cast<int>();
@@ -665,6 +680,7 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
 
     star_vector_1 -= star_vector_2;
     edges[cnt] = star_vector_1.norm();
+    pat_angles[cnt] = std::acos(dot_p);
 
     // If star pattern contains angles outside FOV, somthing went wrong in prior
     // pattern_list creation
@@ -680,26 +696,86 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
 
   std::stable_sort(edges.begin(), edges.end());
   edges /= edges.maxCoeff();
+  std::stable_sort(pat_angles.begin(), pat_angles.end());
+  pat_angles /= pat_angles.maxCoeff();
+
+  edge_angles.head(edges.size() - 1) = edges.head(edges.size() - 1);
+  edge_angles.tail(pat_angles.size() - 1) = pat_angles.head(pat_angles.size() - 1);
+  // std::cout << "\n" << std::endl;
+  // std::cout << "edges: " << edges.transpose() << std::endl;
+  // std::cout << "angles: " << pat_angles.transpose() << std::endl;
+  // std::cout << "edge_angles: " << edge_angles.transpose() << std::endl;
+}
+
+uint64_t modularExponentiation(uint64_t base, uint64_t exponent, uint64_t modulus) {
+    uint64_t result = 1;
+    base %= modulus;
+
+    for (uint64_t i = 0; i < exponent; ++i) {
+        result = (result * base) % modulus;
+    }
+
+    return result;
+}
+
+// uint64_t modularMultiplication(uint64_t a, uint64_t b, uint64_t modulus) {
+//     uint64_t result = 0;
+//     a %= modulus;
+// 
+//     for (uint64_t i = 0; i < b; ++i) {
+//         result = (result + a) % modulus;
+//     }
+// 
+//     return result;
+// }
+
+uint64_t modularMultiplication(uint64_t a, uint64_t b, uint64_t modulus) {
+    uint64_t result = 0;
+    a %= modulus;
+
+    int iterations = 64 - __builtin_clzll(b); // Count the number of bits in 'b'
+
+    for (int i = 0; i < iterations; ++i) {
+        if (b & 1) { // If the least significant bit of 'b' is 1
+            result = (result + a) % modulus;
+        }
+        a = (2 * a) % modulus;
+        b >>= 1; // Right shift 'b' to divide by 2
+    }
+
+    return result;
+}
+
+uint64_t StarCatalogGenerator::key_to_index(const Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code,
+                      const uint64_t catalog_length) {
+    
+    uint64_t sum = 0;
+    for (int i = 0; i < code_size; ++i) {
+        uint64_t expResult = modularExponentiation(pattern_bins, i, catalog_length);
+        uint64_t term = modularMultiplication(hash_code[i], expResult, catalog_length);
+        sum = (sum + term) % catalog_length;
+    }
+
+    // Final multiplication by magic number and modulo operation
+    return modularMultiplication(sum, magic_number, catalog_length);
 }
 
 // TODO: May have to go through and convert all integers into uint64_t
-uint64_t StarCatalogGenerator::key_to_index(Eigen::VectorXi hash_code,
-                                       const unsigned int pattern_bins,
-                                       const unsigned int catalog_length) {
-  const unsigned int rng_size = hash_code.size();
-  Eigen::VectorXi key_range =
-      Eigen::VectorXi::LinSpaced(rng_size, 0, rng_size - 1);
-  Eigen::VectorXi pat_bin_cast = pattern_bins * Eigen::VectorXi::Ones(rng_size);
-  Eigen::VectorXi indicies = hash_code.array() * Eigen::pow(pat_bin_cast.array(), key_range.array());
-
-  uint64_t sum = 0;
-  for (auto index: indicies) {
-    sum += static_cast<uint64_t>(index);
-  }
-
-  // TODO: Carefully check python types to see if this matches TETRA Logic
-  return ((sum * magic_number) % static_cast<uint64_t>(catalog_length));
-}
+// uint64_t StarCatalogGenerator::key_to_index(const Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code,
+//                                        const unsigned int pattern_bins,
+//                                        const unsigned int catalog_length) {
+//   indicies = hash_code.array() * Eigen::pow(pat_bin_cast.array(), key_range.array());
+// 
+//   indicies = magic_number * indicies;
+//   for(int ii = 0; ii < code_size; ii++) {
+//     indicies[ii] = indicies[ii] % static_cast<uint64_t>(catalog_length);
+//   }
+// 
+//   uint64_t sum = indicies.sum();
+// 
+//   // TODO: Carefully check python types to see if this matches TETRA Logic
+//   return ((sum * magic_number) % static_cast<uint64_t>(catalog_length));
+// }
 
 void StarCatalogGenerator::get_nearby_star_patterns(
     Eigen::MatrixXi &pattern_list, std::vector<int> nearby_stars, int star_id) {
@@ -719,7 +795,7 @@ void StarCatalogGenerator::get_nearby_star_patterns(
       }
     }
 
-
+    // TODO: Start being more picky. Check max angles
     if (is_star_pattern_in_fov(pattern_list, nearby_star_pattern)) {
 #ifdef DEBUG_GET_NEARBY_STAR_PATTERNS
       std::cout << "nearby_star_pattern = ";
@@ -776,7 +852,7 @@ void StarCatalogGenerator::init_output_catalog() {
       }
     }
 
-    std::cout << ss.str() << std::endl;
+    // std::cout << ss.str() << std::endl;
 
   node[ss.str()].push_back(std::to_string(pattern_stars[ii]));
   ss.str("");
@@ -791,15 +867,15 @@ void StarCatalogGenerator::init_output_catalog() {
 
   Eigen::Vector3i test(3, 1);
   test = ((double)intermediate_star_bins * (star_table.row(0).array() + 1)).cast<int>();
-  std::cout << "List: ";
-  const std::vector<int> llist = coarse_sky_map[test];
-  if (llist.empty())
-    std::cout << "Hash map is empty for tested code/key" << std::endl;
-  else {
-    for (const auto &item : llist)
-      std::cout << item << ' ';
-    std::cout << '\n';
-  }
+  // std::cout << "List: ";
+  // const std::vector<int> llist = coarse_sky_map[test];
+  // if (llist.empty())
+  //   std::cout << "Hash map is empty for tested code/key" << std::endl;
+  // else {
+  //   for (const auto &item : llist)
+  //     std::cout << item << ' ';
+  //   std::cout << '\n';
+  // }
 #endif
 }
 
@@ -880,7 +956,7 @@ void StarCatalogGenerator::generate_output_catalog() {
 #endif
 
   // TODO: Move this into higher level Class / Structure. This is our catalog
-  int catalog_length = 2 * pattern_list.rows();
+  uint64_t catalog_length = catalog_size_multiple * pattern_list.rows();
   // WARNING: This is not how Tetra does this. They init to zeros.. But that is
   // (possibly) a legitimate star in the pattern Starhash inits to -1 (TODO:
   // Macro of -1 ) to avoid star ID conflicts Other TODO: This usees a base
@@ -904,23 +980,29 @@ void StarCatalogGenerator::generate_output_catalog() {
     pattern = pattern_list.row(ii);
     get_star_edge_pattern(pattern);
 
-    Eigen::VectorXi hash_code = (edges(Eigen::seqN(0, edges.size() - 1)) * (double)pattern_bins).cast<int>();
-    uint64_t hash_index = key_to_index(hash_code, pattern_bins, catalog_length);
+    // Eigen::VectorXi hash_code = (edges(Eigen::seqN(0, edges.size() - 1)) * (double)pattern_bins).cast<int>();
+    Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code(code_size);
+    hash_code = (edge_angles * (double)pattern_bins).cast<uint64_t>();
+    uint64_t hash_index = key_to_index(hash_code, catalog_length);
+    // std::cout << "hash_code: " << hash_code.transpose() << std::endl;
+    // std::cout << "hash_index: " << hash_index << std::endl;
+    // exit(-1);
+
     // TODO: Something less dumb
     assert(hash_index < static_cast<uint64_t>(INT_MAX));
 
 #ifdef DEBUG_PATTERN_CATALOG
-    std::printf("pattern[%llu].hash_code = [", hash_index);
-    for (auto code: hash_code) {
-      std::cout << code << ", ";
-    }
-    std::cout << "]";
+    // std::printf("pattern[%llu].hash_code = [", hash_index);
+    // for (auto code: hash_code) {
+    //   std::cout << code << ", ";
+    // }
+    // std::cout << "]";
 
-    std::cout << " (edges: [";
-    for (auto edge: edges) {
-      std::cout << edge << ", ";
-    }
-    std::cout << "])" << std::endl;
+    // std::cout << " (edges: [";
+    // for (auto edge: edges) {
+    //   std::cout << edge << ", ";
+    // }
+    // std::cout << "])" << std::endl;
     // exit(-1);
 #endif
 
@@ -937,6 +1019,9 @@ void StarCatalogGenerator::generate_output_catalog() {
         break;
       }
       quadprobe_count++;
+      if (quadprobe_count > 2000) {
+        std::cout << "Bad things have happened" << std::endl;
+      }
     }
   }
 

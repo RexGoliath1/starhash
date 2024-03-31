@@ -306,7 +306,15 @@ class Stellarium():
         """ Get star position in camera using the Intrinsic + Extrinsic Transformation matrix """
 
         output = {}
-        magnitude_limit = 7.0 + 5 * np.log10(100 * self.aperture)
+        if hasattr(self, "min_magnitude_thresh"):
+            min_magnitude = self.min_magnitude_thresh
+        else:
+            min_magnitude = 7.0 + 5 * np.log10(100 * self.aperture)
+
+        if hasattr(self, "max_magnitude_thresh"):
+            max_magnitude = self.max_magnitude_thresh
+        else:
+            max_magnitude = 30
 
         # For all stars, get j2000 and convert to pixel postion
         for obj_name in tqdm(iterable=HIP_NAMES, desc="Getting Star Positions", disable=TQDM_SILENCE):
@@ -316,7 +324,10 @@ class Stellarium():
                 continue
 
             # If the star is lower in magnitude than requested, ignore it
-            if data["vmag"] > magnitude_limit:
+            if data["vmag"] > min_magnitude:
+                continue
+
+            if data["vmag"] < max_magnitude:
                 continue
 
             if FILTER_VARIABLE_STARS and data["variable-star"] != "no":
@@ -482,7 +493,7 @@ class Stellarium():
         # self.set_property("StelSkyDrawer.absoluteStarScale", f"{1.25}")
         # self.set_property("StelSkyDrawer.relativeStarScale", f"{0.5}")
 
-        # Set screen shot custom width (this might not be right, may need to actually adjust screen. fuck)
+        # Set screen shot custom width (TODO: Somehow get this to work for multiple screens maybe?)
         self.set_property("MainView.customScreenshotHeight", f"{int(self.height)}")
         self.set_property("MainView.customScreenshotWidth", f"{int(self.width)}")
 
@@ -653,6 +664,7 @@ class Stellarium():
         # Meaning, if we know RA/DEC we can get RPY -> Extrinsic Matrix -> Star pixel positions
         dec = np.linspace(self.dec_start, self.dec_end, self.num_steps)
         ra = np.linspace(self.ra_start, self.ra_end, self.num_steps)
+        time.sleep(3.0)
 
         for ii in range(0, self.num_steps):
             self.dec = dec[ii]
@@ -667,12 +679,12 @@ class Stellarium():
             self.get_extrinsic()
 
             data = {}
-            data["width"] = self.width
-            data["height"] = self.height
-            data["ra"] = self.ra
+            data["width"]   = self.width
+            data["height"]  = self.height
+            data["ra"]  = self.ra
             data["dec"] = self.dec
-            data["E"] = self.E.tolist()
-            data["K"] = self.K.tolist()
+            data["E"]   = self.E.tolist()
+            data["K"]   = self.K.tolist()
             data["fov"] = self.fov
 
             if OUTPUT_POSITIONS:

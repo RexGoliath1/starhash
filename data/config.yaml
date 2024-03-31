@@ -18,9 +18,9 @@ catalog:
   # Output catalog pattern size
   pattern_size: 4
   # Constraint on pattern stars per FOV
-  pattern_stars_per_fov: 10 # 10
+  pattern_stars_per_fov: 20 # 10
   # Constraint on catalog / validation stars per FOV
-  catalog_stars_per_fov: 20 # 20
+  catalog_stars_per_fov: 40 # 20
   # Min Constraint on magnitude
   min_magnitude_thresh: 7.5
   # Max Constraint on magnitude
@@ -29,13 +29,15 @@ catalog:
   plx_thresh: 0.0
   # [Degrees] Constraint on minimum separation angle 
   # Should be tied to expected centroid errors / camera parameters
-  min_separation_angle: 0.05
+  min_separation_angle: 0.05 # 0.05
   # [Degrees] Estimated FOV
-  max_fov_angle: 20.0 # Degrees
+  max_fov_angle: 8.0 # Degrees
   # Temporary hash map number of bins
   intermediate_star_bins: 4
   # Temporary hash map number of bins
-  pattern_bins: 25
+  pattern_bins: 25 # 25
+  # The size multiple to make the catalog pattern hash map larger (allows for lower collisions at cost of memory)
+  catalog_size_multiple: 5
 debug:
   # Coarse sky map
   debug_hash_file: "coarse_sky_map.yaml"

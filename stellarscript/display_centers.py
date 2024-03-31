@@ -17,7 +17,6 @@ DEBUG_STELLAR_POSITIONS = True
 def xyz_to_coords(df_proper_motion, E, K, width, height):
     """ Function to convert proper motion contents to image coordinates """
     coords = {}
- 
 
     data = df_proper_motion[["x", "y", "z"]].to_numpy()
     data = np.hstack([data, np.ones([data.shape[0], 1])])
@@ -25,13 +24,11 @@ def xyz_to_coords(df_proper_motion, E, K, width, height):
     x_p = np.matmul(K, x_c)
     uv = (x_p[:2, :] / x_p[2, :])
 
-
     in_bounds = (x_p[2] > 0) & (uv[0] >= 0) & (uv[0] < width) & (uv[1] >= 0) & (uv[1] < height)
     uv_in_bounds = uv[:, in_bounds]
     #object_names = cat_df.iloc[in_bounds]['HIP'].apply(lambda x: f'HIP {x}').tolist()
     object_names = [f"HIP {num}" for num in range(0, uv_in_bounds.shape[1])]
     coords = {name: uv_in_bounds[:,i].tolist() for i, name in enumerate(object_names)}
-
     return coords
 
 # Text settings
@@ -157,8 +154,10 @@ for image in sorted(iglob(os.path.join(IMAGE_OUTPUT_DIRECTORY, "stellarium*.png"
         for row in range(0, pm_df.shape[0]):
             # TODO: Replace with star names to check
             # star = f'HIP {cat_df["HIP"].loc[row]}'
+            # This doesn't work. PM rows != HIP ID's
             star = f'HIP {row}'
             if star in sorted(stars.keys()):
+                # Get vector for each star and compare directly to catalog row. 
                 pos = np.array(stars[star]["vec_inertial"])
                 pos = pos / np.linalg.norm(pos)
                 hpos = np.array(pm_df[["x", "y", "z"]].loc[row])
@@ -178,8 +177,10 @@ for image in sorted(iglob(os.path.join(IMAGE_OUTPUT_DIRECTORY, "stellarium*.png"
             else:
                 input_df = pm_df
 
+            # Get the catalog defined star xy position for all stars in input_df in image plane
             pm_pos = xyz_to_coords(input_df, E, K, width, height)
             print(f"PM has {len(pm_pos.keys())} stars")
+
             for star in pm_pos.keys():
                 pos = pm_pos[star]
                 postup = (np.int32(pos[0]), np.int32(pos[1]))

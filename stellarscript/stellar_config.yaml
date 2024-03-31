@@ -19,15 +19,15 @@
 
 
 # Stellarium Camera Settings
-fov: 20.0 # 44.2
+fov: 8.0 # 44.2
 #aperture: 0.0125
-aperture: 1.0 # 0.0125
+aperture: 0.0125 # 1.0
 # width: 6480
 # height: 4860
-width: 1024
-height: 768
-#width: 2048
-#height: 1536
+# width: 1024
+# height: 768
+width: 2048
+height: 1536
 
 # Stellarium Time Settings
 gregorian_date: "2024-02-03 12:00:00.000"
@@ -62,6 +62,11 @@ ra_end: 1.5707963267948966
 
 delay_sec: 0.01
 num_steps: 100
+
+# Min Constraint on magnitude
+min_magnitude_thresh: 7.5
+# Max Constraint on magnitude
+max_magnitude_thresh: 0.0
 
 # Stellarium API URLs
 url_main: "http://localhost:7624/api/"
@@ -120,11 +125,10 @@ disabled_properties: [
 
 enabled_properties: [
     "StelMovementMgr.equatorialMount",
-#"StelSkyDrawer.flagStarMagnitudeLimit",
+    "StelSkyDrawer.flagStarMagnitudeLimit",
     "StelSkyDrawer.flagPlanetMagnitudeLimit",
     "StelSkyDrawer.flagNebulaMagnitudeLimit",
-# Who fucking knows, the docs and code are trash
-# This setting seems to double whatever the requested custom sizes are. Could change code but likely want to look into stellarium..
+    # This setting seems to double whatever the requested custom sizes are. Could change code but likely want to look into stellarium..
     #"MainView.flagUseCustomScreenshotSize", 
   ]
 

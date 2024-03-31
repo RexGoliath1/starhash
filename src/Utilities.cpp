@@ -1,6 +1,6 @@
 #include "Utilities.hpp"
 #include <limits>
-#include <linux/limits.h>
+#include <limits.h>
 #include <iostream>
 
 fs::path get_executable_path() {

@@ -8,9 +8,10 @@ from time import time
 from tqdm import tqdm
 import argparse
 import yaml
-from glob import iglob
+from glob import glob
 from scipy.spatial import cKDTree
 from scipy.optimize import linear_sum_assignment
+from copy import deepcopy
 
 # TODO: Proper Module
 import sys
@@ -32,19 +33,19 @@ DEFAULT_CONFIG = os.path.join(REPO_DIRECTORY, "data", "centroiding.yaml")
 
 blob_kwargs = {
     "color": (0, 255, 0),
-    "radius": 5,
+    "radius": 10, # 5
     "thickness": 1,
 }
 
 gauss_kwargs = {
     "color": (255, 0, 0),
-    "radius": 10,
+    "radius": 20, # 10
     "thickness": 1,
 }
 
 truth_kwargs = {
     "color": (0, 0, 255),
-    "radius": 20,
+    "radius": 40, # 20
     "thickness": 1,
 }
 
@@ -84,13 +85,16 @@ def process_params(args):
 
     assert (os.path.exists(args.input_path))
 
-def get_closest_points(truth, measured, pix_thresh=10.0):
+def get_closest_points(truth, measured, pix_thresh=3.0):
     """ Use KDTree/Hungarian to map centroids to truth """
     max_cost = pix_thresh * 1000
     assert(pix_thresh < max_cost)
     tree = cKDTree(truth)
     idx = tree.query_ball_point(x=measured, r=pix_thresh, p=2)
     cost_matrix = np.full((len(measured), len(truth)), max_cost)
+
+    if idx is None:
+        raise Exception("Shouldn't happen unless centroiding went bad")
 
     for i, indices in enumerate(idx):
         for truth_index in indices:
@@ -152,10 +156,10 @@ def centroiding_pipeline(image_path, args, stel):
 
     np.random.seed(args.seed)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    centroid_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    temp = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    centroid_img = deepcopy(temp)
 
     if args.output_plots:
-        os.makedirs(args.image_output_path, exist_ok=True)
         print(f"TRUTH : {stel.truth_coords.shape}")
         for ii in range(stel.truth_coords.shape[1]):
             [x,y] = stel.truth_coords[:, ii]
@@ -165,7 +169,11 @@ def centroiding_pipeline(image_path, args, stel):
         gray = cv2.GaussianBlur(gray, (args.size_denoise, args.size_denoise), 0)
 
     print(f"gray.shape: {gray.shape}")
-    flat_image = gray.astype(np.float32) - cv2.medianBlur(gray.copy(), args.size_median)
+
+    if args.flatten:
+        flat_image = gray.astype(np.float32) - cv2.medianBlur(gray.copy(), args.size_median)
+    else:
+        flat_image = gray
 
     im_shape = flat_image.shape
     dist = np.minimum(np.min(im_shape) - 1, distance_threshold)
@@ -179,8 +187,10 @@ def centroiding_pipeline(image_path, args, stel):
     next_rows = start_rows + dist
     next_cols = start_cols + dist
 
+    # Every x and yth pixel we difference the previous and remove outliers 
+    # from std deviation statistics based on a distance criteria
     diff_flat_image = (flat_image[next_rows, next_cols] - flat_image[start_rows, start_cols]).ravel()
-    outliers = get_outliers(diff_flat_image)
+    outliers = get_outliers(diff_flat_image, args.outlier_sigma_cutoff)
 
     standard_deviation = np.nanstd(diff_flat_image[~outliers]) / 2
     snr = flat_image / standard_deviation
@@ -219,24 +229,31 @@ def centroiding_pipeline(image_path, args, stel):
         roi_snr = snr[rows, cols]
         x0, y0, z0, residuals, covariance = gaussian_fit(cols, rows, roi)
 
-        if args.display_gauss_centroids:
-            if not ((x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any())):
-                # centroid_img = cv2.circle(centroid_img, (int(x0), int(y0)), **gauss_kwargs)
-                if (np.abs(np.asarray(center) - np.asarray([x0, y0]).flatten()) <= 3).all():
-                    centroid_img = cv2.circle(centroid_img, (int(x0), int(y0)), **gauss_kwargs)
-
         if not ((x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any())):
             blob_candidate[ind, 0] = 1
             dx = x0 - (center[0] - centroid_size)
             dy = y0 - (center[1] - centroid_size)
-            if (np.abs(np.asarray(center) - np.asarray([x0, y0]).flatten()) <= 3).all():
-                star_centroids.append([x0, y0])
-                star_illums.append(gray[tuple(center[::-1])])
-                out_stats.append(stats[ind])
-                gauss_illums.append(np.min(z0, 0).sum())
+            if (np.abs(np.asarray(center) - np.asarray([x0, y0]).flatten()) <= args.gauss_offset).all():
+
+                # Separation check
+                is_separated = True
+                for centroid in star_centroids:
+                    distance = np.sqrt((centroid[0] - x0)**2 + (centroid[1] - y0)**2)
+                    if distance < args.separation_threshold:
+                        is_separated = False
+                        break
+                
+                if is_separated:
+                    star_centroids.append([x0, y0])
+                    star_illums.append(gray[tuple(center[::-1])])
+                    out_stats.append(stats[ind])
+                    gauss_illums.append(np.min(z0, 0).sum())
+                    if args.display_gauss_centroids:
+                        centroid_img = cv2.circle(centroid_img, (int(x0), int(y0)), **gauss_kwargs)
 
 
         if args.output_individual_blobs:
+            os.makedirs(args.image_output_path, exist_ok=True)
             fig_name = os.path.join(args.image_output_path, f"blob_{ind}.png")
             if (x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any()):
                 plt.imshow(roi, 'gray')
@@ -257,21 +274,28 @@ def centroiding_pipeline(image_path, args, stel):
     gauss_illums = np.array(gauss_illums)[magnitude_idx]
     out_stats = np.array(out_stats)[magnitude_idx]
 
+    # Because I'm totally out of ideas
+    # star_centroids = stel.truth_coords.T
+
     centroid_params["star_centroids"] = star_centroids
     centroid_params["star_illums"] = star_illums
     centroid_params["gauss_illums"] = gauss_illums
     centroid_params["out_stats"] = out_stats
 
     if args.output_plots:
-        meas_idx, truth_idx = get_closest_points(stel.truth_coords_list, star_centroids)
+        img_name = os.path.basename(image_path)
+        fig_name = os.path.join(args.output_path, "full_solution", img_name)
+        os.makedirs(os.path.join(args.output_path, "full_solution"), exist_ok=True)
 
-        pct = 100.0 * blob_candidate.sum() / blob_candidates
-        plt.figure(figsize=(40, 15))
-        plt.imshow(centroid_img)
-        plt.title(f"Full Solution Blob Gaussian Percent: {pct:2f}")
-        plt.draw()
-        fig_name = os.path.join(args.image_output_path, f"full_solution.png")
-        plt.savefig(fig_name)
+        # pct = 100.0 * blob_candidate.sum() / blob_candidates
+        # plt.figure(figsize=(12, 15))
+        # plt.imshow(centroid_img)
+        # plt.title(f"Full Solution Blob Gaussian Percent: {pct:2f}")
+        # plt.draw()
+        # plt.savefig(fig_name)
+        # plt.close()
+
+        cv2.imwrite(fig_name, cv2.cvtColor(centroid_img, cv2.COLOR_RGB2BGR))
 
     return centroid_params
 
@@ -338,15 +362,6 @@ def gaussian_fit(x, y, z):
 
     covariance = np.linalg.pinv(
         jacobian.T @ jacobian) * float(np.std(residuals)) ** 2
-    #except np.linalg.LinAlgError as e:
-    #    print(f"Probably couldn't invert: {e}")
-    #    return np.nan, np.nan, np.nan, np.nan, np.nan
-    #except ValueError as e:
-    #    print(f"Something bad happened: {e}")
-    #    return np.nan, np.nan, np.nan, np.nan, np.nan
-        #except:
-        #    print("what in the fuck")
-        #    return np.nan, np.nan, np.nan, np.nan, np.nan
 
     return x0, y0, z0, residuals, covariance
 
@@ -354,7 +369,7 @@ def run_pipeline(args, stel):
 
     process_params(args)
 
-    for image_path in iglob(os.path.join(stel.image_path, args.image_pattern)):
+    for image_path in sorted(glob(os.path.join(stel.image_path, args.image_pattern))):
         image_name = os.path.splitext(os.path.basename(image_path))
         args.image_output_path = os.path.join(args.output_path, image_name[0])
 
@@ -392,6 +407,10 @@ def run_pipeline(args, stel):
                 measured_coords[:, jj] = star_centroid
 
             meas_idx, truth_idx = get_closest_points(stel.truth_coords_list, star_centroids)
+            assert(len(meas_idx) == len(truth_idx))
+            if (len(meas_idx) < 4):
+                print("Not enough matching centroids for quest")
+                continue
 
             # If successful, vb and vi should be the 1:1 mapping of centroid vectors to inertial truth
             vb = measured_vectors[:, meas_idx]
@@ -401,7 +420,7 @@ def run_pipeline(args, stel):
             vc_truth = stel.truth_body_vectors[:, truth_idx]
 
             # Sanity checks
-            for vnum in range(0, len(stel.truth_vectors)):
+            for vnum in range(0, vi.shape[0]):
                 print(f"Truth: ({tc[:, vnum]}) ; Measured: ({mc[:, vnum]})")
                 print(f"Truth Vector : ({vc_truth[:, vnum]}) ; Measured Vector: ({vb[:, vnum]})")
                 ang = np.degrees(vectors_to_angle(vc_truth[:, vnum], vb[:, vnum]))

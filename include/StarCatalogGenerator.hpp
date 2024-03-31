@@ -60,14 +60,14 @@ typedef enum {
 
 // Debugging functions used for validation (TODO: Move to config)
 // #define DEBUG_HIP
-// #define DEBUG_INPUT_CATALOG
+#define DEBUG_INPUT_CATALOG
 #define DEBUG_PM
-// #define DEBUG_HASH
+#define DEBUG_HASH
 // #define DEBUG_GET_NEARBY_STARS
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
 #define DEBUG_STAR_TABLE
-// #define DEBUG_PATTERN_LIST
-// #define DEBUG_PATTERN_CATALOG
+#define DEBUG_PATTERN_LIST
+#define DEBUG_PATTERN_CATALOG
 
 const unsigned int catalog_rows = 117955;
 
@@ -127,6 +127,13 @@ private:
   std::vector<int> pattern_stars;
   CoarseSkyMap coarse_sky_map;
   Eigen::ArrayXd edges;
+  Eigen::ArrayXd pat_angles;
+  Eigen::ArrayXd edge_angles;
+  int code_size;
+  Eigen::Array<uint64_t, Eigen::Dynamic, 1> pat_bin_cast;
+  Eigen::Array<uint64_t, Eigen::Dynamic, 1> key_range;
+  Eigen::Array<uint64_t, Eigen::Dynamic, 1> indicies;
+
   bool regenerate;
   unsigned int pattern_size;
   unsigned int num_pattern_angles;
@@ -163,8 +170,10 @@ private:
   double max_hfov_dist;
   // @brief Intermediate hash number of bins
   unsigned int intermediate_star_bins;
-  // @brief TODO: check why int
+  // @brief 
   uint64_t pattern_bins;
+  // @brief 
+  uint64_t catalog_size_multiple;
 
   // @brief Global counter for pattern_list
   int pattern_list_size = 0;
@@ -209,9 +218,8 @@ private:
   void init_output_catalog();
 
   // Final star edge pattern hash table (from paper / code)
-  uint64_t key_to_index(Eigen::VectorXi hash_code,
-                        const unsigned int pattern_bins,
-                        const unsigned int catalog_length);
+  uint64_t key_to_index(const Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code,
+                        const uint64_t catalog_length);
   void generate_output_catalog();
 
   template <typename T> struct hdf5_type;

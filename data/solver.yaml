@@ -2,18 +2,35 @@
 image_pattern: "stellarium*.png"
 
 # Centroiding Parameters
+# denoise: true
+# size_denoise: 3
+# flatten: true
+# size_median: 9
+# distance_threshold: 31
+# num_blobs: 31
+# snr_threshold: 500
+# poi_max_size: 100
+# poi_min_size: 2
+# reject_saturation: false
+# centroid_size: 1
+# seed: 1337
+
+# FOV: 8 Degrees
 denoise: true
 size_denoise: 3
 flatten: true
 size_median: 9
-distance_threshold: 31
-num_blobs: 31
-snr_threshold: 500
-poi_max_size: 100
-poi_min_size: 2
+outlier_sigma_cutoff: 4
+distance_threshold: 64
+snr_threshold: 200
+poi_max_size: 1000
+poi_min_size: 5
 reject_saturation: false
-centroid_size: 1
+centroid_size: 7
+gauss_offset: 5
+separation_threshold: 8 # This should match catalog
 seed: 1337
+
 # Display Parameters
 output_plots: false
 output_individual_blobs: false
@@ -26,7 +43,7 @@ pattern_size: 4
 pattern_stars: 25
 coarse_bins: 4
 pattern_bins: 25
-fov_max_error: 2.0
+fov_max_error: 0.5
 # [--] Default 0.005 
 # Bigger for now bacause stellarium has garbage catalogs
 # min_sep = 0.05, fov = 20, max ratio = 400

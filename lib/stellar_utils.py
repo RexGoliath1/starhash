@@ -67,7 +67,10 @@ class StellarUtils():
             self.cy = self.K[1, 2]
             self.hfov = 2 * np.arctan2(self.width / 2.0, self.fx)
             self.vfov = 2 * np.arctan2(self.height / 2.0, self.fy)
+            self.hifov = self.hfov / self.width
+            self.vifov = self.vfov / self.height
             self.K_inv = np.linalg.inv(self.K)
+            assert (np.sum(np.linalg.inv(self.K_inv) - self.K) < 1e-12)
             self.T_cam_to_j2000 = self.E[:,:3]
             truth_stars = jl["stars"]
 

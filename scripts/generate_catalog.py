@@ -10,17 +10,80 @@ default_input = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data",
 default_output= os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "pyvalid")
 default_scg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results", "scg")
 
-_MAGIC_RAND = 2654435761
+_MAGIC_RAND = np.uint64(2654435761)
+
+def modular_exponentiation(base, exponent, modulus):
+    result = 1
+    base %= modulus
+
+    # Determine the number of iterations based on the number of bits in 'exponent'
+    iterations = exponent.bit_length()
+
+    for _ in range(iterations):
+        if exponent & 1:
+            result = (result * base) % modulus
+        base = (base * base) % modulus
+        exponent >>= 1
+
+    return result
+
+def modular_multiplication(a, b, modulus):
+    result = 0
+    a %= modulus
+
+    # Determine the number of iterations based on the number of bits in 'b'
+    b = int(b)  # Convert to Python int
+    iterations = b.bit_length()
+
+    for _ in range(iterations):
+        if b & 1:  # If the least significant bit of 'b' is 1
+            result = (result + a) % modulus
+        a = (2 * a) % modulus
+        b >>= 1  # Right shift 'b' to divide by 2
+
+    return result
 
 def _key_to_index(key, bin_factor, max_index):
     """Get hash index for a given key."""
-    # Get key as a single integer
-    # index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-    index = list(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-    index_sum = sum(index)
-    # Randomise by magic constant and modulo to maximum index
-    # print(f"index = {index}")
-    return (index_sum * _MAGIC_RAND) % max_index
+    index_sum = 0
+    for i, val in enumerate(key):
+        # Using custom modular_exponentiation function
+        term = val * modular_exponentiation(bin_factor, i, max_index) % max_index
+        index_sum = (index_sum + term) % max_index
+
+    # Use modular_multiplication for the final multiplication by the magic number
+    final_index = modular_multiplication(index_sum, _MAGIC_RAND, max_index)
+
+    return final_index
+
+# def _key_to_index(key, bin_factor, max_index):
+#     """Get hash index for a given key."""
+#     # Get key as a single integer
+#     # index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+#     print(f"key: {key}")
+#     temp = np.array([np.uint64(val) * np.uint64(bin_factor)**np.uint64(i) for (i, val) in enumerate(key)])
+#     index = temp.astype(np.uint64)
+#     print(f"index: {index}")
+#     # print(f"index: {index} sum(index): {sum(index)} uint64(sum(index)): {np.uint64(sum(index))} ")
+#     index_sum = np.uint64(index.sum())
+#     print(f"index_sum: {index_sum}")
+#     new = np.uint64(index_sum * _MAGIC_RAND) % np.uint64(max_index)
+#     print(f"new: {new}")
+#     exit(-1)
+#     # Randomise by magic constant and modulo to maximum index
+#     # print(f"index = {index}")
+#     return np.uint64(index_sum * _MAGIC_RAND) % np.uint64(max_index)
+
+def _get_at_index(index, table):
+    """Gets from table with quadratic probing, returns list of all matches."""
+    max_ind = table.shape[0]
+    found = []
+    for c in itertools.count():
+        i = (index + c**2) % max_ind
+        if all(table[i, :] == 0):
+            return found
+        else:
+            found.append(table[i, :].squeeze())
 
 def compare_df(path1, path2, epsilon = 1**-9):
     df1 = pd.read_csv(path1, header=None)
@@ -38,7 +101,7 @@ def compare_df(path1, path2, epsilon = 1**-9):
             print(f"Row {ii} difference")
             print(f"df1 row: {df1.iloc[ii].values.transpose()}")
             print(f"df2 row: {df2.iloc[ii].values.transpose()}")
-            exit(-1)
+            raise Exception("Difference between Python and SCG")
     return count
 
 
@@ -53,17 +116,20 @@ class tetra():
     def __init__(self, args):
         self.output_path            = args.output_path
         self.input_catalog          = args.input_catalog
-        self.max_fov                = 20.0
-        self.pattern_stars_per_fov  = 5 # 10
-        self.catalog_stars_per_fov  = 10 # 20
-        self.star_min_separation    = 0.05
+        self.max_fov                = 44.0
+        self.pattern_stars_per_fov  = 5 # 5
+        self.catalog_stars_per_fov  = 10 # 10
+        self.star_min_separation    = 0.05 # 0.05
         self.pattern_max_error      = 0.005
         self.pattern_size           = 4
         self.pattern_bins           = 25
-        self.min_brightness         = 6.0
+        self.min_brightness         = 7.5
+        self.max_brightness         = 0.0
         self.scg_path               = args.scg_path
         self.coarse_only            = args.coarse_only
         self.validate_only          = args.validate_only
+        self.generate_edge_noise    = args.generate_edge_noise
+        self.skip_pattern_catalog   = args.skip_pattern_catalog
 
         self.max_fov = np.deg2rad(float(self.max_fov))
 
@@ -77,7 +143,9 @@ class tetra():
 
     def filter_input_cat(self):
         star_table = pd.read_csv(self.input_catalog)
-        idx = star_table["Hpmag"] < self.min_brightness
+        idx = star_table["Hpmag"] <= self.min_brightness
+        star_table = star_table[idx]
+        idx = star_table["Hpmag"] >= self.max_brightness
         star_table = star_table[idx]
         idx = star_table["Plx"] > 0.0
         star_table = star_table[idx]
@@ -224,41 +292,46 @@ class tetra():
         pattern_list = np.zeros((10000, self.pattern_size))
         pl_count = 0
 
-        # initialize pattern, which will contain pattern_size star ids
-        pattern = [None] * self.pattern_size
-        for pattern[0] in tqdm(pattern_stars):  # star_ids_filtered:
-            vector = star_table[["x", "y", "z"]].iloc[pattern[0]]
-            # find which partition the star occupies in the sky hash table
-            hash_code = tuple(((vector+1)*temp_bins).astype(np.int32))
-            # remove the star from the sky hash table
-            temp_coarse_sky_map[hash_code].remove(pattern[0])
-            # iterate over all possible patterns containing the removed star
-            nearby_ids = temp_get_nearby_stars(vector, self.max_fov)
+        if self.skip_pattern_catalog:
+            pl_file = os.path.join(self.output_path, "py_pattern_list.csv")
+            pl_df = pd.read_csv(pl_file, header=None)
+            pattern_list = pl_df.to_numpy()
+        else:
+            # initialize pattern, which will contain pattern_size star ids
+            pattern = [None] * self.pattern_size
+            for pattern[0] in tqdm(pattern_stars):  # star_ids_filtered:
+                vector = star_table[["x", "y", "z"]].iloc[pattern[0]]
+                # find which partition the star occupies in the sky hash table
+                hash_code = tuple(((vector+1)*temp_bins).astype(np.int32))
+                # remove the star from the sky hash table
+                temp_coarse_sky_map[hash_code].remove(pattern[0])
+                # iterate over all possible patterns containing the removed star
+                nearby_ids = temp_get_nearby_stars(vector, self.max_fov)
 
-            # print(f"Looking for patterns near star id {pattern[0]} Number of Neighbors = {len(nearby_ids)}")
-            # for pattern[1:] in itertools.combinations(temp_get_nearby_stars(vector, self.max_fov), self.pattern_size-1):
-            for pattern[1:] in itertools.combinations(nearby_ids, self.pattern_size-1):
-                # retrieve the vectors of the stars in the pattern
-                vectors = star_table[["x", "y", "z"]].iloc[pattern].values
-                patarray = np.array(pattern)
-                # verify that the pattern fits within the maximum field-of-view
-                # by checking the distances between every pair of stars in the pattern
-                if all(np.dot(*star_pair) > np.cos(self.max_fov) for star_pair in itertools.combinations(vectors, 2)):
-                    # print(f"pattern = {pattern}")
-                    pattern_list[pl_count, :] = patarray
+                # print(f"Looking for patterns near star id {pattern[0]} Number of Neighbors = {len(nearby_ids)}")
+                # for pattern[1:] in itertools.combinations(temp_get_nearby_stars(vector, self.max_fov), self.pattern_size-1):
+                for pattern[1:] in itertools.combinations(nearby_ids, self.pattern_size-1):
+                    # retrieve the vectors of the stars in the pattern
+                    vectors = star_table[["x", "y", "z"]].iloc[pattern].values
+                    patarray = np.array(pattern)
+                    # verify that the pattern fits within the maximum field-of-view
+                    # by checking the distances between every pair of stars in the pattern
+                    if all(np.dot(*star_pair) > np.cos(self.max_fov) for star_pair in itertools.combinations(vectors, 2)):
+                        # print(f"pattern = {pattern}")
+                        pattern_list[pl_count, :] = patarray
 
-                    pl_count += 1
-                    if pl_count >= pattern_list.shape[0]:
-                        newshape = (pattern_list.shape[0] + 10000, pattern_list.shape[1])
-                        pattern_list.resize(newshape, refcheck=False)
+                        pl_count += 1
+                        if pl_count >= pattern_list.shape[0]:
+                            newshape = (pattern_list.shape[0] + 10000, pattern_list.shape[1])
+                            pattern_list.resize(newshape, refcheck=False)
 
-        pattern_list = pattern_list[:pl_count, :]
-        pl_file = os.path.join(self.output_path, "py_pattern_list.csv")
-        pl_df = pd.DataFrame(pattern_list)
-        pl_df.to_csv(pl_file, index=False, header=False)
+            pattern_list = pattern_list[:pl_count, :]
+            pl_file = os.path.join(self.output_path, "py_pattern_list.csv")
+            pl_df = pd.DataFrame(pattern_list)
+            pl_df.to_csv(pl_file, index=False, header=False)
 
         print(f"Found {pattern_list.shape[0]} patterns. Building catalogue.")
-        catalog_length = 2 * len(pattern_list)
+        catalog_length = np.uint64(2 * len(pattern_list))
         pattern_catalog = np.zeros((catalog_length, self.pattern_size), dtype=np.uint16)
         for pattern in tqdm(pattern_list):
             # retrieve the vectors of the stars in the pattern
@@ -266,20 +339,32 @@ class tetra():
             # calculate and sort the edges of the star pattern
             edges = np.sort([np.sqrt((np.subtract(*star_pair)**2).sum())
                              for star_pair in itertools.combinations(vectors, 2)])
+            angles = np.sort([np.arccos(np.dot(*star_pair))
+                             for star_pair in itertools.combinations(vectors, 2)])
             # extract the largest edge
             largest_edge = edges[-1]
+            largest_angle = angles[-1]
             # divide the edges by the largest edge to create dimensionless ratios
             edge_ratios = edges[:-1] / largest_edge
+            angle_ratios = angles[:-1] / largest_angle
+            ratios = np.concatenate([edge_ratios, angle_ratios])
             # convert edge ratio float to hash code by binning
-            hash_code = tuple((edge_ratios * self.pattern_bins).astype(np.int32))
+            hash_code = tuple((ratios * self.pattern_bins).astype(np.int64))
             hash_index = _key_to_index(hash_code, self.pattern_bins, catalog_length)
+            # print(f"pattern: {pattern}")
+            # print(f"edge_ratios: {edge_ratios}")
+            # print(f"angle_ratios: {angle_ratios}")
+            # print(f"hash_code: {hash_code}")
+            # print(f"hash_index: {hash_index}")
+            # exit(-1)
             # print(f"pattern[{hash_index}].hash_code = {hash_code} (edges: {edge_ratios})")
             # use quadratic probing to find an open space in the pattern catalog to insert
-            for index in ((hash_index + offset ** 2) % catalog_length
+            for index in ((np.uint64(hash_index) + np.uint64(offset) ** 2) % np.uint64(catalog_length)
                           for offset in itertools.count()):
                 # if the current slot is empty, add the pattern
                 # possibly wrong?
                 # if not pattern_catalog[index].sum() > 0:
+                index = int(index)
                 if not pattern_catalog[index].sum() > 0:
                     pattern_catalog[index] = pattern
                     break
@@ -381,27 +466,58 @@ class tetra():
                 raise Exception("Negative values in pattern catalog")
 
             vectors = star_table[["x", "y", "z"]].iloc[pattern].values
+
+            # Let's purturb it a bit...
+            if self.generate_edge_noise:
+                error = 0.001
+                rvec = error * np.random.rand(vectors.shape[0], vectors.shape[1])
+                vectors = vectors + rvec
+                norm = np.sqrt(np.einsum('ij,ij->i', vectors, vectors))
+                norm = norm[:, np.newaxis]
+                vectors = vectors * (1 / norm)
+            
             # calculate and sort the edges of the star pattern
             edges = np.sort([np.sqrt((np.subtract(*star_pair)**2).sum())
                              for star_pair in itertools.combinations(vectors, 2)])
+            angles = np.sort([np.arccos(np.dot(*star_pair))
+                             for star_pair in itertools.combinations(vectors, 2)])
             # extract the largest edge
             largest_edge = edges[-1]
+            largest_angle = angles[-1]
             # divide the edges by the largest edge to create dimensionless ratios
             edge_ratios = edges[:-1] / largest_edge
-
-            hash_code = tuple((edge_ratios * self.pattern_bins).astype(np.int32))
-            hash_index = _key_to_index(hash_code, self.pattern_bins, catalog_length)
-            assert(hash_index > 0)
+            angle_ratios = angles[:-1] / largest_angle
+            ratios = np.concatenate([edge_ratios, angle_ratios])
             match = False
 
-            for index in ((hash_index + offset ** 2) % catalog_length
-                          for offset in itertools.count()):
-                # Proceed with quadratic probing until we hit an empty spot
-                # TODO: WARNING, POSSIBLE BAD CHECK IN PYTHON AND C++, MAY NEED DEBUGGING
-                if pattern_catalog[index].sum() == 0:
-                    break
-                if index == ii:
-                    match = True
+            # TODO: Could be int vs int32 difference? Might mean 64 bit stuff happening
+            if self.generate_edge_noise:
+                 hash_code_space = [range(max(low, 0), min(high+1, self.pattern_bins)) for (low, high)
+                                    in zip(((ratios - args.pattern_max_error) * self.pattern_bins).astype(int),
+                                           ((ratios + args.pattern_max_error) * self.pattern_bins).astype(int))]
+
+                 all_codes = itertools.product(*hash_code_space)
+                 for code in set(tuple(all_codes)):
+                     code = tuple(code)
+                     index = _key_to_index(code, self.pattern_bins, pattern_catalog.shape[0])
+                     matches = _get_at_index(index, pattern_catalog)
+                     if matches is None or len(matches) == 0:
+                         continue
+                     else:
+                         match = True
+            else:
+                # Truth Test
+                hash_code = tuple((ratios * self.pattern_bins).astype(np.int64))
+                hash_index = _key_to_index(hash_code, self.pattern_bins, catalog_length)
+                assert(hash_index > 0)
+                for index in ((np.uint64(hash_index) + np.uint64(offset) ** 2) % np.uint64(catalog_length)
+                              for offset in itertools.count()):
+                    index = int(index)
+                    # Proceed with quadratic probing until we hit an empty spot
+                    if pattern_catalog[index].sum() == 0:
+                        break
+                    if index == ii:
+                        match = True
 
             assert(match)
 
@@ -417,7 +533,11 @@ if __name__ == "__main__":
     parser.add_argument("--output_path", default=default_output, type=str, help="")
     parser.add_argument("--scg_path", default=default_scg_path, type=valid_path, help="")
     parser.add_argument("--coarse_only", default=False, type=bool, help="")
-    parser.add_argument("--validate_only", default=True, type=bool, help="Validate without rerunning python catalog generation")
+    parser.add_argument("--validate_only", default=False, type=bool, help="Validate without rerunning python catalog generation")
+    parser.add_argument("--pattern_max_error", default=0.005, type=bool, help="Validate without rerunning python catalog generation")
+    parser.add_argument("--generate_edge_noise", default=True, type=bool, help="Generate noise in the edge patterns when testing validation")
+    parser.add_argument("--skip_pattern_catalog", default=False, type=bool, help="Skip Pattern Catalog Generation")
+
     args = parser.parse_args()
     settings = vars(args)
 
