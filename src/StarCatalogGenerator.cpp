@@ -16,12 +16,21 @@ StarCatalogGenerator::StarCatalogGenerator() {
   // Config dependant variables
   num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
 
-  edges.resize(num_pattern_angles);
-  edges.setZero();
+  pat_edges.resize(num_pattern_angles);
+  pat_edges.setZero();
   pat_angles.resize(num_pattern_angles);
   pat_angles.setZero();
-  edge_angles.resize(edges.size() - 1 + pat_angles.size() - 1);
-  code_size = edges.size() - 1 + pat_angles.size() - 1;
+  
+  if (use_angles) {
+    pat_edge_angles.resize(pat_edges.size() - 1 + pat_angles.size() - 1);
+    pat_edge_angles.setZero();
+    code_size = pat_edges.size() - 1 + pat_angles.size() - 1;
+  } else {
+    pat_edge_angles.resize(pat_edges.size() - 1);
+    pat_edge_angles.setZero();
+    code_size = pat_edges.size() - 1;
+  }
+  
   pat_bin_cast.resize(code_size); 
   key_range.resize(code_size);
   indicies.resize(code_size);
@@ -68,6 +77,8 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   double min_separation_angle = config["catalog"]["min_separation_angle"].as<double>();
   min_separation = std::cos(min_separation_angle * deg2rad); 
   catalog_size_multiple = config["catalog"]["catalog_size_multiple"].as<unsigned int>();
+  use_angles = config["catalog"]["use_angles"].as<bool>();
+  quadprobe_max = config["catalog"]["quadprobe_max"].as<uint64_t>();
 
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
   index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
@@ -177,7 +188,7 @@ bool StarCatalogGenerator::read_input_catalog() {
   total_catalog_stars += rcnt;
 
   // Perform resizing of large matricies here
-  input_catalog_data = temp_catalog(idx, Eigen::all);
+  input_catalog_data = temp_catalog(idx, Eigen::indexing::all);
   proper_motion_data.resize(total_catalog_stars, 3);
   bcrf_frame.resize(total_catalog_stars, 3);
 
@@ -334,20 +345,20 @@ void StarCatalogGenerator::correct_proper_motion() {
     hproper_motion_data.col(2) = input_catalog_data.col(DE_J2000).array().sin();
     hproper_motion_data.rowwise().normalize();
 
-    std::vector<double> angles(proper_motion_data.rows());
+    std::vector<double> ut_angles(proper_motion_data.rows());
     for (int ii = 0; ii < proper_motion_data.rows(); ++ii) {
-      angles[ii] = angleBetweenVectors(proper_motion_data.row(ii),
+      ut_angles[ii] = angleBetweenVectors(proper_motion_data.row(ii),
                                        hproper_motion_data.row(ii));
     }
 
     // Calculate angles of each row
     int countnan = 0;
     for (int ii = 0; ii < hproper_motion_data.rows(); ++ii) {
-      if (std::isnan(angles[ii])) {
-        std::cout << "NaN Angle: \t PM ID" << ii << "\t Angle: \t" << angles[ii]
+      if (std::isnan(ut_angles[ii])) {
+        std::cout << "NaN Angle: \t PM ID" << ii << "\t Angle: \t" << ut_angles[ii]
                   << "\tv_prop = " << proper_motion_data.row(ii)
                   << "\tv_truth = " << hproper_motion_data.row(ii) << std::endl;
-        angles[ii] = 0.0;
+        ut_angles[ii] = 0.0;
         countnan++;
       }
     }
@@ -355,19 +366,19 @@ void StarCatalogGenerator::correct_proper_motion() {
     std::cout << "NaN Rows: " << countnan << std::endl;
 
     // Calculate min, mean, and max
-    double min_norm = *std::min_element(angles.begin(), angles.end());
-    double max_norm = *std::max_element(angles.begin(), angles.end());
+    double min_norm = *std::min_element(ut_angles.begin(), ut_angles.end());
+    double max_norm = *std::max_element(ut_angles.begin(), ut_angles.end());
     double mean_norm =
-        std::accumulate(angles.begin(), angles.end(), 0.0) / angles.size();
+        std::accumulate(ut_angles.begin(), ut_angles.end(), 0.0) / ut_angles.size();
 
     // Calculate median
-    std::sort(angles.begin(), angles.end());
-    double median_norm = angles[angles.size() / 2];
+    std::sort(ut_angles.begin(), ut_angles.end());
+    double median_norm = ut_angles[ut_angles.size() / 2];
 
     // Calculate standard deviation (sigma)
     double sq_sum =
-        std::inner_product(angles.begin(), angles.end(), angles.begin(), 0.0);
-    double stdev = std::sqrt(sq_sum / angles.size() - mean_norm * mean_norm);
+        std::inner_product(ut_angles.begin(), ut_angles.end(), ut_angles.begin(), 0.0);
+    double stdev = std::sqrt(sq_sum / ut_angles.size() - mean_norm * mean_norm);
 
     // Output results
     std::cout << "Proper Motion Angle Errors (Degrees): " << std::endl;
@@ -512,8 +523,8 @@ void StarCatalogGenerator::filter_star_separation() {
     }
   }
 
-  star_table = proper_motion_data(verification_stars, Eigen::all);
-  pat_star_table = star_table(pattern_stars, Eigen::all);
+  star_table = proper_motion_data(verification_stars, Eigen::indexing::all);
+  pat_star_table = star_table(pattern_stars, Eigen::indexing::all);
   std::cout << std::endl;
   std::cout << "Found " << star_table.rows() << " verification stars for catalog." << std::endl;
   std::cout << "Found " << pattern_stars.size() << " pattern stars for catalog." << std::endl;
@@ -525,11 +536,11 @@ void StarCatalogGenerator::filter_star_separation() {
   debug_table = output_directory / ("pattern_star_table_" + year_str + ".csv");
   write_to_csv(debug_table, pat_star_table);
 
-  Eigen::MatrixXd verif_input_catalog_data = input_catalog_data(verification_stars, Eigen::all);
+  Eigen::MatrixXd verif_input_catalog_data = input_catalog_data(verification_stars, Eigen::indexing::all);
   debug_table = output_directory / ("verif_input_catalog_" + year_str + ".csv");
   write_to_csv(debug_table, verif_input_catalog_data);
 
-  Eigen::MatrixXd pattern_input_catalog_data = input_catalog_data(verification_stars, Eigen::all);
+  Eigen::MatrixXd pattern_input_catalog_data = input_catalog_data(verification_stars, Eigen::indexing::all);
   debug_table = output_directory / ("pattern_input_catalog_" + year_str + ".csv");
   write_to_csv(debug_table, pattern_input_catalog_data);
 #endif 
@@ -679,7 +690,7 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
     dot_p = star_vector_1.dot(star_vector_2);
 
     star_vector_1 -= star_vector_2;
-    edges[cnt] = star_vector_1.norm();
+    pat_edges[cnt] = star_vector_1.norm();
     pat_angles[cnt] = std::acos(dot_p);
 
     // If star pattern contains angles outside FOV, somthing went wrong in prior
@@ -694,17 +705,22 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
   // If edge count != num_pattern_angles, expected combination not correct
   assert(cnt == num_pattern_angles);
 
-  std::stable_sort(edges.begin(), edges.end());
-  edges /= edges.maxCoeff();
+  std::stable_sort(pat_edges.begin(), pat_edges.end());
+  pat_edges /= pat_edges.maxCoeff();
   std::stable_sort(pat_angles.begin(), pat_angles.end());
   pat_angles /= pat_angles.maxCoeff();
 
-  edge_angles.head(edges.size() - 1) = edges.head(edges.size() - 1);
-  edge_angles.tail(pat_angles.size() - 1) = pat_angles.head(pat_angles.size() - 1);
-  // std::cout << "\n" << std::endl;
-  // std::cout << "edges: " << edges.transpose() << std::endl;
-  // std::cout << "angles: " << pat_angles.transpose() << std::endl;
-  // std::cout << "edge_angles: " << edge_angles.transpose() << std::endl;
+  // Remove last element of pat_edges.or angles (the one used to normalize)
+  if (use_angles) {
+    pat_edge_angles.head(pat_edges.size() - 1) = pat_edges.head(pat_edges.size() - 1);
+    pat_edge_angles.tail(pat_angles.size() - 1) = pat_angles.head(pat_angles.size() - 1);
+    // std::cout << "\n" << std::endl;
+    // std::cout << "pat_edges. " << pat_edges.transpose() << std::endl;
+    // std::cout << "angles: " << pat_angles.transpose() << std::endl;
+    // std::cout << "pat_edge_angles: " << pat_edge_angles.transpose() << std::endl;
+  } else {
+    pat_edge_angles = pat_edges.head(pat_edges.size() - 1);
+  }
 }
 
 uint64_t modularExponentiation(uint64_t base, uint64_t exponent, uint64_t modulus) {
@@ -761,21 +777,20 @@ uint64_t StarCatalogGenerator::key_to_index(const Eigen::Array<uint64_t, Eigen::
 }
 
 // TODO: May have to go through and convert all integers into uint64_t
-// uint64_t StarCatalogGenerator::key_to_index(const Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code,
-//                                        const unsigned int pattern_bins,
-//                                        const unsigned int catalog_length) {
-//   indicies = hash_code.array() * Eigen::pow(pat_bin_cast.array(), key_range.array());
-// 
-//   indicies = magic_number * indicies;
-//   for(int ii = 0; ii < code_size; ii++) {
-//     indicies[ii] = indicies[ii] % static_cast<uint64_t>(catalog_length);
-//   }
-// 
-//   uint64_t sum = indicies.sum();
-// 
-//   // TODO: Carefully check python types to see if this matches TETRA Logic
-//   return ((sum * magic_number) % static_cast<uint64_t>(catalog_length));
-// }
+uint64_t StarCatalogGenerator::key_to_index_edges(const Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code,
+                                       const uint64_t catalog_length) {
+  indicies = hash_code.array() * Eigen::pow(pat_bin_cast.array(), key_range.array());
+
+  indicies = magic_number * indicies;
+  for(int ii = 0; ii < code_size; ii++) {
+    indicies[ii] = indicies[ii] % static_cast<uint64_t>(catalog_length);
+  }
+
+  uint64_t sum = indicies.sum();
+
+  // TODO: Carefully check python types to see if this matches TETRA Logic
+  return ((sum * magic_number) % static_cast<uint64_t>(catalog_length));
+}
 
 void StarCatalogGenerator::get_nearby_star_patterns(
     Eigen::MatrixXi &pattern_list, std::vector<int> nearby_stars, int star_id) {
@@ -891,11 +906,12 @@ void StarCatalogGenerator::generate_output_catalog() {
   Eigen::Vector3d star_vector;
   Eigen::Matrix3d star_vector_combos;
   int star_id;
+  uint64_t hash_index;
 
   // TODO: uint16 matrix class necessary? (Could pull this up one level)
   Eigen::MatrixXi pattern_list(1, pattern_size);
   Eigen::VectorXi pattern(pattern_size);
-  int quadprobe_count;
+  uint64_t quadprobe_count;
 
 #if defined(DEBUG_GET_NEARBY_STARS) || defined(DEBUG_GET_NEARBY_STAR_PATTERNS)
   time_t tstart;
@@ -974,22 +990,21 @@ void StarCatalogGenerator::generate_output_catalog() {
   ProgressBar pb2(pattern_list.rows());
   for (long unsigned int ii = 0; ii < (unsigned int)pattern_list.rows(); ii++) {
     pb2.show_progress(ii);
-    quadprobe_count = 0;
 
-    // For each pattern, get edges)
+    // For each pattern, get pat_edges.
     pattern = pattern_list.row(ii);
     get_star_edge_pattern(pattern);
 
-    // Eigen::VectorXi hash_code = (edges(Eigen::seqN(0, edges.size() - 1)) * (double)pattern_bins).cast<int>();
+    // Eigen::VectorXi hash_code = (pat_edges.Eigen::seqN(0, pat_edges.size() - 1)) * (double)pattern_bins).cast<int>();
     Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code(code_size);
-    hash_code = (edge_angles * (double)pattern_bins).cast<uint64_t>();
-    uint64_t hash_index = key_to_index(hash_code, catalog_length);
-    // std::cout << "hash_code: " << hash_code.transpose() << std::endl;
-    // std::cout << "hash_index: " << hash_index << std::endl;
-    // exit(-1);
+    hash_code = (pat_edge_angles * (double)pattern_bins).cast<uint64_t>();
 
-    // TODO: Something less dumb
-    assert(hash_index < static_cast<uint64_t>(INT_MAX));
+    // Must use first implementation to avoid uint64 overflow due to high exponentials with bigger array
+    if (use_angles) {
+      hash_index = key_to_index(hash_code, catalog_length);
+    } else {
+      hash_index = key_to_index_edges(hash_code, catalog_length);
+    }
 
 #ifdef DEBUG_PATTERN_CATALOG
     // std::printf("pattern[%llu].hash_code = [", hash_index);
@@ -998,29 +1013,29 @@ void StarCatalogGenerator::generate_output_catalog() {
     // }
     // std::cout << "]";
 
-    // std::cout << " (edges: [";
-    // for (auto edge: edges) {
+    // std::cout << " (pat_edges. [";
+    // for (auto edge: pat_edges. {
     //   std::cout << edge << ", ";
     // }
     // std::cout << "])" << std::endl;
     // exit(-1);
 #endif
 
-    // Use quadratic probing to find an open space in the pattern catalog to
-    // insert
-    // TODO: Check if quad probe bounding is required to avoid infinite lioops
-    // If quad probe is required, maybe cap this to avoid infinites (This may
-    // end up as FSW?)
+    // Use quadratic probing to find an open space in the pattern catalog to insert
+    // TODO: bound quadratic probe
+    quadprobe_count = 0;
+
     while (true) {
-      int index = (hash_index + (int)std::pow(quadprobe_count, 2)) %
-                  (int)pattern_catalog.rows();
+      uint64_t index = (hash_index + (uint64_t)std::pow(quadprobe_count, 2)) % (uint64_t)pattern_catalog.rows();
       if (pattern_catalog.row(index).sum() == 0) {
         pattern_catalog.row(index) = pattern;
         break;
       }
       quadprobe_count++;
-      if (quadprobe_count > 2000) {
-        std::cout << "Bad things have happened" << std::endl;
+      if (quadprobe_count > quadprobe_max) {
+        std::cout << "index: " << index << std::endl;
+        std::cout << quadprobe_count << " > " << quadprobe_max << std::endl;
+        throw std::runtime_error(&"Quadprobe indexing exceeded " [ quadprobe_max]);
       }
     }
   }
@@ -1045,10 +1060,10 @@ void StarCatalogGenerator::run() {
     std::cout << "Reading Hipparcos Catalog" << std::endl;
     assert(read_input_catalog());
 
-    std::cout << "Sorting Stars" << std::endl;
+    std::cout << "Sorting Stars by HIP" << std::endl;
     sort_star_columns(column::HIP);
 
-    std::cout << "Sorting Stars" << std::endl;
+    std::cout << "Sorting Stars by Magnitude" << std::endl;
     sort_star_columns(column::HPMAG);
 
     std::cout << "Convert Hipparcos" << std::endl;

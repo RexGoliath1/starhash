@@ -123,13 +123,23 @@ private:
   // @brief Post star separation check table with PM corrected ICRS
   Eigen::MatrixXd star_table;
   Eigen::MatrixXd pat_star_table;
+
   // @brief Vector of "Pattern stars" satisfying separation thresholds
   std::vector<int> pattern_stars;
+
+  // Coarse Sky Map used for quickly finding nearby stars (FOV lookup)
   CoarseSkyMap coarse_sky_map;
-  Eigen::ArrayXd edges;
+
+  // @brief Pattern Edges
+  Eigen::ArrayXd pat_edges;
+  // @brief Pattern Angles
   Eigen::ArrayXd pat_angles;
-  Eigen::ArrayXd edge_angles;
+  // @brief Pattern Edges + Angles
+  Eigen::ArrayXd pat_edge_angles;
+
+  // @brief Code size used for hash (edges / angles)
   int code_size;
+  // Vectors used in key indexing
   Eigen::Array<uint64_t, Eigen::Dynamic, 1> pat_bin_cast;
   Eigen::Array<uint64_t, Eigen::Dynamic, 1> key_range;
   Eigen::Array<uint64_t, Eigen::Dynamic, 1> indicies;
@@ -174,6 +184,10 @@ private:
   uint64_t pattern_bins;
   // @brief 
   uint64_t catalog_size_multiple;
+  // @brief Use angles for indexing hash (better matches, large memory usage, large quadprobe values)
+  bool use_angles;
+  // @brief Quadprobe maximum (impractical check limit per pattern in FSW)
+  uint64_t quadprobe_max;
 
   // @brief Global counter for pattern_list
   int pattern_list_size = 0;
@@ -220,6 +234,8 @@ private:
   // Final star edge pattern hash table (from paper / code)
   uint64_t key_to_index(const Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code,
                         const uint64_t catalog_length);
+  uint64_t key_to_index_edges(const Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code,
+                        const uint64_t catalog_length);
   void generate_output_catalog();
 
   template <typename T> struct hdf5_type;
@@ -257,14 +273,17 @@ private:
   }
 };
 
+// @brief HDF5 conversion for floats
 template <> struct StarCatalogGenerator::hdf5_type<float> {
   static H5::DataType get() { return H5::PredType::NATIVE_FLOAT; }
 };
 
+// @brief HDF5 conversion for doubles
 template <> struct StarCatalogGenerator::hdf5_type<double> {
   static H5::DataType get() { return H5::PredType::NATIVE_DOUBLE; }
 };
 
+// @brief HDF5 conversion for ints
 template <> struct StarCatalogGenerator::hdf5_type<int> {
   static H5::DataType get() { return H5::PredType::NATIVE_INT; }
 };

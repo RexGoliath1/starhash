@@ -12,15 +12,15 @@ endif()
 # Build Configures
 message("Build with " ${CMAKE_CXX_COMPILER_ID})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall ")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Og")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
@@ -29,6 +29,21 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Set StartUp Project
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME})
+
+# Option to enable gperftools profiling
+option(ENABLE_GPERFTOOLS "Enable gperftools profiling" OFF)
+
+if (ENABLE_GPERFTOOLS)
+    find_library(TCMALLOC_LIBRARY NAMES tcmalloc)
+    find_library(PROFILER_LIBRARY NAMES profiler)
+    if (TCMALLOC_LIBRARY AND PROFILER_LIBRARY)
+        list(APPEND LINK_LIBS ${TCMALLOC_LIBRARY})
+        list(APPEND LINK_LIBS ${PROFILER_LIBRARY})
+        message(STATUS "gperftools profiling enabled")
+    else()
+        message(FATAL_ERROR "gperftools libraries not found")
+    endif()
+endif()
 
 # Find Package
 option(OpenCV_STATIC OFF)

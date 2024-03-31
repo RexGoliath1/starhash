@@ -1,3 +1,4 @@
+---
 catalog:
   # Regenerate catalog (if true, overwrites same target epoch outputs)
   regenerate: true
@@ -7,8 +8,8 @@ catalog:
   catalog_jyear: 2000.0
   # Vehicle Barycentric Position (parallax, should be updated every mission)
   # TODO: Make internal propagator of earth position?
-  # Not sure where this came from? target_bcrf_position: [-0.97593161, -0.19017534, -0.08252697] # 2024.0903490759754
-  target_bcrf_position: [-0.69004781, 0.64965094, 0.28184848] # 2024.0903490759754
+  # 2024.0903490759754: [-0.69004781, 0.64965094, 0.28184848]
+  target_bcrf_position: [-0.69004781, 0.64965094, 0.28184848]
   # Input catalog (TODO: break out HIP / GAIA / UCAC4 / Etc)
   input_catalog_file: "data/hipparcos.csv"
   # Output directory
@@ -18,26 +19,30 @@ catalog:
   # Output catalog pattern size
   pattern_size: 4
   # Constraint on pattern stars per FOV
-  pattern_stars_per_fov: 20 # 10
+  pattern_stars_per_fov: 20  # 10
   # Constraint on catalog / validation stars per FOV
-  catalog_stars_per_fov: 40 # 20
+  catalog_stars_per_fov: 40  # 20
   # Min Constraint on magnitude
   min_magnitude_thresh: 7.5
   # Max Constraint on magnitude
   max_magnitude_thresh: 0.0
   # Constraint on parallax (TODO: Use ESA paper to adjust <0 plx entries)
   plx_thresh: 0.0
-  # [Degrees] Constraint on minimum separation angle 
+  # [Degrees] Constraint on minimum separation angle
   # Should be tied to expected centroid errors / camera parameters
-  min_separation_angle: 0.05 # 0.05
+  min_separation_angle: 0.01  # 0.05
   # [Degrees] Estimated FOV
-  max_fov_angle: 8.0 # Degrees
+  max_fov_angle: 8.0  # Degrees
   # Temporary hash map number of bins
-  intermediate_star_bins: 4
+  intermediate_star_bins: 10
   # Temporary hash map number of bins
-  pattern_bins: 25 # 25
-  # The size multiple to make the catalog pattern hash map larger (allows for lower collisions at cost of memory)
+  pattern_bins: 25  # 25
+  # Size multiple of catalog pattern (lower collisions, costs memory)
   catalog_size_multiple: 5
+  # Use angles for hash (better matches, large memory usage, large quadprobe)
+  use_angles: true
+  # Quadprobe maximum (impractical check limit per pattern in FSW)
+  quadprobe_max: 1000
 debug:
   # Coarse sky map
   debug_hash_file: "coarse_sky_map.yaml"
@@ -63,6 +68,6 @@ unit_test:
   # Unit Test proper motion by setting time delta to J2000
   # Using to compare to Vizier calculations
   proper_motion: false
-  # Set to remove proper motion / parallax calculations 
+  # Set to remove proper motion / parallax calculations
   # RA/DEC will appear at catalog epochs
   no_motion: false

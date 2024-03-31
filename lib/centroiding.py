@@ -30,6 +30,7 @@ REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
 IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "stellarscript", "results")
 OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results")
 DEFAULT_CONFIG = os.path.join(REPO_DIRECTORY, "data", "centroiding.yaml")
+DEBUG_LEVEL = 0
 
 blob_kwargs = {
     "color": (0, 255, 0),
@@ -44,7 +45,7 @@ gauss_kwargs = {
 }
 
 truth_kwargs = {
-    "color": (0, 0, 255),
+    "color": (255, 255, 0),
     "radius": 40, # 20
     "thickness": 1,
 }
@@ -366,7 +367,6 @@ def gaussian_fit(x, y, z):
     return x0, y0, z0, residuals, covariance
 
 def run_pipeline(args, stel):
-
     process_params(args)
 
     for image_path in sorted(glob(os.path.join(stel.image_path, args.image_pattern))):
@@ -453,6 +453,7 @@ if __name__ == "__main__":
     parser.add_argument("--input_path", default=IMAGE_DIRECTORY, type=str, help="")
     parser.add_argument("--output_path", default=OUTPUT_DIRECTORY ,type=str, help="")
     parser.add_argument("--config_path", default=DEFAULT_CONFIG,type=str, help="")
+    parser.add_argument("--output_plots", default=True,type=str, help="")
     args = parser.parse_args()
 
     stel = StellarUtils(args.input_path)
