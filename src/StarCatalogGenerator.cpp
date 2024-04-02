@@ -18,6 +18,10 @@ StarCatalogGenerator::StarCatalogGenerator() {
 
   pat_edges.resize(num_pattern_angles);
   pat_edges.setZero();
+
+  // pat_edge_vectors.resize(num_pattern_angles);
+  // pat_edge_vectors.setZero();
+
   pat_angles.resize(num_pattern_angles);
   pat_angles.setZero();
 
@@ -673,7 +677,7 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
   assert(pattern.size() == pattern_size);
   std::vector<int> star_pair, selector(pattern_size);
 
-  // Only checking all pair angles
+  // Only checking all pair angles. This selector only picks 2 vectors at a time, through all permutations of some pattern size.
   std::fill(selector.begin(), selector.begin() + 2, 1);
 
   double dot_p;
@@ -1017,7 +1021,7 @@ void StarCatalogGenerator::generate_output_catalog() {
     // std::cout << "hash_code " << hash_code.transpose() << std::endl;
 
     // Must use first implementation to avoid uint64 overflow due to high exponentials with bigger array
-    hash_index = key_to_index_edges(hash_code, catalog_length);
+    hash_index = key_to_index(hash_code, catalog_length);
     // if (use_angles) {
     //   hash_index = key_to_index(hash_code, catalog_length);
     // } else {

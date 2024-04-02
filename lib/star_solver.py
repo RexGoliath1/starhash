@@ -2,7 +2,7 @@ from centroiding import centroiding_pipeline
 import argparse
 import os
 from stellar_utils import StellarUtils
-from glob import iglob
+from glob import glob
 import numpy as np
 import itertools
 import h5py
@@ -14,6 +14,7 @@ import yaml
 from time import time
 from scipy.spatial import cKDTree
 from scipy.optimize import linear_sum_assignment
+import matplotlib.pyplot as plt
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
@@ -67,6 +68,16 @@ def _key_to_index(key, bin_factor, max_index):
     final_index = modular_multiplication(index_sum, _MAGIC_RAND, max_index)
 
     return final_index
+
+def _key_to_index_edges(key, bin_factor, max_index):
+    """Get hash index for a given key."""
+    # Get key as a single integer
+    # index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+    index = list(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
+    index_sum = sum(index)
+    # Randomise by magic constant and modulo to maximum index
+    # print(f"index = {index}")
+    return (index_sum * _MAGIC_RAND) % max_index
 
 class StarSolver():
     def __init__(self, args):
@@ -165,15 +176,6 @@ class StarSolver():
             else:
                 found.append(table[i, :].squeeze())
 
-    # def _key_to_index(self, key, bin_factor, max_index):
-    #     """Get hash index for a given key."""
-    #     # Get key as a single integer
-    #     # index = sum(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-    #     index = list(int(val) * int(bin_factor)**i for (i, val) in enumerate(key))
-    #     index_sum = sum(index)
-    #     # Randomise by magic constant and modulo to maximum index
-    #     # print(f"index = {index}")
-    #     return (index_sum * _MAGIC_RAND) % max_index
     
     def _get_edges(self, vectors):
         """ Return edge ratios smallest to largest """
@@ -237,6 +239,7 @@ class StarSolver():
         pattern_stars = args.pattern_stars
         gen_count = 0
         total_check_count = 0
+        over_total_count = False
         # for pattern_centroids in self._pattern_generator(centroids, self.args.pattern_size):
         for pattern_centroids in self._pattern_generator(centroids[:pattern_stars], self.args.pattern_size):
             gen_count += 1
@@ -247,15 +250,22 @@ class StarSolver():
             # pattern_centroids = pattern_centroids[np.newaxis, :]
 
             vectors = self.pix_to_vec(pattern_centroids, self.stel.K_inv)
-            rev_centroids = self.vec_to_pix(vectors, self.stel.K)
+            # rev_centroids = self.vec_to_pix(vectors, self.stel.K) # TODO: Something wrong here. K and K_inv change centroid locations..
             # diff_centroids = pattern_centroids - rev_centroids
             # assert(all(diff_centroids < 1e-12))
             edges = self._get_edges(vectors)
-            eratios = edges[:-1] / edges[-1]
+            if self.args.use_max_norm:
+                eratios = edges[:-1] / edges[-1]
+            else:
+                eratios = edges / (2 * np.sin(np.radians(8.0) / 2)) # Hack for now because I'm setting stellarium vfov to catalog fov. This needs to be a catalog parameter
+
 
             angles = self._get_angles(vectors)
             aratios = angles[:-1] / angles[-1]
-            ratios = np.concatenate([eratios, aratios])
+            if self.args.use_angles:
+                ratios = np.concatenate([eratios, aratios])
+            else:
+                ratios = eratios
 
             # TODO: Implement all of the crazy hash processing.
             #hash_code_space = [range(max(int(low), 0), min(int(high) + 1, args.pattern_bins)) for (low, high) 
@@ -272,7 +282,10 @@ class StarSolver():
             all_codes = itertools.product(*hash_code_space)
             for code in set(tuple(all_codes)):
                 code = tuple(code)
-                index = _key_to_index(code, self.args.pattern_bins, self.pattern_catalog.shape[0])
+                if self.args.use_angles:
+                    index = _key_to_index(code, self.args.pattern_bins, self.pattern_catalog.shape[0])
+                else:
+                    index = _key_to_index(code, self.args.pattern_bins, self.pattern_catalog.shape[0])
                 matches = self._get_at_index(index, self.pattern_catalog)
                 if matches is None or len(matches) == 0:
                     #print(f"No matches found for {code}")
@@ -280,11 +293,21 @@ class StarSolver():
 
                 for match_row in matches:
                     total_check_count += 1
+                    if not over_total_count and total_check_count > 100000:
+                        over_total_count = True
+                        print("Oh no! Over total count and rising...")
+                        return
+
                     cat_vectors = self.star_table[match_row]
                     cat_edges = self._get_edges(cat_vectors)
                     cat_angles = self._get_angles(cat_vectors)
-                    cat_eratios = cat_edges[:-1] / cat_edges[-1]
-                    cat_aratios = cat_angles[:-1] / cat_angles[-1]
+                    if self.args.use_max_norm:
+                        cat_eratios = cat_edges[:-1] / cat_edges[-1]
+                        cat_aratios = cat_angles[:-1] / cat_angles[-1]
+                    else:
+                        cat_eratios = cat_edges / (2 * np.sin(np.radians(8.0) / 2)) # Hack for now because I'm setting stellarium vfov to catalog fov. This needs to be a catalog parameter
+                        cat_aratios = cat_angles / self.stel.vfov
+
                     cat_ratios = np.concatenate([cat_eratios, cat_aratios])
 
                     # if np.sum(cat_edges - edges) > self.args.max_edge_diff:
@@ -337,7 +360,11 @@ class StarSolver():
                     rv_mas = 1000 * rv_as
 
                     if (np.linalg.norm(rv_deg) < 0.1):
-                        print(f"Took {time() - self.t1} seconds")
+                        dt = time() - self.t1
+                        self.times[self.image_number] = dt
+                        self.hash_checks[self.image_number] = total_check_count
+                        self.accuracies[self.image_number] = np.linalg.norm(rv_as)
+                        print(f"Took {dt} seconds")
                         print(f"rv_mag_mas: {np.linalg.norm(rv_mas):.2f} rot_vec_error: {rv_mas} (Milli Arc-Seconds)")
                         print(f"rv_mag_as: {np.linalg.norm(rv_as):.2f} rot_vec_error: {rv_as} (Arc-Seconds)")
                         print(f"rv_mag_deg: {np.linalg.norm(rv_deg):.2f} rot_vec_error: {rv_deg} (Degrees)")
@@ -347,7 +374,12 @@ class StarSolver():
 
 
     def solver_pipeline(self):
-        for image_path in iglob(os.path.join(self.stel.image_path, self.args.image_pattern)):
+        image_files = glob(os.path.join(self.stel.image_path, self.args.image_pattern)) 
+        self.times = np.zeros(len(image_files)) * np.nan
+        self.hash_checks = np.zeros(len(image_files)) * np.nan
+        self.accuracies = np.zeros(len(image_files)) * np.nan
+        for i, image_path in enumerate(image_files):
+            self.image_number = i
             print(f"Solving for {image_path}")
             self.t1 = time()
             if not self.stel.get_stel_data(image_path):
@@ -357,6 +389,31 @@ class StarSolver():
             star_centroids = centroid_params["star_centroids"]
 
             self.solve_from_centroids(star_centroids)
+
+        fig, axs = plt.subplots(5, 1, figsize=(15, 15))
+        axs[0].set_title(f"Solved for {len(image_files) - np.sum(np.isnan(self.times))} / {len(image_files)} images. Times: Median = {np.nanmedian(self.times):.2f}, Mean = {np.nanmean(self.times):.2f}, Max = {np.nanmax(self.times):.2f}. Min Time = {np.nanmin(self.times):.2f}, Std Dev = {np.nanstd(self.times):.2f}")
+        axs[0].hist(self.times, edgecolor='black', linewidth=1.2, bins=20)
+        axs[0].set_xlabel("Time (Image to Quat)")
+
+        axs[1].set_title(f"Probe Checks: Median = {np.nanmedian(self.hash_checks)}, Mean = {np.nanmean(self.hash_checks):.2f}, Max = {np.nanmax(self.hash_checks)}. Min = {np.nanmin(self.hash_checks)}, Std Dev = {np.nanstd(self.hash_checks):.2f}")
+        axs[1].hist(self.hash_checks, edgecolor='black', linewidth=1.2, bins=20)
+        axs[1].set_xlabel("Hash Checks")
+
+        axs[2].set_title(f"Errors (Arc Seconds): Median = {np.nanmedian(self.accuracies):.2f}, Mean = {np.nanmean(self.accuracies):.2f}, Max = {np.nanmax(self.accuracies):.2f}. Min = {np.nanmin(self.accuracies):.2f}, Std Dev = {np.nanstd(self.accuracies):.2f}")
+        axs[2].hist(self.accuracies, edgecolor='black', linewidth=1.2, bins=20)
+        axs[2].set_xlabel("Accuracy (Arc Seconds)")
+
+        axs[3].set_title("Hash Checks vs Time (seconds)")
+        axs[3].scatter(self.hash_checks, self.times)
+        axs[3].set_xlabel("Hash Checks")
+        axs[3].set_ylabel("Time (Image to Quat)")
+
+        axs[4].set_title("Hash Checks vs Accuracy (arc seconds)")
+        axs[4].scatter(self.hash_checks, self.accuracies)
+        axs[4].set_xlabel("Hash Checks")
+        axs[4].set_ylabel("Accuracy (Arc Seconds)")
+        plt.tight_layout()
+        plt.savefig("runtimes.png")
 
 if __name__ == "__main__":
     print("Starting....")

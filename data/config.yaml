@@ -44,7 +44,7 @@ catalog:
   # Normalize Edge / Angle Patterns by largest
   max_measured_norm: false
   # Quadprobe maximum (impractical check limit per pattern in FSW)
-  quadprobe_max: 1000
+  quadprobe_max: 100000
 debug:
   # Coarse sky map
   debug_hash_file: "coarse_sky_map.yaml"

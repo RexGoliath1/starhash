@@ -132,6 +132,8 @@ private:
 
   // @brief Pattern Edges
   Eigen::ArrayXd pat_edges;
+  // @brief Pattern Edge Vectors
+  Eigen::Matrix3d pat_edge_vectors;
   // @brief Pattern Angles
   Eigen::ArrayXd pat_angles;
   // @brief Pattern Edges + Angles
