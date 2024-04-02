@@ -138,7 +138,7 @@ private:
   Eigen::ArrayXd pat_edge_angles;
 
   // @brief Code size used for hash (edges / angles)
-  int code_size;
+  int code_size, edge_size, angle_size;
   // Vectors used in key indexing
   Eigen::Array<uint64_t, Eigen::Dynamic, 1> pat_bin_cast;
   Eigen::Array<uint64_t, Eigen::Dynamic, 1> key_range;
@@ -186,6 +186,8 @@ private:
   uint64_t catalog_size_multiple;
   // @brief Use angles for indexing hash (better matches, large memory usage, large quadprobe values)
   bool use_angles;
+  // @brief Normalize Edge / Angle Patterns by largest
+  bool normalize_edge_angles;
   // @brief Quadprobe maximum (impractical check limit per pattern in FSW)
   uint64_t quadprobe_max;
 

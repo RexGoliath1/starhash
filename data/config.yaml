@@ -21,7 +21,7 @@ catalog:
   # Constraint on pattern stars per FOV
   pattern_stars_per_fov: 20  # 10
   # Constraint on catalog / validation stars per FOV
-  catalog_stars_per_fov: 40  # 20
+  catalog_stars_per_fov: 30  # 20
   # Min Constraint on magnitude
   min_magnitude_thresh: 7.5
   # Max Constraint on magnitude
@@ -38,11 +38,13 @@ catalog:
   # Temporary hash map number of bins
   pattern_bins: 25  # 25
   # Size multiple of catalog pattern (lower collisions, costs memory)
-  catalog_size_multiple: 5
+  catalog_size_multiple: 15
   # Use angles for hash (better matches, large memory usage, large quadprobe)
-  use_angles: true
+  use_angles: false
+  # Normalize Edge / Angle Patterns by largest
+  normalize_edge_angles: true
   # Quadprobe maximum (impractical check limit per pattern in FSW)
-  quadprobe_max: 1000
+  quadprobe_max: 10000
 debug:
   # Coarse sky map
   debug_hash_file: "coarse_sky_map.yaml"
@@ -59,7 +61,7 @@ debug:
   # TODO: Remove macros in place of catalog input
   pattern_catalog: false
   # Dynamic memory growth
-  pattern_list_growth: 20000
+  pattern_list_growth: 1000000
   # Hash indexing debug output frequency
   index_pattern_debug_freq: 10000
   # Star separation debug output frequency

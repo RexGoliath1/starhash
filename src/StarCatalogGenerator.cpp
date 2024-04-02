@@ -20,17 +20,24 @@ StarCatalogGenerator::StarCatalogGenerator() {
   pat_edges.setZero();
   pat_angles.resize(num_pattern_angles);
   pat_angles.setZero();
-  
-  if (use_angles) {
-    pat_edge_angles.resize(pat_edges.size() - 1 + pat_angles.size() - 1);
-    pat_edge_angles.setZero();
-    code_size = pat_edges.size() - 1 + pat_angles.size() - 1;
+
+  if (normalize_edge_angles) {
+    edge_size = pat_edges.size() - 1;
+    angle_size = pat_edges.size() - 1;
   } else {
-    pat_edge_angles.resize(pat_edges.size() - 1);
-    pat_edge_angles.setZero();
-    code_size = pat_edges.size() - 1;
+    edge_size = pat_edges.size();
+    angle_size = pat_edges.size();
   }
   
+  if (use_angles) {
+    pat_edge_angles.resize(edge_size + angle_size);
+    pat_edge_angles.setZero();
+  } else {
+    pat_edge_angles.resize(edge_size);
+    pat_edge_angles.setZero();
+  }
+
+  code_size = pat_edge_angles.size();
   pat_bin_cast.resize(code_size); 
   key_range.resize(code_size);
   indicies.resize(code_size);
@@ -78,6 +85,7 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   min_separation = std::cos(min_separation_angle * deg2rad); 
   catalog_size_multiple = config["catalog"]["catalog_size_multiple"].as<unsigned int>();
   use_angles = config["catalog"]["use_angles"].as<bool>();
+  normalize_edge_angles = config["catalog"]["normalize_edge_angles"].as<bool>();
   quadprobe_max = config["catalog"]["quadprobe_max"].as<uint64_t>();
 
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
@@ -706,20 +714,23 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
   assert(cnt == num_pattern_angles);
 
   std::stable_sort(pat_edges.begin(), pat_edges.end());
-  pat_edges /= pat_edges.maxCoeff();
   std::stable_sort(pat_angles.begin(), pat_angles.end());
-  pat_angles /= pat_angles.maxCoeff();
+
+  if (normalize_edge_angles) {
+    pat_edges /= pat_edges.maxCoeff();
+    pat_angles /= pat_angles.maxCoeff();
+  }
 
   // Remove last element of pat_edges.or angles (the one used to normalize)
   if (use_angles) {
-    pat_edge_angles.head(pat_edges.size() - 1) = pat_edges.head(pat_edges.size() - 1);
-    pat_edge_angles.tail(pat_angles.size() - 1) = pat_angles.head(pat_angles.size() - 1);
+    pat_edge_angles.head(edge_size) = pat_edges.head(edge_size);
+    pat_edge_angles.tail(angle_size) = pat_angles.head(angle_size);
     // std::cout << "\n" << std::endl;
     // std::cout << "pat_edges. " << pat_edges.transpose() << std::endl;
     // std::cout << "angles: " << pat_angles.transpose() << std::endl;
     // std::cout << "pat_edge_angles: " << pat_edge_angles.transpose() << std::endl;
   } else {
-    pat_edge_angles = pat_edges.head(pat_edges.size() - 1);
+    pat_edge_angles = pat_edges.head(edge_size);
   }
 }
 

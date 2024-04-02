@@ -44,6 +44,7 @@ pattern_stars: 25
 coarse_bins: 4
 pattern_bins: 25
 fov_max_error: 0.5
+use_angles: true
 # [--] Default 0.005 
 # Bigger for now bacause stellarium has garbage catalogs
 # min_sep = 0.05, fov = 20, max ratio = 400
