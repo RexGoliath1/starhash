@@ -21,12 +21,14 @@ StarCatalogGenerator::StarCatalogGenerator() {
   pat_angles.resize(num_pattern_angles);
   pat_angles.setZero();
 
-  if (normalize_edge_angles) {
+  if (max_measured_norm) {
     edge_size = pat_edges.size() - 1;
-    angle_size = pat_edges.size() - 1;
+    angle_size = pat_angles.size() - 1;
   } else {
     edge_size = pat_edges.size();
-    angle_size = pat_edges.size();
+    angle_size = pat_angles.size();
+    max_edge = 2 * std::sin(max_fov / 2);
+    max_angle = max_fov; // TODO: When changing to ISA normalize by 180 instead if still relevant. Or better don't use true angle, just dot product
   }
   
   if (use_angles) {
@@ -85,7 +87,7 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   min_separation = std::cos(min_separation_angle * deg2rad); 
   catalog_size_multiple = config["catalog"]["catalog_size_multiple"].as<unsigned int>();
   use_angles = config["catalog"]["use_angles"].as<bool>();
-  normalize_edge_angles = config["catalog"]["normalize_edge_angles"].as<bool>();
+  max_measured_norm = config["catalog"]["max_measured_norm"].as<bool>();
   quadprobe_max = config["catalog"]["quadprobe_max"].as<uint64_t>();
 
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
@@ -716,9 +718,12 @@ void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
   std::stable_sort(pat_edges.begin(), pat_edges.end());
   std::stable_sort(pat_angles.begin(), pat_angles.end());
 
-  if (normalize_edge_angles) {
+  if (max_measured_norm) {
     pat_edges /= pat_edges.maxCoeff();
     pat_angles /= pat_angles.maxCoeff();
+  } else {
+    pat_edges /= max_edge;
+    pat_angles /= max_angle;
   }
 
   // Remove last element of pat_edges.or angles (the one used to normalize)
@@ -1009,13 +1014,15 @@ void StarCatalogGenerator::generate_output_catalog() {
     // Eigen::VectorXi hash_code = (pat_edges.Eigen::seqN(0, pat_edges.size() - 1)) * (double)pattern_bins).cast<int>();
     Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code(code_size);
     hash_code = (pat_edge_angles * (double)pattern_bins).cast<uint64_t>();
+    // std::cout << "hash_code " << hash_code.transpose() << std::endl;
 
     // Must use first implementation to avoid uint64 overflow due to high exponentials with bigger array
-    if (use_angles) {
-      hash_index = key_to_index(hash_code, catalog_length);
-    } else {
-      hash_index = key_to_index_edges(hash_code, catalog_length);
-    }
+    hash_index = key_to_index_edges(hash_code, catalog_length);
+    // if (use_angles) {
+    //   hash_index = key_to_index(hash_code, catalog_length);
+    // } else {
+    //   hash_index = key_to_index_edges(hash_code, catalog_length);
+    // }
 
 #ifdef DEBUG_PATTERN_CATALOG
     // std::printf("pattern[%llu].hash_code = [", hash_index);

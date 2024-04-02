@@ -60,14 +60,14 @@ typedef enum {
 
 // Debugging functions used for validation (TODO: Move to config)
 // #define DEBUG_HIP
-#define DEBUG_INPUT_CATALOG
-#define DEBUG_PM
-#define DEBUG_HASH
+// #define DEBUG_INPUT_CATALOG
+// #define DEBUG_PM
+// #define DEBUG_HASH
 // #define DEBUG_GET_NEARBY_STARS
 // #define DEBUG_GET_NEARBY_STAR_PATTERNS
-#define DEBUG_STAR_TABLE
-#define DEBUG_PATTERN_LIST
-#define DEBUG_PATTERN_CATALOG
+// #define DEBUG_STAR_TABLE
+// #define DEBUG_PATTERN_LIST
+// #define DEBUG_PATTERN_CATALOG
 
 const unsigned int catalog_rows = 117955;
 
@@ -186,8 +186,12 @@ private:
   uint64_t catalog_size_multiple;
   // @brief Use angles for indexing hash (better matches, large memory usage, large quadprobe values)
   bool use_angles;
-  // @brief Normalize Edge / Angle Patterns by largest
-  bool normalize_edge_angles;
+  // @brief Normalize Edge / Angle Patterns by largest. Otherwise normalize by expected edges/angles
+  bool max_measured_norm;
+  // @brief Edge normalization if by expected (not max measured)
+  double max_edge;
+  // @brief Edge normalization if by expected (not max measured)
+  double max_angle;
   // @brief Quadprobe maximum (impractical check limit per pattern in FSW)
   uint64_t quadprobe_max;
 
