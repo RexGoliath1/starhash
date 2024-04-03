@@ -19,11 +19,11 @@ catalog:
   # Output catalog pattern size
   pattern_size: 4
   # Constraint on pattern stars per FOV
-  pattern_stars_per_fov: 20  # 10
+  pattern_stars_per_fov: 10  # 10
   # Constraint on catalog / validation stars per FOV
-  catalog_stars_per_fov: 40  # 20
+  catalog_stars_per_fov: 20  # 20
   # Min Constraint on magnitude
-  min_magnitude_thresh: 7.5
+  min_magnitude_thresh: 6.5
   # Max Constraint on magnitude
   max_magnitude_thresh: 0.0
   # Constraint on parallax (TODO: Use ESA paper to adjust <0 plx entries)
@@ -40,11 +40,13 @@ catalog:
   # Size multiple of catalog pattern (lower collisions, costs memory)
   catalog_size_multiple: 15
   # Use angles for hash (better matches, large memory usage, large quadprobe)
-  use_angles: false
+  use_angles: true
   # Normalize Edge / Angle Patterns by largest
   max_measured_norm: false
   # Quadprobe maximum (impractical check limit per pattern in FSW)
-  quadprobe_max: 100000
+  quadprobe_max: 100
+  # Star Centroid based technique
+  use_star_centroid: true
 debug:
   # Coarse sky map
   debug_hash_file: "coarse_sky_map.yaml"

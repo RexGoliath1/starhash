@@ -196,6 +196,8 @@ private:
   double max_angle;
   // @brief Quadprobe maximum (impractical check limit per pattern in FSW)
   uint64_t quadprobe_max;
+  // @brief Star Centroid based technique
+  bool use_star_centroid;
 
   // @brief Global counter for pattern_list
   int pattern_list_size = 0;
@@ -232,6 +234,8 @@ private:
                               std::vector<int> nearby_star_pattern);
   void get_nearby_stars(Eigen::Vector3d star_vector,
                         std::vector<int> &nearby_stars);
+
+  void get_star_centroid_pattern(Eigen::VectorXi pattern);
   void get_star_edge_pattern(Eigen::VectorXi pattern);
   void get_nearby_star_patterns(Eigen::MatrixXi &pattern_list,
                                 std::vector<int> nearby_stars, int star_id);

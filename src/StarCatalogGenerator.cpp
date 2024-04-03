@@ -15,26 +15,33 @@ StarCatalogGenerator::StarCatalogGenerator() {
 
   // Config dependant variables
   num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
+  max_angle = max_fov; // TODO: When changing to ISA normalize by 180 instead if still relevant. Or better don't use true angle, just dot product
 
-  pat_edges.resize(num_pattern_angles);
-  pat_edges.setZero();
 
-  // pat_edge_vectors.resize(num_pattern_angles);
-  // pat_edge_vectors.setZero();
-
-  pat_angles.resize(num_pattern_angles);
-  pat_angles.setZero();
-
-  if (max_measured_norm) {
-    edge_size = pat_edges.size() - 1;
-    angle_size = pat_angles.size() - 1;
-  } else {
+  if (use_star_centroid) {
+    pat_edges.resize(pattern_size);
+    pat_edges.setZero();
+    pat_angles.resize(pattern_size);
+    pat_angles.setZero();
     edge_size = pat_edges.size();
     angle_size = pat_angles.size();
+    max_edge = std::sin(max_fov / 2);
+  } else {
     max_edge = 2 * std::sin(max_fov / 2);
-    max_angle = max_fov; // TODO: When changing to ISA normalize by 180 instead if still relevant. Or better don't use true angle, just dot product
+    pat_edges.resize(num_pattern_angles);
+    pat_edges.setZero();
+    pat_angles.resize(num_pattern_angles);
+    pat_angles.setZero();
+    // Tetra Techniques
+    if (max_measured_norm) {
+      edge_size = pat_edges.size() - 1;
+      angle_size = pat_angles.size() - 1;
+    } else {
+      edge_size = pat_edges.size();
+      angle_size = pat_angles.size();
+    }
   }
-  
+
   if (use_angles) {
     pat_edge_angles.resize(edge_size + angle_size);
     pat_edge_angles.setZero();
@@ -93,6 +100,7 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   use_angles = config["catalog"]["use_angles"].as<bool>();
   max_measured_norm = config["catalog"]["max_measured_norm"].as<bool>();
   quadprobe_max = config["catalog"]["quadprobe_max"].as<uint64_t>();
+  use_star_centroid = config["catalog"]["use_star_centroid"].as<bool>();
 
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
   index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
@@ -673,6 +681,89 @@ bool StarCatalogGenerator::is_star_pattern_in_fov(
   return all_stars_in_fov;
 }
 
+void StarCatalogGenerator::get_star_centroid_pattern(Eigen::VectorXi pattern) {
+  assert(pattern.size() == pattern_size);
+  Eigen::MatrixXd centroid_vectors(pattern_size, 3);
+  Eigen::Vector3d centroid_vector;
+  centroid_vector.setZero();
+  std::vector<std::pair<Eigen::VectorXd, double>> vec(pattern_size);
+
+  // First find radial edges from centroid
+  for (int ii = 0; ii < pattern_size; ii++) {
+    centroid_vectors.row(ii) = star_table.row(pattern[ii]);
+  }
+
+  centroid_vector = centroid_vectors.colwise().mean();
+  Eigen::MatrixXd replicated_centroid_vector = centroid_vector.transpose().replicate(pattern_size, 1);
+  centroid_vectors -= replicated_centroid_vector;
+
+  pat_edges = centroid_vectors.rowwise().norm();
+
+  for (int ii = 0; ii < pattern_size; ii++ ) {
+    assert(pat_edges(ii) > 0);
+    if (pat_edges(ii) > 0) { // Avoid division by zero
+        centroid_vectors.row(ii) /= pat_edges(ii);
+    } else {
+      // TODO: Skip or require more interesting patterns?
+      std::cout << "Centroid Vector is zero.." << std::endl;
+    }
+    vec[ii] = std::make_pair(centroid_vectors.row(ii), pat_edges[ii]);
+  }
+
+  // Sort the vector of pairs by the norm
+  std::stable_sort(vec.begin(), vec.end(),
+                   [](const std::pair<Eigen::VectorXd, double>& t1, const std::pair<Eigen::VectorXd, double>& t2) {
+                       return t1.second < t2.second;
+                   });
+
+  // Assign the sorted rows back to centroid_vectors
+  for (auto ii = 0; ii < pattern_size; ii++) {
+      centroid_vectors.row(ii) = vec[ii].first;
+      pat_edges[ii] = vec[ii].second / max_edge;
+  }
+
+  // Now's the tricky part... Map dot and cross product to circle quadrants. No trig functions.
+  // pat_angles represents the counter-clockwise rotation from largest edge to smallest
+  for (auto ii = 0; ii < pattern_size; ii++) {
+    auto next_index = (ii + 1) % pattern_size;
+    Eigen::Vector3d v1 = centroid_vectors.row(ii);
+    Eigen::Vector3d v2 = centroid_vectors.row(next_index);
+
+    auto angle = v1.dot(v2);
+    auto direction = v1.cross(v2).norm();
+    assert((-1 <= angle) || (angle <= 1));
+    assert((-1 <= direction) || (direction <= 1));
+
+    // Quadrant 1
+    if (angle >= 0 && direction >= 0)
+      pat_angles[ii] = 0.25 * (1 - angle);
+    // Quadrant 2
+    else if (angle <= 0 && direction >= 0)
+      pat_angles[ii] = 0.25 - 0.25 * angle;
+    // Quadrant 3
+    else if (angle <= 0 && direction <= 0)
+      pat_angles[ii] = 0.5 + 0.25 * (1 + angle);
+    // Quadrant 4
+    else if (angle >= 0 && direction <= 0)
+      pat_angles[ii] = 0.75 + 0.25 * angle;
+    // ???
+    else
+      throw std::runtime_error("Unknown centroid angle quadrant");
+
+    assert((-1 <= pat_angles[ii]) || (pat_angles[ii] <= 1));
+  }
+
+  if (use_angles) {
+    pat_edge_angles.head(edge_size) = pat_edges.head(edge_size);
+    pat_edge_angles.tail(angle_size) = pat_angles.head(angle_size);
+  } else {
+    pat_edge_angles = pat_edges.head(edge_size);
+  }
+
+  // std::cout << pat_edge_angles.transpose() << std::endl;
+
+}
+
 void StarCatalogGenerator::get_star_edge_pattern(Eigen::VectorXi pattern) {
   assert(pattern.size() == pattern_size);
   std::vector<int> star_pair, selector(pattern_size);
@@ -979,6 +1070,8 @@ void StarCatalogGenerator::generate_output_catalog() {
 #endif
   }
 
+  std::cout << "Done. Resizing pattern list and allocating catalog" << std::endl;
+
   pattern_list.conservativeResize(pattern_list_size, Eigen::NoChange);
 
 #ifdef DEBUG_GET_NEARBY_STAR_PATTERNS
@@ -1013,7 +1106,12 @@ void StarCatalogGenerator::generate_output_catalog() {
 
     // For each pattern, get pat_edges.
     pattern = pattern_list.row(ii);
-    get_star_edge_pattern(pattern);
+
+    if (use_star_centroid) {
+      get_star_centroid_pattern(pattern);
+    } else {
+      get_star_edge_pattern(pattern);
+    }
 
     // Eigen::VectorXi hash_code = (pat_edges.Eigen::seqN(0, pat_edges.size() - 1)) * (double)pattern_bins).cast<int>();
     Eigen::Array<uint64_t, Eigen::Dynamic, 1> hash_code(code_size);
