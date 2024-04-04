@@ -162,6 +162,11 @@ private:
   Eigen::RowVector3d bcrf_position;
   Eigen::MatrixXd bcrf_frame;
 
+  // Array of prime numbers to use for catalog sizing
+  std::vector<uint64_t> primes;
+  uint64_t catalog_length;
+
+
   // @brief Default min magnitude threshold parameter
   double min_magnitude_thresh;
   // @brief Default max magnitude threshold parameter

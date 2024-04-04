@@ -102,6 +102,8 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   quadprobe_max = config["catalog"]["quadprobe_max"].as<uint64_t>();
   use_star_centroid = config["catalog"]["use_star_centroid"].as<bool>();
 
+  primes = config["catalog"]["primes"].as<std::vector<uint64_t>>();
+
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
   index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
   separation_debug_freq = config["debug"]["separation_debug_freq"].as<int>();
@@ -1085,7 +1087,14 @@ void StarCatalogGenerator::generate_output_catalog() {
 #endif
 
   // TODO: Move this into higher level Class / Structure. This is our catalog
-  uint64_t catalog_length = catalog_size_multiple * pattern_list.rows();
+  auto it = std::lower_bound(primes.begin(), primes.end(), static_cast<uint64_t>(pattern_list.rows()));
+  if (it == primes.end()) {
+    // Handle the case where all primes are smaller than catalog_size
+    throw std::runtime_error("No prime number found in the vector that is greater than the catalog size.");
+  } else {
+    catalog_length = *it;
+  }
+
   // WARNING: This is not how Tetra does this. They init to zeros.. But that is
   // (possibly) a legitimate star in the pattern Starhash inits to -1 (TODO:
   // Macro of -1 ) to avoid star ID conflicts Other TODO: This usees a base
