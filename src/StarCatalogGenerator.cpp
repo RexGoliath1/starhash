@@ -102,6 +102,8 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   quadprobe_max = config["catalog"]["quadprobe_max"].as<uint64_t>();
   use_star_centroid = config["catalog"]["use_star_centroid"].as<bool>();
 
+  primes = config["catalog"]["primes"].as<std::vector<uint64_t>>();
+
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
   index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
   separation_debug_freq = config["debug"]["separation_debug_freq"].as<int>();
@@ -689,7 +691,7 @@ void StarCatalogGenerator::get_star_centroid_pattern(Eigen::VectorXi pattern) {
   std::vector<std::pair<Eigen::VectorXd, double>> vec(pattern_size);
 
   // First find radial edges from centroid
-  for (int ii = 0; ii < pattern_size; ii++) {
+  for (unsigned int ii = 0; ii < pattern_size; ii++) {
     centroid_vectors.row(ii) = star_table.row(pattern[ii]);
   }
 
@@ -699,7 +701,7 @@ void StarCatalogGenerator::get_star_centroid_pattern(Eigen::VectorXi pattern) {
 
   pat_edges = centroid_vectors.rowwise().norm();
 
-  for (int ii = 0; ii < pattern_size; ii++ ) {
+  for (unsigned int ii = 0; ii < pattern_size; ii++ ) {
     assert(pat_edges(ii) > 0);
     if (pat_edges(ii) > 0) { // Avoid division by zero
         centroid_vectors.row(ii) /= pat_edges(ii);
@@ -717,14 +719,14 @@ void StarCatalogGenerator::get_star_centroid_pattern(Eigen::VectorXi pattern) {
                    });
 
   // Assign the sorted rows back to centroid_vectors
-  for (auto ii = 0; ii < pattern_size; ii++) {
+  for (unsigned int ii = 0; ii < pattern_size; ii++) {
       centroid_vectors.row(ii) = vec[ii].first;
       pat_edges[ii] = vec[ii].second / max_edge;
   }
 
   // Now's the tricky part... Map dot and cross product to circle quadrants. No trig functions.
   // pat_angles represents the counter-clockwise rotation from largest edge to smallest
-  for (auto ii = 0; ii < pattern_size; ii++) {
+  for (unsigned int ii = 0; ii < pattern_size; ii++) {
     auto next_index = (ii + 1) % pattern_size;
     Eigen::Vector3d v1 = centroid_vectors.row(ii);
     Eigen::Vector3d v2 = centroid_vectors.row(next_index);
@@ -1085,7 +1087,14 @@ void StarCatalogGenerator::generate_output_catalog() {
 #endif
 
   // TODO: Move this into higher level Class / Structure. This is our catalog
-  uint64_t catalog_length = catalog_size_multiple * pattern_list.rows();
+  auto it = std::lower_bound(primes.begin(), primes.end(), static_cast<uint64_t>(pattern_list.rows()));
+  if (it == primes.end()) {
+    // Handle the case where all primes are smaller than catalog_size
+    throw std::runtime_error("No prime number found in the vector that is greater than the catalog size.");
+  } else {
+    catalog_length = *it;
+  }
+
   // WARNING: This is not how Tetra does this. They init to zeros.. But that is
   // (possibly) a legitimate star in the pattern Starhash inits to -1 (TODO:
   // Macro of -1 ) to avoid star ID conflicts Other TODO: This usees a base
