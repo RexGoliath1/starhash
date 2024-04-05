@@ -19,7 +19,7 @@ image_pattern: "stellarium*.png"
 # Centroiding Parameters for 8 degree FOV
 denoise: true
 size_denoise: 3
-flatten: true
+flatten: false  # true
 size_median: 9
 outlier_sigma_cutoff: 4
 distance_threshold: 64

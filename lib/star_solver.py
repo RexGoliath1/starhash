@@ -187,39 +187,60 @@ class StarSolver():
     def _get_edges_centroid(self, vectors):
         centroid = np.mean(vectors, axis=0)
         edges = np.linalg.norm(vectors- centroid, axis=1)
-        return np.sort(edges, kind="mergesort")
+        # return np.sort(edges, kind="mergesort")
+        return np.sort(edges)
 
 
     def _get_angles_centroid(self, vectors):
         centroid = np.mean(vectors, axis=0)
         edges = np.linalg.norm(vectors- centroid, axis=1)
         centroid_vectors = (vectors - centroid) / edges[:, np.newaxis]
-        edgeidx = np.argsort(edges, kind="mergesort")
+        # edgeidx = np.argsort(edges, kind="mergesort")
+        edgeidx = np.argsort(edges)
         centroid_vectors = centroid_vectors[edgeidx]
 
+        vectors_next = np.roll(centroid_vectors, -1, axis=0)
+        angles = np.einsum('ij,ij->i', centroid_vectors, vectors_next)
+        directions = np.linalg.norm(np.cross(centroid_vectors, vectors_next), axis=1)
 
-        pat_angles = np.zeros((edges.shape[0]))
-        for ii in range(0, edges.shape[0]):
-            next_index = (ii + 1) % edges.shape[0]
-            v1 = centroid_vectors[ii]
-            v2 = centroid_vectors[next_index]
-            angle = np.dot(v1, v2)
-            direction = np.linalg.norm(np.cross(v1, v2))
-            assert(np.abs(angle) <= 1)
-            assert(np.abs(direction) <= 1)
-            
-            if (angle >= 0 and direction >= 0):
-              pat_angles[ii] = 0.25 * (1 - angle)
-            elif (angle <= 0 and direction >= 0):
-              pat_angles[ii] = 0.25 - 0.25 * angle
-            elif (angle <= 0 and direction <= 0):
-              pat_angles[ii] = 0.5 + 0.25 * (1 + angle)
-            elif (angle >= 0 and direction <= 0):
-              pat_angles[ii] = 0.75 + 0.25 * angle
-            else:
-              raise Exception("Unknown centroid angle quadrant");
-        assert(np.all(np.abs(pat_angles) <= 1))
-        return pat_angles
+        def quadrant_calc(angle, direction):
+            if angle >= 0 and direction >= 0:
+                return 0.25 * (1 - angle)
+            elif angle <= 0 and direction >= 0:
+                return 0.25 - 0.25 * angle
+            elif angle <= 0 and direction <= 0:
+                return 0.5 + 0.25 * (1 + angle)
+            elif angle >= 0 and direction <= 0:
+                return 0.75 + 0.25 * angle
+
+        # Vectorize the function
+        vectorized_quadrant_calc = np.vectorize(quadrant_calc)
+
+        # Apply the vectorized function to angles and directions
+        return vectorized_quadrant_calc(angles, directions)
+
+        # for ii in range(0, edges.shape[0]):
+        #     next_index = (ii + 1) % edges.shape[0]
+        #     v1 = centroid_vectors[ii]
+        #     v2 = centroid_vectors[next_index]
+        #     angle = np.dot(v1, v2)
+        #     direction = np.linalg.norm(np.cross(v1, v2))
+        #     # assert(np.abs(angle) <= 1)
+        #     # assert(np.abs(direction) <= 1)
+        #     
+        #     if (angle >= 0 and direction >= 0):
+        #       self.pat_angles[ii] = 0.25 * (1 - angle)
+        #     elif (angle <= 0 and direction >= 0):
+        #       self.pat_angles[ii] = 0.25 - 0.25 * angle
+        #     elif (angle <= 0 and direction <= 0):
+        #       self.pat_angles[ii] = 0.5 + 0.25 * (1 + angle)
+        #     elif (angle >= 0 and direction <= 0):
+        #       self.pat_angles[ii] = 0.75 + 0.25 * angle
+        #     # else:
+        #     #   raise Exception("Unknown centroid angle quadrant");
+        # # assert(np.all(np.abs(pat_angles) <= 1))
+        # assert(test == self.pat_angles)
+        # return self.pat_angles
 
 
     def _get_angles(self, vectors):
@@ -283,6 +304,8 @@ class StarSolver():
         total_check_count = 0
         pattern_check_count = 0
         over_total_count = False
+        #self.pat_angles = np.zeros((self.args.pattern_size))
+
         # for pattern_centroids in self._pattern_generator(centroids, self.args.pattern_size):
         for pattern_centroids in self._pattern_generator(centroids[:pattern_stars], self.args.pattern_size):
             gen_count += 1
