@@ -38,7 +38,7 @@ catalog:
   # Temporary hash map number of bins
   pattern_bins: 25  # 25
   # Size multiple of catalog pattern (lower collisions, costs memory)
-  catalog_size_multiple: 15
+  catalog_size_multiple: 2
   # Use angles for hash (better matches, large memory usage, large quadprobe)
   use_angles: true
   # Normalize Edge / Angle Patterns by largest

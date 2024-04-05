@@ -23,6 +23,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from transform_utils import rotation_vector_from_matrices, vectors_to_angle
 from attitude_determination import quest, davenport, triad, foma, svd, esoq2
 from stellar_utils import StellarUtils
+import random
 
 # Default Paths
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
@@ -49,6 +50,25 @@ truth_kwargs = {
     "radius": 40, # 20
     "thickness": 1,
 }
+
+def sp_noise(image, prob):
+    '''
+    Add salt and pepper noise to image
+    prob: Probability of the noise
+    '''
+    output = np.zeros(image.shape,np.uint8)
+    thres = 1 - prob 
+    for i in range(image.shape[0]):
+        for j in range(image.shape[1]):
+            for k in range(image.shape[2]):
+                rdn = random.random()
+                if rdn < prob:
+                    output[i][j][k] = 0
+                elif rdn > thres:
+                    output[i][j][k] = 255
+                else:
+                    output[i][j][k] = image[i][j][k]
+    return output
 
 def group_poi_stats(flat_image, snr, stats, args):
     poi_subs = []
@@ -156,7 +176,12 @@ def centroiding_pipeline(image_path, args, stel):
     img = cv2.imread(image_path)
 
     np.random.seed(args.seed)
+
+    if args.add_noise:
+        img = sp_noise(img, 0.05)
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
     temp = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     centroid_img = deepcopy(temp)
 

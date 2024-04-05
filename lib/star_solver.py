@@ -183,6 +183,45 @@ class StarSolver():
         edges = [np.linalg.norm(np.subtract(*star_pair)) for star_pair in vec_pairs]
         return np.sort(edges, kind="mergesort")
 
+
+    def _get_edges_centroid(self, vectors):
+        centroid = np.mean(vectors, axis=0)
+        edges = np.linalg.norm(vectors- centroid, axis=1)
+        return np.sort(edges, kind="mergesort")
+
+
+    def _get_angles_centroid(self, vectors):
+        centroid = np.mean(vectors, axis=0)
+        edges = np.linalg.norm(vectors- centroid, axis=1)
+        centroid_vectors = (vectors - centroid) / edges[:, np.newaxis]
+        edgeidx = np.argsort(edges, kind="mergesort")
+        centroid_vectors = centroid_vectors[edgeidx]
+
+
+        pat_angles = np.zeros((edges.shape[0]))
+        for ii in range(0, edges.shape[0]):
+            next_index = (ii + 1) % edges.shape[0]
+            v1 = centroid_vectors[ii]
+            v2 = centroid_vectors[next_index]
+            angle = np.dot(v1, v2)
+            direction = np.linalg.norm(np.cross(v1, v2))
+            assert(np.abs(angle) <= 1)
+            assert(np.abs(direction) <= 1)
+            
+            if (angle >= 0 and direction >= 0):
+              pat_angles[ii] = 0.25 * (1 - angle)
+            elif (angle <= 0 and direction >= 0):
+              pat_angles[ii] = 0.25 - 0.25 * angle
+            elif (angle <= 0 and direction <= 0):
+              pat_angles[ii] = 0.5 + 0.25 * (1 + angle)
+            elif (angle >= 0 and direction <= 0):
+              pat_angles[ii] = 0.75 + 0.25 * angle
+            else:
+              raise Exception("Unknown centroid angle quadrant");
+        assert(np.all(np.abs(pat_angles) <= 1))
+        return pat_angles
+
+
     def _get_angles(self, vectors):
         """ Return edge ratios smallest to largest """
         vec_pairs = itertools.combinations(vectors, 2)
@@ -230,7 +269,10 @@ class StarSolver():
             return np.inf * cat_edges
 
         star_vectors = self.pix_to_vec(image_centroids, K_inv)
-        star_edges = self._get_edges(star_vectors)
+        if self.args.use_star_centroid:
+            star_edges = self._get_edges_centroid(star_vectors)
+        else:
+            star_edges = self._get_edges(star_vectors)
         # star_angles = self._get_angles(star_vectors)
         return star_edges - cat_edges
 
@@ -239,6 +281,7 @@ class StarSolver():
         pattern_stars = args.pattern_stars
         gen_count = 0
         total_check_count = 0
+        pattern_check_count = 0
         over_total_count = False
         # for pattern_centroids in self._pattern_generator(centroids, self.args.pattern_size):
         for pattern_centroids in self._pattern_generator(centroids[:pattern_stars], self.args.pattern_size):
@@ -253,15 +296,26 @@ class StarSolver():
             # rev_centroids = self.vec_to_pix(vectors, self.stel.K) # TODO: Something wrong here. K and K_inv change centroid locations..
             # diff_centroids = pattern_centroids - rev_centroids
             # assert(all(diff_centroids < 1e-12))
-            edges = self._get_edges(vectors)
+
+            if self.args.use_star_centroid:
+                edges = self._get_edges_centroid(vectors)
+                angles = self._get_angles_centroid(vectors)
+                # Hack for now. Change to catalog parameter
+                edge_norm = np.sin(np.radians(8.0) / 2)
+            else:
+                edges = self._get_edges(vectors)
+                angles = self._get_angles(vectors)
+                # Hack for now. Change to catalog parameter
+                edge_norm = (2 * np.sin(np.radians(8.0) / 2)) 
+
             if self.args.use_max_norm:
+                aratios = angles[:-1] / angles[-1]
                 eratios = edges[:-1] / edges[-1]
             else:
-                eratios = edges / (2 * np.sin(np.radians(8.0) / 2)) # Hack for now because I'm setting stellarium vfov to catalog fov. This needs to be a catalog parameter
+                eratios = edges / edge_norm
+                aratios = angles
 
 
-            angles = self._get_angles(vectors)
-            aratios = angles[:-1] / angles[-1]
             if self.args.use_angles:
                 ratios = np.concatenate([eratios, aratios])
             else:
@@ -280,33 +334,52 @@ class StarSolver():
             #                           ((ratios + args.pattern_max_error) * self.args.pattern_bins).astype(np.int64))]
 
             all_codes = itertools.product(*hash_code_space)
+            pattern_check_count = 0
             for code in set(tuple(all_codes)):
                 code = tuple(code)
+
                 if self.args.use_angles:
                     index = _key_to_index(code, self.args.pattern_bins, self.pattern_catalog.shape[0])
                 else:
-                    index = _key_to_index(code, self.args.pattern_bins, self.pattern_catalog.shape[0])
+                    index = _key_to_index_edges(code, self.args.pattern_bins, self.pattern_catalog.shape[0])
+
                 matches = self._get_at_index(index, self.pattern_catalog)
                 if matches is None or len(matches) == 0:
                     #print(f"No matches found for {code}")
                     continue
 
                 for match_row in matches:
+                    pattern_check_count += 1 
                     total_check_count += 1
                     if not over_total_count and total_check_count > 100000:
                         over_total_count = True
                         print("Oh no! Over total count and rising...")
                         return
 
+                    if pattern_check_count > 100:
+                        print("Oh no! Over pattern count and rising...")
+                        break
+
                     cat_vectors = self.star_table[match_row]
-                    cat_edges = self._get_edges(cat_vectors)
-                    cat_angles = self._get_angles(cat_vectors)
+
+                    if self.args.use_star_centroid:
+                        cat_edges = self._get_edges_centroid(cat_vectors)
+                        cat_angles = self._get_angles_centroid(cat_vectors)
+                        # Hack for now. Change to catalog parameter
+                        edge_norm = np.sin(np.radians(8.0) / 2)
+                    else:
+                        cat_edges = self._get_edges(cat_vectors)
+                        cat_angles = self._get_angles(cat_vectors)
+                        # Hack for now. Change to catalog parameter
+                        edge_norm = 2 * np.sin(np.radians(8.0) / 2)
+
                     if self.args.use_max_norm:
                         cat_eratios = cat_edges[:-1] / cat_edges[-1]
                         cat_aratios = cat_angles[:-1] / cat_angles[-1]
                     else:
-                        cat_eratios = cat_edges / (2 * np.sin(np.radians(8.0) / 2)) # Hack for now because I'm setting stellarium vfov to catalog fov. This needs to be a catalog parameter
-                        cat_aratios = cat_angles / self.stel.vfov
+                        cat_eratios = cat_edges / edge_norm
+                        #cat_aratios = cat_angles / self.stel.vfov
+                        cat_aratios = cat_angles
 
                     cat_ratios = np.concatenate([cat_eratios, cat_aratios])
 
@@ -328,7 +401,7 @@ class StarSolver():
                     fx, fy = params[0]
                     K_opt = np.array([[fx, 0, self.stel.cx], [0, fy, self.stel.cy], [0, 0, 1]])
 
-                    # Debug
+                    # TODO: Debug and fix least squares
                     K_opt = self.stel.K
 
                     fx = K_opt[0, 0]
@@ -363,6 +436,8 @@ class StarSolver():
                         dt = time() - self.t1
                         self.times[self.image_number] = dt
                         self.hash_checks[self.image_number] = total_check_count
+                        self.star_checks[self.image_number] = gen_count
+                        self.pattern_checks[self.image_number] = pattern_check_count
                         self.accuracies[self.image_number] = np.linalg.norm(rv_as)
                         print(f"Took {dt} seconds")
                         print(f"rv_mag_mas: {np.linalg.norm(rv_mas):.2f} rot_vec_error: {rv_mas} (Milli Arc-Seconds)")
@@ -377,6 +452,8 @@ class StarSolver():
         image_files = glob(os.path.join(self.stel.image_path, self.args.image_pattern)) 
         self.times = np.zeros(len(image_files)) * np.nan
         self.hash_checks = np.zeros(len(image_files)) * np.nan
+        self.star_checks = np.zeros(len(image_files)) * np.nan
+        self.pattern_checks = np.zeros(len(image_files)) * np.nan
         self.accuracies = np.zeros(len(image_files)) * np.nan
         for i, image_path in enumerate(image_files):
             self.image_number = i
@@ -390,28 +467,37 @@ class StarSolver():
 
             self.solve_from_centroids(star_centroids)
 
-        fig, axs = plt.subplots(5, 1, figsize=(15, 15))
+        fig, axs = plt.subplots(7, 1, figsize=(15, 15))
         axs[0].set_title(f"Solved for {len(image_files) - np.sum(np.isnan(self.times))} / {len(image_files)} images. Times: Median = {np.nanmedian(self.times):.2f}, Mean = {np.nanmean(self.times):.2f}, Max = {np.nanmax(self.times):.2f}. Min Time = {np.nanmin(self.times):.2f}, Std Dev = {np.nanstd(self.times):.2f}")
-        axs[0].hist(self.times, edgecolor='black', linewidth=1.2, bins=20)
+        axs[0].hist(self.times, edgecolor='black', linewidth=1.2, bins=50)
         axs[0].set_xlabel("Time (Image to Quat)")
 
         axs[1].set_title(f"Probe Checks: Median = {np.nanmedian(self.hash_checks)}, Mean = {np.nanmean(self.hash_checks):.2f}, Max = {np.nanmax(self.hash_checks)}. Min = {np.nanmin(self.hash_checks)}, Std Dev = {np.nanstd(self.hash_checks):.2f}")
-        axs[1].hist(self.hash_checks, edgecolor='black', linewidth=1.2, bins=20)
+        axs[1].hist(self.hash_checks, edgecolor='black', linewidth=1.2, bins=50)
         axs[1].set_xlabel("Hash Checks")
 
-        axs[2].set_title(f"Errors (Arc Seconds): Median = {np.nanmedian(self.accuracies):.2f}, Mean = {np.nanmean(self.accuracies):.2f}, Max = {np.nanmax(self.accuracies):.2f}. Min = {np.nanmin(self.accuracies):.2f}, Std Dev = {np.nanstd(self.accuracies):.2f}")
-        axs[2].hist(self.accuracies, edgecolor='black', linewidth=1.2, bins=20)
-        axs[2].set_xlabel("Accuracy (Arc Seconds)")
+        axs[2].set_title(f"Star Checks: Median = {np.nanmedian(self.star_checks)}, Mean = {np.nanmean(self.star_checks):.2f}, Max = {np.nanmax(self.star_checks)}. Min = {np.nanmin(self.star_checks)}, Std Dev = {np.nanstd(self.star_checks):.2f}")
+        axs[2].hist(self.star_checks, edgecolor='black', linewidth=1.2, bins=50)
+        axs[2].set_xlabel("Star Checks")
 
-        axs[3].set_title("Hash Checks vs Time (seconds)")
-        axs[3].scatter(self.hash_checks, self.times)
-        axs[3].set_xlabel("Hash Checks")
-        axs[3].set_ylabel("Time (Image to Quat)")
+        axs[3].set_title(f"Pattern Checks: Median = {np.nanmedian(self.pattern_checks)}, Mean = {np.nanmean(self.pattern_checks):.2f}, Max = {np.nanmax(self.pattern_checks)}. Min = {np.nanmin(self.pattern_checks)}, Std Dev = {np.nanstd(self.pattern_checks):.2f}")
+        axs[3].hist(self.pattern_checks, edgecolor='black', linewidth=1.2, bins=50)
+        axs[3].set_xlabel("Pattern Checks")
 
-        axs[4].set_title("Hash Checks vs Accuracy (arc seconds)")
-        axs[4].scatter(self.hash_checks, self.accuracies)
-        axs[4].set_xlabel("Hash Checks")
-        axs[4].set_ylabel("Accuracy (Arc Seconds)")
+        axs[4].set_title(f"Errors (Arc Seconds): Median = {np.nanmedian(self.accuracies):.2f}, Mean = {np.nanmean(self.accuracies):.2f}, Max = {np.nanmax(self.accuracies):.2f}. Min = {np.nanmin(self.accuracies):.2f}, Std Dev = {np.nanstd(self.accuracies):.2f}")
+        axs[4].hist(self.accuracies, edgecolor='black', linewidth=1.2, bins=50)
+        axs[4].set_xlabel("Accuracy (Arc Seconds)")
+
+        axs[5].set_title("Hash Checks vs Time (seconds)")
+        axs[5].scatter(self.hash_checks, self.times)
+        axs[5].set_xlabel("Hash Checks")
+        axs[5].set_ylabel("Time (Image to Quat)")
+
+        axs[6].set_title("Star Checks vs Pattern Checks")
+        axs[6].scatter(self.star_checks, self.pattern_checks)
+        axs[6].set_xlabel("Star Checks")
+        axs[6].set_ylabel("Pattern Checks")
+
         plt.tight_layout()
         plt.savefig("runtimes.png")
 

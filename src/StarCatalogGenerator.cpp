@@ -1087,7 +1087,7 @@ void StarCatalogGenerator::generate_output_catalog() {
 #endif
 
   // TODO: Move this into higher level Class / Structure. This is our catalog
-  auto it = std::lower_bound(primes.begin(), primes.end(), static_cast<uint64_t>(pattern_list.rows()));
+  auto it = std::lower_bound(primes.begin(), primes.end(), catalog_size_multiple * static_cast<uint64_t>(pattern_list.rows()));
   if (it == primes.end()) {
     // Handle the case where all primes are smaller than catalog_size
     throw std::runtime_error("No prime number found in the vector that is greater than the catalog size.");

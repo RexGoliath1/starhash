@@ -29,6 +29,7 @@ reject_saturation: false
 centroid_size: 7
 gauss_offset: 5
 separation_threshold: 8 # This should match catalog
+add_noise: false
 seed: 1337
 
 # Display Parameters
@@ -44,8 +45,9 @@ pattern_stars: 25
 coarse_bins: 4  # TODO For later when we save off coarse maps to save time
 pattern_bins: 25
 fov_max_error: 0.5
-use_angles: false
+use_angles: true
 use_max_norm: false
+use_star_centroid: true
 # [--] Default 0.005
 # Bigger for now bacause stellarium has garbage catalogs
 # min_sep = 0.05, fov = 20, max ratio = 400
