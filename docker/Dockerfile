@@ -43,7 +43,6 @@ RUN git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTO
 RUN git clone https://github.com/zsh-users/zsh-autosuggestions.git $ZSH_CUSTOM/plugins/zsh-autosuggestions 
 RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
 
-
 #  Build neovim (this is probably incomplete. Need to build zsh autosuggestions and configure powerline)
 RUN apt-get install -y ninja-build gettext && \
 	git clone https://github.com/neovim/neovim && \
@@ -111,6 +110,18 @@ RUN cd ~/eigen && \
 
 RUN cd ~/ && \
 	rm -rf ~/eigen 
+
+RUN git clone https://github.com/jbeder/yaml-cpp.git && \
+	cd yaml-cpp && \
+	mkdir build && \
+	cd build && \
+	cmake -DYAML_BUILD_SHARED_LIBS=ON .. && \
+	make && \
+	make install && \
+	ldconfig
+
+RUN cd ~/ && \
+	rm -rf ~/yaml-cpp
 
 RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/4.8.0.zip && \
 	wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/4.8.0.zip && \

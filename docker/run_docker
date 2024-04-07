@@ -1,6 +1,6 @@
  #!/bin/bash
 if [ "$(uname)" == "Darwin" ]; then
-  docker run -it -e DISPLAY=docker.for.mac.host.internal:0 starz2
+  docker run -it v ~/.ssh:/root/.ssh -e DISPLAY=docker.for.mac.host.internal:0 sgonciar/starhash:develop
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-  docker run -it --net=host --env="DISPLAY" -e DISPLAY=$IP:0 starz2
+  docker run -it --net=host --env="DISPLAY"v -e DISPLAY=$IP:0 -v ~/.ssh:/root/.ssh sgonciar/starhash:develop
 fi
