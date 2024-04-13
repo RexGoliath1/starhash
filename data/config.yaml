@@ -16,14 +16,16 @@ catalog:
   output_directory: "results/scg/"
   # Output catalog
   output_catalog_file: "output.h5"
+  # Output coarse sky map
+  output_coarse_file: "coarse_sky_map.yaml"
   # Output catalog pattern size
   pattern_size: 4
   # Constraint on pattern stars per FOV
-  pattern_stars_per_fov: 20  # 10
+  pattern_stars_per_fov: 10  # 10
   # Constraint on catalog / validation stars per FOV
-  catalog_stars_per_fov: 40  # 20
+  catalog_stars_per_fov: 20  # 20
   # Min Constraint on magnitude
-  min_magnitude_thresh: 7.5
+  min_magnitude_thresh: 8.0
   # Max Constraint on magnitude
   max_magnitude_thresh: 0.0
   # Constraint on parallax (TODO: Use ESA paper to adjust <0 plx entries)
@@ -36,7 +38,7 @@ catalog:
   # Temporary hash map number of bins
   intermediate_star_bins: 10
   # Temporary hash map number of bins
-  pattern_bins: 25  # 25
+  pattern_bins: 50  # 25
   # Size multiple of catalog pattern (lower collisions, costs memory)
   catalog_size_multiple: 2
   # Use angles for hash (better matches, large memory usage, large quadprobe)
@@ -55,8 +57,6 @@ catalog:
            17179869209, 34359738421, 68719476767, 137438953481, 274877906951,
            549755813911]
 debug:
-  # Coarse sky map
-  debug_hash_file: "coarse_sky_map.yaml"
   # TODO: Remove macros in place of catalog input
   input_catalog: true
   # TODO: Remove macros in place of catalog input
@@ -70,7 +70,7 @@ debug:
   # TODO: Remove macros in place of catalog input
   pattern_catalog: false
   # Dynamic memory growth
-  pattern_list_growth: 1000000
+  pattern_list_growth: 50000000
   # Hash indexing debug output frequency
   index_pattern_debug_freq: 10000
   # Star separation debug output frequency

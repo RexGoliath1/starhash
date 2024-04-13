@@ -70,6 +70,7 @@ class StellarUtils():
             self.dfov = np.sqrt(self.hfov**2 + self.vfov**2)
             self.hifov = self.hfov / self.width
             self.vifov = self.vfov / self.height
+            self.difov = np.sqrt(self.hifov**2 + self.vifov**2)
             self.K_inv = np.linalg.inv(self.K)
             assert (np.sum(np.linalg.inv(self.K_inv) - self.K) < 1e-12)
             self.T_cam_to_j2000 = self.E[:,:3]

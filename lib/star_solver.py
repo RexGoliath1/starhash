@@ -22,7 +22,8 @@ REPO_DIRECTORY = os.path.dirname(CURRENT_DIRECTORY)
 IMAGE_DIRECTORY = os.path.join(REPO_DIRECTORY, "stellarscript", "results")
 OUTPUT_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "results")
 DEFAULT_CONFIG = os.path.join(REPO_DIRECTORY, "data", "solver.yaml")
-DEFAULT_CATALOG= os.path.join(REPO_DIRECTORY, "results", "scg", "output.h5")
+DEFAULT_CATALOG = os.path.join(REPO_DIRECTORY, "results", "scg", "output.h5")
+DEFAULT_COARSE = os.path.join(REPO_DIRECTORY, "results", "scg", "coarse_sky_map.yaml")
 _MAGIC_RAND = 2654435761
 
 def modular_exponentiation(base, exponent, modulus):
@@ -85,6 +86,7 @@ class StarSolver():
         self.args = args # TODO: Incredibly lazy, redo
         self.stel = StellarUtils(args.input_path)
         self._load_catalog(args.catalog_file)
+        self._load_coarse(args.coarse_file)
         self.t1 = time()
 
     def process_params(self, args):
@@ -104,6 +106,12 @@ class StarSolver():
         with h5py.File(catalog_file, 'r') as hf:
             self.star_table = np.array(hf.get('star_table'))
             self.pattern_catalog = np.array(hf.get('pattern_catalog'))
+
+    def _load_coarse(self, coarse_file):
+        assert(os.path.isfile(coarse_file))
+        with open(coarse_file, 'r') as stream:
+            self.coarse_map = yaml.safe_load(stream)
+            print("Checking..")
 
     def _pattern_generator(self, centroids, pattern_size):
         """Iterate over centroids in order of brightness."""
@@ -249,30 +257,6 @@ class StarSolver():
         angles = [np.arccos(np.dot(*star_pair)) for star_pair in vec_pairs]
         return np.sort(angles, kind="mergesort")
 
-    def get_closest_points(self, truth, measured, angle_threshold_sf=3.0):
-        """ Use KDTree/Hungarian to map centroids to truth """
-        angle_threshold = angle_threshold_sf * max(self.stel.hifov, self.stel.vifov)
-        max_cost = angle_threshold * 1000
-        assert(angle_threshold < max_cost)
-        tree = cKDTree(truth)
-        idx = tree.query_ball_point(x=measured, r=angle_threshold, p=2)
-        cost_matrix = np.full((len(measured), len(truth)), max_cost)
-
-        if idx is None:
-            raise Exception("Shouldn't happen unless centroiding went bad")
-
-        for i, indices in enumerate(idx):
-            for truth_index in indices:
-                distance = np.linalg.norm(np.array(truth[truth_index]) - np.array(measured[i]))
-                cost_matrix[i, truth_index] = distance
-
-        measured_indicies, truth_indices = linear_sum_assignment(cost_matrix)
-
-        valid_assignments = cost_matrix[measured_indicies, truth_indices] < pix_thresh
-        measured_indicies = measured_indicies[valid_assignments]
-        truth_indices = truth_indices[valid_assignments]
-        return measured_indicies, truth_indices
-
     def fov_error(self, params, image_centroids, cat_edges):
         """ Optimization func for determining FOV """
         fx, fy = params
@@ -296,6 +280,54 @@ class StarSolver():
             star_edges = self._get_edges(star_vectors)
         # star_angles = self._get_angles(star_vectors)
         return star_edges - cat_edges
+
+    def _get_nearby_stars(self, vector, radius):
+        """Get nearby stars from coarse hash table."""
+        # create list of nearby stars
+        nearby_star_ids = []
+        # given error of at most radius in each dimension, compute the space of hash codes
+        hash_code_space = [range(max(low, 0), min(high + 1, 2 * self.args.coarse_bins)) for (low, high)
+                           in zip(((vector + 1 - radius) * self.args.coarse_bins).astype(np.int32),
+                                  ((vector + 1 + radius) * self.args.coarse_bins).astype(np.int32))]
+
+        # iterate over hash code space
+        for hash_code in itertools.product(*hash_code_space):
+            # iterate over the stars in the given partition, adding them to
+            # the nearby stars list if they're within range of the vector
+            for star_id in self.coarse_map.get(hash_code, []):
+                if np.dot(vector, self.star_table[star_id]) > np.cos(radius):
+                    nearby_star_ids.append(star_id)
+
+        return nearby_star_ids
+
+    def get_closest_points(self, truth, measured, angle_thresh = None):
+        """ Use KDTree/Hungarian to map centroids to truth """
+
+        if angle_thresh is None:
+            angle_thresh= 3 * self.stel.difov
+
+        max_cost = angle_thresh * 1000
+        assert(angle_thresh < max_cost)
+
+        # TODO: Definitely needs to initialize tree prior with max number size
+        tree = cKDTree(truth)
+        idx = tree.query_ball_point(x=measured, r=angle_thresh, p=2)
+        cost_matrix = np.full((len(measured), len(truth)), max_cost)
+
+        if idx is None:
+            raise Exception("Shouldn't happen unless centroiding went bad")
+
+        for i, indices in enumerate(idx):
+            for truth_index in indices:
+                distance = np.arccos(np.dot(truth[truth_index], measured[i]))
+                cost_matrix[i, truth_index] = distance
+
+        measured_indicies, truth_indices = linear_sum_assignment(cost_matrix)
+
+        valid_assignments = cost_matrix[measured_indicies, truth_indices] < angle_thresh
+        measured_indicies = measured_indicies[valid_assignments]
+        truth_indices = truth_indices[valid_assignments]
+        return measured_indicies, truth_indices
 
     def solve_from_centroids(self, centroids):
         """ Solve lost in space from centroid data """
@@ -446,10 +478,12 @@ class StarSolver():
                     cat_vectors = self._sort_vectors(cat_vectors)
                     C_opt, q_opt = quest(pattern_vectors.T, cat_vectors.T)
                     rot_vec_error = rotation_vector_from_matrices(self.stel.T_cam_to_j2000, C_opt)
-                    # centroid_vectors = self.pix_to_vec(centroids, K_inv)
-                    # centroid_inertial_vectors = C_opt @ centroid_vectors
-                    # boresight_vector = C_opt[0, :]
-                    # self._get_nearby_stars(boresight_vector, )
+                    centroid_vectors = self.pix_to_vec(centroids, K_inv)
+                    centroid_inertial_vectors = C_opt @ centroid_vectors
+                    boresight_vector = C_opt[0, :]
+                    # TODO: Might need to be a little higher than diagonal FOV depending on distortion
+                    catalog_inertial_vectors = self._get_nearby_stars(boresight_vector, self.stel.dfov)
+                    self.get_closest_points(catalog_inertial_vectors, centroid_inertial_vectors)
 
                     rv_deg = np.degrees(rot_vec_error)
                     rv_as = rv_deg * 3600
@@ -469,29 +503,10 @@ class StarSolver():
                         print(f"TODO: Star Error Statistics")
                         return
 
-
-
-    def solver_pipeline(self):
-        image_files = glob(os.path.join(self.stel.image_path, self.args.image_pattern)) 
-        self.times = np.zeros(len(image_files)) * np.nan
-        self.hash_checks = np.zeros(len(image_files)) * np.nan
-        self.star_checks = np.zeros(len(image_files)) * np.nan
-        self.pattern_checks = np.zeros(len(image_files)) * np.nan
-        self.accuracies = np.zeros(len(image_files)) * np.nan
-        for i, image_path in enumerate(image_files):
-            self.image_number = i
-            print(f"Solving for {image_path}")
-            self.t1 = time()
-            if not self.stel.get_stel_data(image_path):
-                continue
-
-            centroid_params = centroiding_pipeline(image_path, args, self.stel)
-            star_centroids = centroid_params["star_centroids"]
-
-            self.solve_from_centroids(star_centroids)
-
-        fig, axs = plt.subplots(7, 1, figsize=(15, 15))
-        axs[0].set_title(f"Solved for {len(image_files) - np.sum(np.isnan(self.times))} / {len(image_files)} images. Times: Median = {np.nanmedian(self.times):.2f}, Mean = {np.nanmean(self.times):.2f}, Max = {np.nanmax(self.times):.2f}. Min Time = {np.nanmin(self.times):.2f}, Std Dev = {np.nanstd(self.times):.2f}")
+    def output_plots(self):
+        """ Various Stats Plots of Solver """
+        _, axs = plt.subplots(7, 1, figsize=(15, 15))
+        axs[0].set_title(f"Solved for {self.num_images - np.sum(np.isnan(self.times))} / {self.num_images} images. Times: Median = {np.nanmedian(self.times):.2f}, Mean = {np.nanmean(self.times):.2f}, Max = {np.nanmax(self.times):.2f}. Min Time = {np.nanmin(self.times):.2f}, Std Dev = {np.nanstd(self.times):.2f}")
         axs[0].hist(self.times, edgecolor='black', linewidth=1.2, bins=50)
         axs[0].set_xlabel("Time (Image to Quat)")
 
@@ -524,12 +539,37 @@ class StarSolver():
         plt.tight_layout()
         plt.savefig("runtimes.png")
 
+
+    def solver_pipeline(self):
+        image_files = glob(os.path.join(self.stel.image_path, self.args.image_pattern)) 
+        self.times = np.zeros(len(image_files)) * np.nan
+        self.hash_checks = np.zeros(len(image_files)) * np.nan
+        self.star_checks = np.zeros(len(image_files)) * np.nan
+        self.pattern_checks = np.zeros(len(image_files)) * np.nan
+        self.accuracies = np.zeros(len(image_files)) * np.nan
+        self.num_images = len(image_files)
+        for i, image_path in enumerate(image_files):
+            self.image_number = i
+            print(f"Solving for {image_path}")
+            self.t1 = time()
+            if not self.stel.get_stel_data(image_path):
+                continue
+
+            centroid_params = centroiding_pipeline(image_path, args, self.stel)
+            star_centroids = centroid_params["star_centroids"]
+
+            self.solve_from_centroids(star_centroids)
+
+        self.output_plots()
+
+
 if __name__ == "__main__":
     print("Starting....")
     parser = argparse.ArgumentParser(description="Overlay OpenCV blob detection on an image")
     parser.add_argument("--input_path",     default=IMAGE_DIRECTORY,    type=str, help="")
     parser.add_argument("--output_path",    default=OUTPUT_DIRECTORY,   type=str, help="")
     parser.add_argument("--catalog_file",   default=DEFAULT_CATALOG,    type=str, help="")
+    parser.add_argument("--coarse_file",    default=DEFAULT_COARSE,     type=str, help="")
     parser.add_argument("--config_path",    default=DEFAULT_CONFIG,     type=str, help="")
     args = parser.parse_args()
 

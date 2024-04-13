@@ -213,8 +213,8 @@ private:
   // @brief star sep printout frequency
   int separation_debug_freq;
 
-  // @brief path to debug hash
-  fs::path debug_hash_file;
+  // @brief path to coarse hash map file. Contains "regions" of stars to avoid FOV lookup
+  fs::path output_coarse_file;
 
   // TODO: Inspect if python is doing things with this.. Currently > INT_MAX so
   // modulo is of -1640531535

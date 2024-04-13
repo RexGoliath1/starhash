@@ -84,6 +84,8 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   output_directory = base_path / output_directory;
   output_catalog_file = config["catalog"]["output_catalog_file"].as<std::string>();
   output_catalog_file = output_directory / output_catalog_file;
+  output_coarse_file = config["catalog"]["output_coarse_file"].as<std::string>();
+  output_coarse_file = output_directory / output_coarse_file;
   pattern_size = config["catalog"]["pattern_size"].as<unsigned int>();
   pattern_stars_per_fov = config["catalog"]["pattern_stars_per_fov"].as<unsigned int>();
   catalog_stars_per_fov = config["catalog"]["catalog_stars_per_fov"].as<unsigned int>();
@@ -107,8 +109,6 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
   pattern_list_growth = config["debug"]["pattern_list_growth"].as<int>();
   index_pattern_debug_freq = config["debug"]["index_pattern_debug_freq"].as<int>();
   separation_debug_freq = config["debug"]["separation_debug_freq"].as<int>();
-  debug_hash_file = config["debug"]["debug_hash_file"].as<std::string>();
-  debug_hash_file = output_directory / debug_hash_file;
 
   ut_pm = config["unit_test"]["proper_motion"].as<bool>();
   ut_no_motion = config["unit_test"]["no_motion"].as<bool>();
@@ -956,22 +956,20 @@ void StarCatalogGenerator::init_output_catalog() {
   Eigen::MatrixXi codes = Eigen::MatrixXi(pat_star_table.cols(), pat_star_table.rows());
   codes = (static_cast<double>(intermediate_star_bins) * (pat_star_table.array() + 1)).cast<int>();
 
-// Debug IO
-#ifdef DEBUG_HASH
   const Eigen::IOFormat fmt(Eigen::FullPrecision, Eigen::DontAlignCols, ", ");
-  fs::remove(debug_hash_file);
-  std::ofstream ofs(debug_hash_file);
+  fs::remove(output_coarse_file);
+  std::ofstream ofs(output_coarse_file);
   ofs.close();
   YAML::Node node;
-  std::ofstream fout(debug_hash_file.c_str());
-
+  std::ofstream fout(output_coarse_file.c_str());
   std::stringstream ss;
-#endif
 
   for (int ii = 0; ii < codes.rows(); ii++) {
+
 #ifdef DEBUG_HASH
     // std::cout << "Star Table Row: " << star_table.row(ii).format(fmt) << std::endl;
     // std::cout << "Codes Row: " << codes.row(ii).format(fmt) << std::endl;
+#endif
 
     for (int jj = 0; jj < codes.cols(); jj++) {
       ss << codes(ii, jj);
@@ -980,19 +978,16 @@ void StarCatalogGenerator::init_output_catalog() {
       }
     }
 
-    // std::cout << ss.str() << std::endl;
-
-  node[ss.str()].push_back(std::to_string(pattern_stars[ii]));
-  ss.str("");
-#endif
+    node[ss.str()].push_back(std::to_string(pattern_stars[ii]));
+    ss.str("");
 
     coarse_sky_map[static_cast<Eigen::Vector3i>(codes.row(ii))].push_back(pattern_stars[ii]);
   }
 
-#ifdef DEBUG_HASH
   fout << node;
   fout.close();
 
+#ifdef DEBUG_HASH
   Eigen::Vector3i test(3, 1);
   test = ((double)intermediate_star_bins * (star_table.row(0).array() + 1)).cast<int>();
   // std::cout << "List: ";
