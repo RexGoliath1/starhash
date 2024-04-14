@@ -253,7 +253,31 @@ def centroiding_pipeline(image_path, args, stel):
         roi = gray[rows, cols]
         roi = roi.astype(np.float64)
         roi_snr = snr[rows, cols]
-        x0, y0, z0, residuals, covariance = gaussian_fit(cols, rows, roi)
+        x0, y0, z0, sigma_x, sigma_y, amplitude, residuals, covariance, integral = gaussian_fit(cols, rows, roi)
+        # if sigma_x < 0 or sigma_y < 0 or sigma_x > args.max_sigma or sigma_y > args.max_sigma:
+        #     continue
+
+        # if amplitude < args.noise_level:
+        #     continue
+
+        # if np.max(np.abs(residuals)) > args.max_residual:
+        #     continue
+
+        # if np.any(np.isnan(residuals)):
+        #     continue
+
+        # # Calculate reduced chi-squared
+        # chi_squared = np.sum((residuals ** 2) / args.noise_level) / len(residuals)
+        # if chi_squared > args.max_chi_squared:
+        #     continue
+
+        # # Check parameter uncertainties
+        # if np.sqrt(np.diag(covariance))[0] > args.max_uncertainty or np.sqrt(np.diag(covariance))[2] > args.max_uncertainty:
+        #     continue
+
+        # # Yes, this is effectively a cap on dim and non-wide stars. Not great
+        if integral < args.integral_min:
+            continue
 
         if not ((x0 < 0) or (y0 < 0) or (np.isnan((x0, y0)).any())):
             blob_candidate[ind, 0] = 1
@@ -274,6 +298,7 @@ def centroiding_pipeline(image_path, args, stel):
                     star_illums.append(gray[tuple(center[::-1])])
                     out_stats.append(stats[ind])
                     gauss_illums.append(np.min(z0, 0).sum())
+                    # gauss_illums.append(np.min(integral, 0).sum())
                     if args.display_gauss_centroids:
                         centroid_img = cv2.circle(centroid_img, (int(x0), int(y0)), **gauss_kwargs)
 
@@ -361,7 +386,7 @@ def gaussian_fit(x, y, z):
 
     if solution[0] > 0 or solution[2] > 0:
         print("TODO: Solutions are positive ...")
-        return np.nan, np.nan, np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
 
     sigma_x = np.sqrt(-1 / (2 * solution[0]))
     sigma_y = np.sqrt(-1 / (2 * solution[2]))
@@ -372,9 +397,11 @@ def gaussian_fit(x, y, z):
     amplitude = np.exp(
         solution[4] + x0 ** 2 / (2 * sigma_x ** 2) + y0 ** 2 / (2 * sigma_y ** 2))
 
+    total_integral = amplitude * 2 * np.pi * sigma_x * sigma_y
+
     if (sigma_x < 0) or (sigma_y < 0):
         print("Sigmas are negative ...")
-        return np.nan, np.nan, np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
 
     z0 = amplitude * np.exp(-(x - x0) ** 2 / (2 * sigma_x ** 2) - (y - y0) ** 2 / (2 * sigma_y ** 2))
     residuals = z - z0
@@ -389,7 +416,7 @@ def gaussian_fit(x, y, z):
     covariance = np.linalg.pinv(
         jacobian.T @ jacobian) * float(np.std(residuals)) ** 2
 
-    return x0, y0, z0, residuals, covariance
+    return x0, y0, z0, sigma_x, sigma_y, amplitude, residuals, covariance, total_integral
 
 def run_pipeline(args, stel):
     process_params(args)

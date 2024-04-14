@@ -681,6 +681,7 @@ class Stellarium():
             data = {}
             data["width"]   = self.width
             data["height"]  = self.height
+            data["vec_j2000"]  = self.j2000.tolist()
             data["ra"]  = self.ra
             data["dec"] = self.dec
             data["E"]   = self.E.tolist()

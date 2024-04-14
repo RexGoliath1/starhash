@@ -2,7 +2,7 @@ import numpy as np
 from transform_utils import quaternion_to_dcm, dcm_to_quaternion
 
 def quest(v_b, v_i, w = None, tolerance = 1e-5):
-    """Quaternion Estimator (QUEST) algorithm."""
+    """Quaternion Estimator (QUEST) algorithm. Return T_i^b (inertial to body, or 2nd frame to 1st) """
     if w is None:
         w = np.ones(v_b.shape[1])
 

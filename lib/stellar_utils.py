@@ -59,6 +59,7 @@ class StellarUtils():
             jl = json.load(fp)
             self.E = np.array(jl["E"])
             self.K = np.array(jl["K"])
+            self.vec_j2000  = np.array(jl["vec_j2000"])
             self.width  = jl["width"]
             self.height = jl["height"]
             self.fx = self.K[0, 0]

@@ -87,6 +87,7 @@ class StarSolver():
         self.stel = StellarUtils(args.input_path)
         self._load_catalog(args.catalog_file)
         self._load_coarse(args.coarse_file)
+        self._init_tree()
         self.t1 = time()
 
     def process_params(self, args):
@@ -112,6 +113,10 @@ class StarSolver():
         with open(coarse_file, 'r') as stream:
             self.coarse_map = yaml.safe_load(stream)
             print("Checking..")
+
+    def _init_tree(self):
+        self.catalog_vector_tree = cKDTree(self.star_table)
+        self.cost_matrix = np.full((self.args.max_tree_measured_length, self.args.max_tree_catalog_length), np.inf)
 
     def _pattern_generator(self, centroids, pattern_size):
         """Iterate over centroids in order of brightness."""
@@ -294,38 +299,48 @@ class StarSolver():
         for hash_code in itertools.product(*hash_code_space):
             # iterate over the stars in the given partition, adding them to
             # the nearby stars list if they're within range of the vector
-            for star_id in self.coarse_map.get(hash_code, []):
-                if np.dot(vector, self.star_table[star_id]) > np.cos(radius):
-                    nearby_star_ids.append(star_id)
+            # TODO: Replace in Generator with actual numbers
+            str_hash_code = str(list(hash_code))[1:-1]
+            for star_ids in self.coarse_map.get(str_hash_code, []):
+                star_ids = list(self.coarse_map[str_hash_code])
+                for star_id in star_ids:
+                    if np.dot(vector, self.star_table[star_id]) > np.cos(radius):
+                        nearby_star_ids.append(star_id)
 
-        return nearby_star_ids
+        # Shouldn't be needed
+        nearby_star_ids = list(set(nearby_star_ids))
+        return self.star_table[nearby_star_ids]
 
-    def get_closest_points(self, truth, measured, angle_thresh = None):
+    def get_closest_points(self, measured, angle_thresh = None):
         """ Use KDTree/Hungarian to map centroids to truth """
 
         if angle_thresh is None:
-            angle_thresh= 3 * self.stel.difov
+            # TODO: Make better when validated outside stellarium
+            angle_thresh= 10 * self.stel.difov
 
-        max_cost = angle_thresh * 1000
-        assert(angle_thresh < max_cost)
+        euclidean_thresh = 2 * np.sin(angle_thresh / 2)
+        max_cost = 2 * np.sin(self.stel.dfov / 2)
+        # assert(angle_thresh < max_cost)
+        measured_count = min(measured.shape[0], self.args.max_tree_measured_length)
+        sub_measured = measured[:measured_count, :]
+        original_meas_indices = np.arange(measured.shape[0])
+        sub_cost_matrix = self.cost_matrix[:measured_count, :]
 
-        # TODO: Definitely needs to initialize tree prior with max number size
-        tree = cKDTree(truth)
-        idx = tree.query_ball_point(x=measured, r=angle_thresh, p=2)
-        cost_matrix = np.full((len(measured), len(truth)), max_cost)
+        # TODO: Make this resilient to double matches (hungarian needs constraint on already matched vectors)
+        idx = self.catalog_vector_tree.query_ball_point(sub_measured, r=euclidean_thresh, p=2)
 
-        if idx is None:
-            raise Exception("Shouldn't happen unless centroiding went bad")
+        if all([len(ii)==0 for ii in idx]):
+            print("No matches for kdtree mapping. Centroiding went bad")
+            return np.nan, np.nan
 
         for i, indices in enumerate(idx):
             for truth_index in indices:
-                distance = np.arccos(np.dot(truth[truth_index], measured[i]))
-                cost_matrix[i, truth_index] = distance
+                distance = np.arccos(np.clip(np.dot(self.star_table[truth_index], sub_measured[i]), -1.0, 1.0))
+                sub_cost_matrix[i, truth_index] = distance
 
-        measured_indicies, truth_indices = linear_sum_assignment(cost_matrix)
-
-        valid_assignments = cost_matrix[measured_indicies, truth_indices] < angle_thresh
-        measured_indicies = measured_indicies[valid_assignments]
+        measured_indicies, truth_indices = linear_sum_assignment(sub_cost_matrix)
+        valid_assignments = sub_cost_matrix[measured_indicies, truth_indices] < max_cost
+        measured_indicies = original_meas_indices[measured_indicies[valid_assignments]]
         truth_indices = truth_indices[valid_assignments]
         return measured_indicies, truth_indices
 
@@ -336,39 +351,30 @@ class StarSolver():
         total_check_count = 0
         pattern_check_count = 0
         over_total_count = False
-        #self.pat_angles = np.zeros((self.args.pattern_size))
 
-        # for pattern_centroids in self._pattern_generator(centroids, self.args.pattern_size):
         for pattern_centroids in self._pattern_generator(centroids[:pattern_stars], self.args.pattern_size):
             gen_count += 1
             self.pattern_centroids = pattern_centroids
-
-            # pattern_centroids = np.array([self.stel.width/2 -20, self.stel.height/2 - 20])
-            # pattern_centroids = np.array([100, self.stel.height/2 - 20])
-            # pattern_centroids = pattern_centroids[np.newaxis, :]
-
             vectors = self.pix_to_vec(pattern_centroids, self.stel.K_inv)
-            # rev_centroids = self.vec_to_pix(vectors, self.stel.K) # TODO: Something wrong here. K and K_inv change centroid locations..
-            # diff_centroids = pattern_centroids - rev_centroids
-            # assert(all(diff_centroids < 1e-12))
 
             if self.args.use_star_centroid:
                 edges = self._get_edges_centroid(vectors)
                 angles = self._get_angles_centroid(vectors)
-                # Hack for now. Change to catalog parameter
-                edge_norm = np.sin(np.radians(8.0) / 2)
+                # All instances of vfov are hacks for now. Stellarium is only controllable through fov = vertical for now.. Change to catalog parameter
+                edge_norm = np.sin(self.stel.vfov / 2)
+                angle_norm = 1
             else:
                 edges = self._get_edges(vectors)
                 angles = self._get_angles(vectors)
-                # Hack for now. Change to catalog parameter
-                edge_norm = (2 * np.sin(np.radians(8.0) / 2)) 
+                edge_norm = 2 * np.sin(self.stel.vfov / 2)
+                angle_norm = self.stel.vfov
 
             if self.args.use_max_norm:
                 aratios = angles[:-1] / angles[-1]
                 eratios = edges[:-1] / edges[-1]
             else:
                 eratios = edges / edge_norm
-                aratios = angles
+                aratios = angles / angle_norm
 
 
             if self.args.use_angles:
@@ -376,17 +382,9 @@ class StarSolver():
             else:
                 ratios = eratios
 
-            # TODO: Implement all of the crazy hash processing.
-            #hash_code_space = [range(max(int(low), 0), min(int(high) + 1, args.pattern_bins)) for (low, high) 
-            #    in zip((ratios - args.pattern_max_error) * args.pattern_bins, (ratios + args.pattern_max_error) * args.pattern_bins)]
-
             hash_code_space = [range(max(low, 0), min(high+1, args.pattern_bins)) for (low, high)
                 in zip(((ratios - args.pattern_max_error) * args.pattern_bins).astype(int),
                        ((ratios + args.pattern_max_error) * args.pattern_bins).astype(int))]
-
-            # hash_code_space = [range(max(low, 0), min(high+1, args.pattern_bins)) for (low, high)
-            #                    in zip(((ratios - args.pattern_max_error) * self.args.pattern_bins).astype(np.int64),
-            #                           ((ratios + args.pattern_max_error) * self.args.pattern_bins).astype(np.int64))]
 
             all_codes = itertools.product(*hash_code_space)
             pattern_check_count = 0
@@ -406,27 +404,27 @@ class StarSolver():
                 for match_row in matches:
                     pattern_check_count += 1 
                     total_check_count += 1
-                    if not over_total_count and total_check_count > 100000:
-                        over_total_count = True
-                        print("Oh no! Over total count and rising...")
-                        return
+                    # if not over_total_count and total_check_count > 100000:
+                    #     over_total_count = True
+                    #     print("Oh no! Over total count and rising...")
+                    #     return
 
-                    if pattern_check_count > 100:
-                        print("Oh no! Over pattern count and rising...")
-                        break
+                    # if pattern_check_count > 100:
+                    #     print("Oh no! Over pattern count and rising...")
+                    #     break
 
                     cat_vectors = self.star_table[match_row]
 
                     if self.args.use_star_centroid:
                         cat_edges = self._get_edges_centroid(cat_vectors)
                         cat_angles = self._get_angles_centroid(cat_vectors)
-                        # Hack for now. Change to catalog parameter
-                        edge_norm = np.sin(np.radians(8.0) / 2)
+                        edge_norm = np.sin(self.stel.vfov / 2)
+                        angle_norm = 1
                     else:
                         cat_edges = self._get_edges(cat_vectors)
                         cat_angles = self._get_angles(cat_vectors)
-                        # Hack for now. Change to catalog parameter
-                        edge_norm = 2 * np.sin(np.radians(8.0) / 2)
+                        edge_norm = 2 * np.sin(self.stel.vfov / 2)
+                        angle_norm = self.stel.vfov
 
                     if self.args.use_max_norm:
                         cat_eratios = cat_edges[:-1] / cat_edges[-1]
@@ -434,7 +432,7 @@ class StarSolver():
                     else:
                         cat_eratios = cat_edges / edge_norm
                         #cat_aratios = cat_angles / self.stel.vfov
-                        cat_aratios = cat_angles
+                        cat_aratios = cat_angles / angle_norm
 
                     cat_ratios = np.concatenate([cat_eratios, cat_aratios])
 
@@ -478,16 +476,36 @@ class StarSolver():
                     cat_vectors = self._sort_vectors(cat_vectors)
                     C_opt, q_opt = quest(pattern_vectors.T, cat_vectors.T)
                     rot_vec_error = rotation_vector_from_matrices(self.stel.T_cam_to_j2000, C_opt)
-                    centroid_vectors = self.pix_to_vec(centroids, K_inv)
-                    centroid_inertial_vectors = C_opt @ centroid_vectors
-                    boresight_vector = C_opt[0, :]
-                    # TODO: Might need to be a little higher than diagonal FOV depending on distortion
-                    catalog_inertial_vectors = self._get_nearby_stars(boresight_vector, self.stel.dfov)
-                    self.get_closest_points(catalog_inertial_vectors, centroid_inertial_vectors)
 
                     rv_deg = np.degrees(rot_vec_error)
-                    rv_as = rv_deg * 3600
-                    rv_mas = 1000 * rv_as
+                    if (np.linalg.norm(rv_deg) > 0.1):
+                        continue
+
+                    T_j2000_to_bore = C_opt
+                    T_bore_to_j2000 = np.linalg.pinv(T_j2000_to_bore)
+                    # TODO: Don't understand why boresight vector is z aris of bore to j2000. Could be because camera axes flipped
+                    boresight_vector = T_bore_to_j2000[:, 2]
+                    if (np.dot(boresight_vector, self.stel.vec_j2000) < np.cos(np.radians(0.1))):
+                        continue
+
+                    # Temp
+                    # centroid_vectors = pattern_vectors
+                    # catalog_inertial_vectors = cat_vectors
+
+                    centroid_vectors = self.pix_to_vec(centroids, K_inv)
+                    centroid_inertial_vectors = (T_bore_to_j2000 @ centroid_vectors.T).T
+                    # TODO: Might need to be a little higher than diagonal FOV depending on distortion
+                    meas_idx, cat_idx= self.get_closest_points(centroid_inertial_vectors)
+
+                    if any(np.isnan(cat_idx)) or any(np.isnan(meas_idx)):
+                        continue
+                    # Now rerun quest with larger number of matching vectors
+                    C_opt, q_opt = quest(centroid_vectors[meas_idx].T, catalog_inertial_vectors[cat_idx].T)
+                    rot_vec_error_refined = rotation_vector_from_matrices(self.stel.T_cam_to_j2000, C_opt)
+
+                    rv_deg_refined = np.degrees(rot_vec_error_refined)
+                    rv_as_refined = rv_deg_refined * 3600
+                    rv_mas_refined = 1000 * rv_as_refined
 
                     if (np.linalg.norm(rv_deg) < 0.1):
                         dt = time() - self.t1
@@ -541,7 +559,8 @@ class StarSolver():
 
 
     def solver_pipeline(self):
-        image_files = glob(os.path.join(self.stel.image_path, self.args.image_pattern)) 
+        # image_files = sorted(glob(os.path.join(self.stel.image_path, self.args.image_pattern)))
+        image_files = glob(os.path.join(self.stel.image_path, self.args.image_pattern))
         self.times = np.zeros(len(image_files)) * np.nan
         self.hash_checks = np.zeros(len(image_files)) * np.nan
         self.star_checks = np.zeros(len(image_files)) * np.nan

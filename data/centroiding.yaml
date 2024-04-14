@@ -29,8 +29,14 @@ poi_min_size: 5
 reject_saturation: false
 centroid_size: 7
 gauss_offset: 5
-separation_threshold: 8 # This should match catalog
+separation_threshold: 8  # This should match catalog
 add_noise: false
+integral_min: 100
+max_sigma: 7
+noise_level: 10
+max_residual: 100
+max_chi_squared: 100
+max_uncertainty: 100
 seed: 1337
 
 # Display Parameters

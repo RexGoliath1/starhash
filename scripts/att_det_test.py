@@ -107,6 +107,7 @@ def single_sample(method, vectors, rotation, angle_noise_magnitude):
 
     dt = time() - t1
     angle_error = rotation_angle(rotation_matrix, C_opt)
+    # assert(np.sum(C_opt @ vb_noisy - vi) < 0.1)
     return angle_error, dt
 
 def print_errors(method, config, angle_errors, dt):
@@ -185,7 +186,8 @@ def pipeline():
         "fov" : 25.0,
         "width" : 720,
         "vectors" : 4, # 4 vectors (4 minimum)
-        "angle_noise_magnitude" : np.radians(0.1),
+        "angle_noise_magnitude" : np.radians(0.0),
+        # "angle_noise_magnitude" : np.radians(0.1),
         "samples" : 100000,
         "stars" : 1000
     }

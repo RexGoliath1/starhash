@@ -21,9 +21,9 @@ catalog:
   # Output catalog pattern size
   pattern_size: 4
   # Constraint on pattern stars per FOV
-  pattern_stars_per_fov: 10  # 10
+  pattern_stars_per_fov: 20  # 10
   # Constraint on catalog / validation stars per FOV
-  catalog_stars_per_fov: 20  # 20
+  catalog_stars_per_fov: 40  # 20
   # Min Constraint on magnitude
   min_magnitude_thresh: 8.0
   # Max Constraint on magnitude
@@ -38,17 +38,17 @@ catalog:
   # Temporary hash map number of bins
   intermediate_star_bins: 10
   # Temporary hash map number of bins
-  pattern_bins: 50  # 25
+  pattern_bins: 25
   # Size multiple of catalog pattern (lower collisions, costs memory)
-  catalog_size_multiple: 2
+  catalog_size_multiple: 1
   # Use angles for hash (better matches, large memory usage, large quadprobe)
-  use_angles: true
+  use_angles: true  # true
   # Normalize Edge / Angle Patterns by largest
   max_measured_norm: false
   # Quadprobe maximum (impractical check limit per pattern in FSW)
-  quadprobe_max: 10000
+  quadprobe_max: 1000
   # Star Centroid based technique
-  use_star_centroid: true
+  use_star_centroid: false
   # Stored prime numbers of reasonable catalog size
   primes: [2, 3, 5, 11, 17, 37, 67, 131, 257, 521, 1031, 2053, 4099, 8209,
            16411, 32771, 65537, 131101, 262147, 524309, 1048583, 2097169,
