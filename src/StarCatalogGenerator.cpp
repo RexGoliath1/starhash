@@ -15,7 +15,7 @@ StarCatalogGenerator::StarCatalogGenerator() {
 
   // Config dependant variables
   num_pattern_angles = (pattern_size * (pattern_size - 1)) / 2;
-  max_angle = max_fov; // TODO: When changing to ISA normalize by 180 instead if still relevant. Or better don't use true angle, just dot product
+  max_angle = max_fov;
 
 
   if (use_star_centroid) {
@@ -133,7 +133,6 @@ void StarCatalogGenerator::read_yaml(fs::path config_path) {
 }
 
 bool StarCatalogGenerator::load_pattern_catalog() {
-  // TODO: Load from HDF5 and put into star_table and pattern_catalog
   // TODO: Need to save off parameter?
   // TODO: Should the catalog be loading the initial camera parameters?
   // Probably not, but maybe have separate set of catalog parameters as some
@@ -214,7 +213,6 @@ bool StarCatalogGenerator::read_input_catalog() {
   // Perform resizing of large matricies here
   input_catalog_data = temp_catalog(idx, Eigen::indexing::all);
   proper_motion_data.resize(total_catalog_stars, 3);
-  bcrf_frame.resize(total_catalog_stars, 3);
 
   std::printf("Catalog contains %u bright stars out of %u\n", rcnt, catalog_rows);
   std::printf("Number above min magnitude threshold (Mag >= %f) %u \n", min_magnitude_thresh, min_mag_dropped);
@@ -287,11 +285,10 @@ void StarCatalogGenerator::sort_star_columns(column col) {
 
 void StarCatalogGenerator::init_bcrf() {
   // Initialize BCRF (Barycentric Celestial Reference System) aka observer position relative to sun
+  // TODO: Move unit tests into gtest (BCRF, PM)
   if (ut_pm) {
     bcrf_position << -0.18428431, 0.88477935, 0.383819; // Earth J2000
   }
-  // TODO: Don't be dumb with memory and just use matrix vector multiply
-  bcrf_frame = bcrf_position.replicate<catalog_rows, 1>();
 }
 
 double angleBetweenVectors(const Eigen::Vector3d &a, const Eigen::Vector3d &b) {
@@ -302,13 +299,8 @@ double angleBetweenVectors(const Eigen::Vector3d &a, const Eigen::Vector3d &b) {
 }
 
 void StarCatalogGenerator::correct_proper_motion() {
-  // TODO: Make sure this is appropriate for other catalogs (UCAC4, Tycho, Gaia,
-  // etc)
-  // TODO: Determine numpy vs eigen 7th decimal place differences in this math
+  // TODO: Make sure this is appropriate for other catalogs (UCAC4, Tycho, Gaia, etc)
   assert(input_catalog_data.rows() > input_catalog_data.cols());
-
-  // TODO: Move this unit test and use gtest
-  // Unit Test to check PM Calculation is within bounds for J2000
 
   int ra_row = RA_J2000;
   int de_row = DE_J2000;

@@ -160,7 +160,6 @@ private:
   // @brief Observer position relative to Barycentric Celestial Reference System
   // (get_earth_ssb.py)
   Eigen::RowVector3d bcrf_position;
-  Eigen::MatrixXd bcrf_frame;
 
   // Array of prime numbers to use for catalog sizing
   std::vector<uint64_t> primes;

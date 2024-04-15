@@ -116,7 +116,7 @@ class StarSolver():
 
     def _init_tree(self):
         self.catalog_vector_tree = cKDTree(self.star_table)
-        self.cost_matrix = np.full((self.args.max_tree_measured_length, self.args.max_tree_catalog_length), np.inf)
+        self.cost_matrix = np.full((self.args.max_tree_measured_length, self.star_table.shape[0]), np.inf)
 
     def _pattern_generator(self, centroids, pattern_size):
         """Iterate over centroids in order of brightness."""
@@ -325,6 +325,7 @@ class StarSolver():
         sub_measured = measured[:measured_count, :]
         original_meas_indices = np.arange(measured.shape[0])
         sub_cost_matrix = self.cost_matrix[:measured_count, :]
+        sub_cost_matrix.fill(max_cost)
 
         # TODO: Make this resilient to double matches (hungarian needs constraint on already matched vectors)
         idx = self.catalog_vector_tree.query_ball_point(sub_measured, r=euclidean_thresh, p=2)
@@ -383,8 +384,8 @@ class StarSolver():
                 ratios = eratios
 
             hash_code_space = [range(max(low, 0), min(high+1, args.pattern_bins)) for (low, high)
-                in zip(((ratios - args.pattern_max_error) * args.pattern_bins).astype(int),
-                       ((ratios + args.pattern_max_error) * args.pattern_bins).astype(int))]
+                in zip(((ratios - args.hash_search_error) * args.pattern_bins).astype(int),
+                       ((ratios + args.hash_search_error) * args.pattern_bins).astype(int))]
 
             all_codes = itertools.product(*hash_code_space)
             pattern_check_count = 0
@@ -404,14 +405,14 @@ class StarSolver():
                 for match_row in matches:
                     pattern_check_count += 1 
                     total_check_count += 1
-                    # if not over_total_count and total_check_count > 100000:
-                    #     over_total_count = True
-                    #     print("Oh no! Over total count and rising...")
-                    #     return
+                    if not over_total_count and total_check_count > 10000:
+                        over_total_count = True
+                        print("Oh no! Over total count and rising...")
+                        return False
 
-                    # if pattern_check_count > 100:
-                    #     print("Oh no! Over pattern count and rising...")
-                    #     break
+                    if pattern_check_count > 1000:
+                        print("Pattern count rising... Moving onto other stars")
+                        break
 
                     cat_vectors = self.star_table[match_row]
 
@@ -440,6 +441,9 @@ class StarSolver():
                     #     print("Skipping for now...")
 
                     if (np.any(np.abs(cat_eratios - eratios) > args.pattern_max_error)):
+                        continue
+
+                    if (np.any(np.abs(cat_ratios - ratios) > args.pattern_max_error)):
                         continue
 
                     # Projection optimization that minimizes edge errors
@@ -478,14 +482,14 @@ class StarSolver():
                     rot_vec_error = rotation_vector_from_matrices(self.stel.T_cam_to_j2000, C_opt)
 
                     rv_deg = np.degrees(rot_vec_error)
-                    if (np.linalg.norm(rv_deg) > 0.1):
+                    if (np.linalg.norm(rv_deg) > 0.2):
                         continue
 
                     T_j2000_to_bore = C_opt
                     T_bore_to_j2000 = np.linalg.pinv(T_j2000_to_bore)
                     # TODO: Don't understand why boresight vector is z aris of bore to j2000. Could be because camera axes flipped
                     boresight_vector = T_bore_to_j2000[:, 2]
-                    if (np.dot(boresight_vector, self.stel.vec_j2000) < np.cos(np.radians(0.1))):
+                    if (np.dot(boresight_vector, self.stel.vec_j2000) < np.cos(np.radians(0.2))):
                         continue
 
                     # Temp
@@ -499,15 +503,16 @@ class StarSolver():
 
                     if any(np.isnan(cat_idx)) or any(np.isnan(meas_idx)):
                         continue
+
                     # Now rerun quest with larger number of matching vectors
-                    C_opt, q_opt = quest(centroid_vectors[meas_idx].T, catalog_inertial_vectors[cat_idx].T)
+                    C_opt, q_opt = quest(centroid_vectors[meas_idx].T, self.star_table[cat_idx].T)
                     rot_vec_error_refined = rotation_vector_from_matrices(self.stel.T_cam_to_j2000, C_opt)
 
-                    rv_deg_refined = np.degrees(rot_vec_error_refined)
-                    rv_as_refined = rv_deg_refined * 3600
-                    rv_mas_refined = 1000 * rv_as_refined
+                    rv_deg = np.degrees(rot_vec_error_refined)
+                    rv_as = rv_deg * 3600
+                    rv_mas = 1000 * rv_as
 
-                    if (np.linalg.norm(rv_deg) < 0.1):
+                    if (np.linalg.norm(rv_deg) < 0.2):
                         dt = time() - self.t1
                         self.times[self.image_number] = dt
                         self.hash_checks[self.image_number] = total_check_count
@@ -519,7 +524,8 @@ class StarSolver():
                         print(f"rv_mag_as: {np.linalg.norm(rv_as):.2f} rot_vec_error: {rv_as} (Arc-Seconds)")
                         print(f"rv_mag_deg: {np.linalg.norm(rv_deg):.2f} rot_vec_error: {rv_deg} (Degrees)")
                         print(f"TODO: Star Error Statistics")
-                        return
+                        return True
+        return False
 
     def output_plots(self):
         """ Various Stats Plots of Solver """
@@ -559,8 +565,7 @@ class StarSolver():
 
 
     def solver_pipeline(self):
-        # image_files = sorted(glob(os.path.join(self.stel.image_path, self.args.image_pattern)))
-        image_files = glob(os.path.join(self.stel.image_path, self.args.image_pattern))
+        image_files = sorted(glob(os.path.join(self.stel.image_path, self.args.image_pattern)))
         self.times = np.zeros(len(image_files)) * np.nan
         self.hash_checks = np.zeros(len(image_files)) * np.nan
         self.star_checks = np.zeros(len(image_files)) * np.nan

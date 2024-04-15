@@ -124,11 +124,12 @@ class Stellarium():
     def __init__(self, config):
         self.debug_stel = 0
         self.j2000 = 0
+        self.dec_steps = 0
         self.dec_start = 0
         self.dec_end = 0
+        self.ra_steps = 0
         self.ra_start = 0
         self.ra_end = 0
-        self.num_steps = 0
         self.url_main = ""
         self.url_status = ""
         self.url_do_action = ""
@@ -215,12 +216,10 @@ class Stellarium():
         else:
             # Stellarium seems to trim some bits, reset boresight ra/dec here?
             # Doesn't seem to help
-            # bore = response.json()
+            bore = response.json()
             # [sx, sy, sz] = ast.literal_eval(bore["j2000"])
             # self.dec = np.arcsin(sz)
             # self.ra = np.arctan2(sy, sx)
-
-            pass # TODO: Turn back on in some form
 
     def get_actions(self):
         # Get a list of available action IDs:
@@ -484,7 +483,10 @@ class Stellarium():
         self.set_property('StelCore.currentProjectionType', 'ProjectionPerspective')
 
         # Set minimum magnitude based on camera. Approximate, reference GIANT for validation sim
-        magnitude_limit = 7.0 + 5 * np.log10(100 * self.aperture)
+        if hasattr(self, "min_magnitude_thresh"):
+            magnitude_limit = self.min_magnitude_thresh
+        else:
+            magnitude_limit = 7.0 + 5 * np.log10(100 * self.aperture)
         self.set_property("StelSkyDrawer.customStarMagLimit", f"{magnitude_limit:.1f}")
         self.set_property("StelSkyDrawer.customPlanetMagLimit", f"{magnitude_limit:.1f}")
         self.set_property("StelSkyDrawer.customNebulaMagLimit", f"{magnitude_limit:.1f}")
@@ -547,12 +549,25 @@ class Stellarium():
     def get_extrinsic(self):
         """ Get Intrinsic + Extrinsic Transformation matrix """
         # Assuming equatorial mount reduces roll to zero ...
-        self.r_j2000_to_bore = Rotation.from_euler('ZYX', [-self.ra, self.dec, 0.0], degrees=False)
-        #self.r_bore_to_camera = Rotation.from_euler('zyx', [-90.0, 0.0, -90.0], degrees=True)
+        #self.r_j2000_to_bore = Rotation.from_euler('zy', [-self.ra, self.dec], degrees=False)
+        #self.r_j2000_to_bore = Rotation.from_euler('ZY', [-self.ra, self.dec], degrees=False)
+        # I don't know why, but this seems right
+        #self.r_bore_to_camera = Rotation.from_euler('zyx', [90.0, 0.0, 90.0], degrees=True)
+        # self.r_bore_to_camera = Rotation.from_euler('XZ', [90.0, 90.0], degrees=True)
+        # self.r =  self.r_bore_to_camera * self.r_j2000_to_bore
+
+        # This was mostly right
+        # self.r_j2000_to_bore = Rotation.from_euler('zyx', [-self.ra, self.dec, 0.0], degrees=False)
+        # self.r_bore_to_camera = Rotation.from_euler('zyx', [90.0, 0.0, 90.0], degrees=True)
+        # self.r =  self.r_bore_to_camera * self.r_j2000_to_bore
+
+        #self.r_j2000_to_bore = Rotation.from_euler('yz', [self.dec, -self.ra], degrees=False)
+        self.r_j2000_to_bore = Rotation.from_euler('zy', [-self.ra, self.dec], degrees=False)
         self.r_bore_to_camera = Rotation.from_euler('zyx', [90.0, 0.0, 90.0], degrees=True)
-        #self.r = self.r_j2000_to_bore * self.r_bore_to_camera
         self.r =  self.r_bore_to_camera * self.r_j2000_to_bore
+
         #self.R = np.matmul(r_j2000_to_bore.as_matrix(), r_bore_to_camera.as_matrix())
+        #self.R = self.r_j2000_to_bore.as_matrix() @ self.r_bore_to_camera.as_matrix()
         self.R = self.r.as_matrix()
         t = np.array([[0, 0, 0]])
         #self.R = np.linalg.inv(self.R)
@@ -662,17 +677,25 @@ class Stellarium():
         # Now, loop through requested RA/DEC. This is the center of the boresight on EQ mount.
         # TODO: Check: EQ Mount aligned with earth rotation, thus no roll and dec/ra corresponds to pitch/yaw
         # Meaning, if we know RA/DEC we can get RPY -> Extrinsic Matrix -> Star pixel positions
-        dec = np.linspace(self.dec_start, self.dec_end, self.num_steps)
-        ra = np.linspace(self.ra_start, self.ra_end, self.num_steps)
-        time.sleep(3.0)
+        if self.dec_start == self.dec_end:
+            dec = np.array([self.dec_start], np.double)
+        else:
+            dec = np.linspace(self.dec_start, self.dec_end, self.dec_steps)
 
-        for ii in range(0, self.num_steps):
-            self.dec = dec[ii]
-            self.ra = ra[ii]
+        if self.ra_start == self.ra_end:
+            ra = np.array([self.ra_start], np.double)
+        else:
+            ra = np.linspace(self.ra_start, self.ra_end, self.ra_steps)
+
+        time.sleep(3.0)
+        for ii, (dec_value, ra_value) in enumerate(itertools.product(dec, ra)):
+            self.dec = dec_value
+            self.ra = ra_value
             self.j2000 = self.j2000_to_xyz(self.ra, self.dec)
             j2000_str = np.array2string(self.j2000, separator=',')
 
             self.set_boresight(j2000_str=j2000_str)
+            self.j2000 = self.j2000_to_xyz(self.ra, self.dec)
             # Wait, neccessary for rendering
             time.sleep(self.delay_sec)
 

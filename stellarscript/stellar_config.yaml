@@ -31,40 +31,33 @@ height: 1536
 
 # Stellarium Time Settings
 gregorian_date: "2024-02-03 12:00:00.000"
+# gregorian_date: "2001-01-01 12:00:00.000"
 # gregorian_date: "1991-04-02 03:56:23.317"
 timerate: 0.0
 
 # Stellarium Location Settings
-latitude: 0.0 # 90.0
+latitude: 0.0  # 90.0
 longitude: 0.0
 altitude: 1000.0
 
-# Starting and ending RA and DEC
-
-# Point Straight
-# dec_start: 0.0
-# ra_start: 0.0
-# dec_end: 0.0
-# ra_end: 0.0
-
 # Slew Right
-dec_start: 0.0
-# #ra_start: -1.5707963267948966
-ra_start: 0.0
-dec_end: 0.0
-ra_end: 1.5707963267948966
+ra_steps: 100
+ra_start: -3.14
+ra_end: 3.14
+# ra_start: -3.141592653589793
+# ra_end: 3.141592653589793
 
-# Slew Up
-# dec_start: 0.0
-# ra_start: 0.0
-# dec_end: 1.5707963267948966
-# ra_end: 0.0
+dec_steps: 100
+dec_start: -1.5
+dec_end: 1.5
+# dec_start: 1.5707963267948966
+# dec_end: -1.5707963267948966
 
 delay_sec: 0.01
-num_steps: 100
+# delay_sec: 1.0
 
 # Min Constraint on magnitude
-min_magnitude_thresh: 7.5
+min_magnitude_thresh: 9.0
 # Max Constraint on magnitude
 max_magnitude_thresh: 0.0
 

@@ -75,7 +75,10 @@ class StellarUtils():
             self.K_inv = np.linalg.inv(self.K)
             assert (np.sum(np.linalg.inv(self.K_inv) - self.K) < 1e-12)
             self.T_cam_to_j2000 = self.E[:,:3]
-            truth_stars = jl["stars"]
+            if "stars" in jl.keys():
+                truth_stars = jl["stars"]
+            else:
+                return True
 
         num_stars = len(truth_stars.keys())
         star_names = list(truth_stars.keys())
