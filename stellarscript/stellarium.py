@@ -335,7 +335,6 @@ class Stellarium():
             (ra, dec) = (data["raJ2000"] * DEG2RAD, data["decJ2000"] * DEG2RAD)
             [x, y, z] = self.j2000_to_xyz(ra, dec)
             x_w = np.array([[x, y, z, 1]])
-            # I think this might be it?
             x_c = np.matmul(self.E, x_w.T)
             x_p = np.matmul(self.K, x_c)
             uv = (x_p / x_p[2][0])[:-1]
@@ -548,30 +547,29 @@ class Stellarium():
 
     def get_extrinsic(self):
         """ Get Intrinsic + Extrinsic Transformation matrix """
-        # Assuming equatorial mount reduces roll to zero ...
-        #self.r_j2000_to_bore = Rotation.from_euler('zy', [-self.ra, self.dec], degrees=False)
-        #self.r_j2000_to_bore = Rotation.from_euler('ZY', [-self.ra, self.dec], degrees=False)
-        # I don't know why, but this seems right
-        #self.r_bore_to_camera = Rotation.from_euler('zyx', [90.0, 0.0, 90.0], degrees=True)
-        # self.r_bore_to_camera = Rotation.from_euler('XZ', [90.0, 90.0], degrees=True)
-        # self.r =  self.r_bore_to_camera * self.r_j2000_to_bore
-
         # This was mostly right
         # self.r_j2000_to_bore = Rotation.from_euler('zyx', [-self.ra, self.dec, 0.0], degrees=False)
         # self.r_bore_to_camera = Rotation.from_euler('zyx', [90.0, 0.0, 90.0], degrees=True)
         # self.r =  self.r_bore_to_camera * self.r_j2000_to_bore
+        # self.R = self.r.as_matrix()
+        # t = np.array([[0, 0, 0]])
+        # self.E = np.concatenate((self.R, t.T), axis=1)
 
-        #self.r_j2000_to_bore = Rotation.from_euler('yz', [self.dec, -self.ra], degrees=False)
-        self.r_j2000_to_bore = Rotation.from_euler('zy', [-self.ra, self.dec], degrees=False)
-        self.r_bore_to_camera = Rotation.from_euler('zyx', [90.0, 0.0, 90.0], degrees=True)
-        self.r =  self.r_bore_to_camera * self.r_j2000_to_bore
-
-        #self.R = np.matmul(r_j2000_to_bore.as_matrix(), r_bore_to_camera.as_matrix())
-        #self.R = self.r_j2000_to_bore.as_matrix() @ self.r_bore_to_camera.as_matrix()
+        self.r_j2000_to_bore = Rotation.from_euler('ZY', [self.ra, -self.dec], degrees=False)
+        self.r_bore_to_camera = Rotation.from_euler('ZYX', [-90.0, 0.0, -90.0], degrees=True)
+        self.r = self.r_bore_to_camera.inv() * self.r_j2000_to_bore.inv()
         self.R = self.r.as_matrix()
         t = np.array([[0, 0, 0]])
-        #self.R = np.linalg.inv(self.R)
         self.E = np.concatenate((self.R, t.T), axis=1)
+
+
+        # What I think should be "right", but is not
+        # self.r_j2000_to_bore = Rotation.from_euler('ZY', [self.ra, -self.dec], degrees=False)
+        # self.r_bore_to_camera = Rotation.from_euler('ZYX', [-90.0, 0.0, -90.0], degrees=True)
+        # self.r =  self.r_bore_to_camera * self.r_j2000_to_bore
+        # self.R = self.r.as_matrix()
+        # t = np.array([[0, 0, 0]])
+        # self.E = np.concatenate((self.R, t.T), axis=1)
 
     def get_quaternions(self, coords):
         # Number of stars in frame

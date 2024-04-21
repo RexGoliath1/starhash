@@ -9,6 +9,7 @@ from glob import iglob
 import re
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from glob import glob
 
 DEBUG_PROP_CATALOG = True
 DEBUG_STELLAR_COORDS = True
@@ -194,4 +195,14 @@ for image in sorted(iglob(os.path.join(IMAGE_OUTPUT_DIRECTORY, "stellarium*.png"
         plt.imshow(img)
         plt.savefig(os.path.join(OVERLAY_OUTPUT_DIRECTORY, image_name), bbox_inches='tight')
         plt.close()
+
+            output_file = os.path.join(OVERLAY_OUTPUT_DIRECTORY, image_name)
+
+    # Generate videos
+    input_images = os.path.join(IMAGE_OUTPUT_DIRECTORY, "stellarium-%d.png")
+    overlay_images = os.path.join(OVERLAY_OUTPUT_DIRECTORY, "stellarium-%d.png")
+    os.system(f"ffmpeg -f image2 -framerate 5 -i {input_images} -vcodec libx264 -crf 22 output.mp4")
+
+    overlay_images = os.path.join(OVERLAY_OUTPUT_DIRECTORY, "stellarium-%d.png")
+    os.system(f"ffmpeg -f image2 -framerate 5 -i {overlay_images} -vcodec libx264 -crf 22 overlay.mp4")
 

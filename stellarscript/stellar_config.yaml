@@ -24,10 +24,10 @@ fov: 8.0 # 44.2
 aperture: 0.0125 # 1.0
 # width: 6480
 # height: 4860
-# width: 1024
-# height: 768
-width: 2048
-height: 1536
+width: 1024
+height: 768
+# width: 2048
+# height: 1536
 
 # Stellarium Time Settings
 gregorian_date: "2024-02-03 12:00:00.000"
@@ -41,17 +41,24 @@ longitude: 0.0
 altitude: 1000.0
 
 # Slew Right
-ra_steps: 100
-ra_start: -3.14
-ra_end: 3.14
-# ra_start: -3.141592653589793
-# ra_end: 3.141592653589793
+ra_steps: 200
+# ra_start: -3.14
+# ra_end: 3.14
+ra_start: -3.141592653589793
+ra_end: 3.141592653589793
+# ra_start: -1.5707963267948966
+# ra_end: -1.5707963267948966
+# ra_end: 1.5707963267948966
 
-dec_steps: 100
-dec_start: -1.5
-dec_end: 1.5
+dec_steps: 200
+# dec_start: 1.5
+# dec_end: 1.5
+# dec_start: 0
+# dec_end: 1.5707963267948966
 # dec_start: 1.5707963267948966
-# dec_end: -1.5707963267948966
+# dec_end: 1.5707963267948966
+dec_start: 1.5
+dec_end: -1.5
 
 delay_sec: 0.01
 # delay_sec: 1.0
@@ -113,7 +120,7 @@ disabled_properties: [
     "StelSkyDrawer.flagStarTwinkle",
     # GUI Controls for debug
     "actionToggle_GuiHidden_Global",
-    "actionShow_Stars_Labels",
+    "actionShow_Stars_Labels",#
 ]
 
 enabled_properties: [
