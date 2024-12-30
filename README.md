@@ -3,6 +3,20 @@ This repository contains the star identification and attitude determination algo
 
 [TETRA: Star Identification with Hash Tables](https://digitalcommons.usu.edu/cgi/viewcontent.cgi?article=3655&context=smallsat)
 
+## Validation / Analysis
+
+Initial validation scripts to prove out propagation using Hipparcos / Gaia DR3 documentation taking RA/DEC and apprent motion with UT Time. Makes sure that angular space of catalog is correct:
+![catalog](images/animation.gif)
+
+Some amount of optimization of number of stars, database general size (Total number of stars, apparent magnitude limits, and angular distance limits) were attempted to get a 100Hz runtime star tracker to be possible. This runtime varies depending on the number of hash checks required for each pattern and if the pattern we are checking actually has returns. Future optimzation includes some sort of hashing function with low utilization and high density of patterns, and definitely needs some smarter way to look up patterns quickly. Another interesting idea is to apply this to satellite ephemeris to create an "artificial sky" with beacons similar to gps. 
+![runtime1](images/runtimes%201.png)
+
+As far as actual runtime is concerned, centroiding with a simple least squares of a 2d gaussian fit to a 5x5, 9x9 or other kernal seems reasonable for reducing the shear number of stars:
+![centroiding](images/blob_128.png)
+
+This keeps the density of first pass "lost in space" acquisition stars low, with very reasonable (< 1 pixel) centroid error low even under simulated motion:
+![all_centroids](images/centroids.gif)
+
 This paper builds on popular methods such as Triangle/Pyramid/ISA approaches by Mortari, Salmaan, and Christan. Paper is implemented in C by author and in Python by ESA. This method was used by Pedrotty and co for Seeker / R5 calibration alogirthm validation, but not flown (they used a classic triangle / K-vector method written by J. Christan's group). This repo implements this paper in C++ using the OpenCV, Eigen, and Ceres libraries. Catalog generation only currently.
 
 Purpose:
